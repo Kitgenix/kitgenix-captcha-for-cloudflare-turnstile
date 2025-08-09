@@ -1,0 +1,105 @@
+.cf-turnstile {
+  display: block;
+  text-align: left;
+}
+
+.cf-turnstile > div {
+  display: inline-block;
+}
+
+/* Loading spinner for Turnstile */
+.cf-turnstile .kitgenix-captcha-for-cloudflare-turnstile-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e0e7ef;
+  border-top: 3px solid #2563eb;
+  border-radius: 50%;
+  animation: kitgenix-captcha-for-cloudflare-turnstile-spin 1s linear infinite;
+  margin: 0 auto;
+}
+@keyframes kitgenix-captcha-for-cloudflare-turnstile-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Warning display for missing site key or errors */
+.kitgenix-captcha-for-cloudflare-turnstile-warning {
+  color: #b91c1c;
+  background-color: #fef2f2;
+  padding: 12px 18px;
+  border-left: 5px solid #ef4444;
+  margin: 12px 0;
+  font-weight: 600;
+  font-size: 15px;
+  border-radius: 5px;
+  box-shadow: 0 1px 4px rgba(239,68,68,0.07);
+}
+
+/* Disabled submit button state */
+.kitgenix-captcha-for-cloudflare-turnstile-disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  pointer-events: none;
+  background: #f3f4f6 !important;
+  color: #888 !important;
+}
+
+/* Focus style for accessibility */
+.kitgenix-captcha-for-cloudflare-turnstile-disabled:focus, .cf-turnstile:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Visually hidden text for screen readers (for spinner) */
+.kitgenix-captcha-for-cloudflare-turnstile-spinner .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  border: 0;
+}
+
+/* Dark mode support for warning */
+@media (prefers-color-scheme: dark) {
+  .kitgenix-captcha-for-cloudflare-turnstile-warning {
+    color: #faad3f;
+    background-color: #1e293b;
+    border-left-color: #ef4444;
+    box-shadow: 0 1px 4px rgba(239,68,68,0.13);
+  }
+}
+
+/* Focus-visible for buttons/inputs */
+button:focus-visible, input[type=submit]:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Responsive spacing for small screens */
+@media (max-width: 480px) {
+  .cf-turnstile {
+    margin: 12px 0;
+    min-height: 56px;
+  }
+  .kitgenix-captcha-for-cloudflare-turnstile-warning {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+}
+
+/* Ensure form spacing looks good */
+form .cf-turnstile:last-child {
+  margin-bottom: 24px;
+}
+
+.gform_footer.top_label {
+  display: block !important;
+}
+.kitgenix-turnstile-wrap, .cf-turnstile {
+  display: block !important;
+  width: 100%;
+  margin-bottom: 0.5em;
+}

@@ -1,0 +1,486 @@
+msgid ""
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Kitgenix CAPTCHA for Cloudflare Turnstile"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Cloudflare Turnstile"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "View Plugin Documentation"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Consider Leaving Us a Review"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Get Support"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Buy us a coffee"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Cloudflare Turnstile Site Key & Secret Key"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Theme"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Auto"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Light"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Dark"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Widget Size"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Normal"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Small"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Medium"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Large"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Appearance Mode"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Always"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Interaction Only"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Language"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Auto (Detect)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "English"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Español (Spanish)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Français (French)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Deutsch (German)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Italiano (Italian)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Português (Portuguese)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Русский (Russian)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "简体中文 (Chinese Simplified)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "繁體中文 (Chinese Traditional)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "日本語 (Japanese)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "한국어 (Korean)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "العربية (Arabic)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Türkçe (Turkish)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Polski (Polish)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Nederlands (Dutch)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Svenska (Swedish)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Suomi (Finnish)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Dansk (Danish)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Norsk (Norwegian)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Čeština (Czech)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Magyar (Hungarian)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Ελληνικά (Greek)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "עברית (Hebrew)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Українська (Ukrainian)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Română (Romanian)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Български (Bulgarian)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Bahasa Indonesia"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "ไทย (Thai)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Tiếng Việt (Vietnamese)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Defer Turnstile Script"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Disable Submit Button"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Custom Error Message"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "This message is displayed if the form is submitted without completing the Turnstile challenge. Leave blank to use the default localized message: “Please verify that you are human.”"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Extra Failure Message"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "This message appears below the Turnstile widget when a user receives a “Failure!” response. It’s helpful for providing additional guidance in the rare event that a valid user is mistakenly flagged as spam."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Whitelist Settings"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Skip for Logged-in Users"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "When enabled, users who are logged in to your site will be exempt from the Turnstile challenge."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "IP Address Whitelist"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "User Agent Whitelist"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "WordPress Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable for WordPress Core Forms"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable Turnstile on WordPress login, registration, password reset, and comment forms. (Select exact forms separately below.)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Login Form"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Registration Form"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Password Reset Form"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Comments Form"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "WooCommerce Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable for WooCommerce Forms"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable Turnstile on WooCommerce checkout, login, registration, and password reset forms. (Select exact forms separately below.)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Checkout Form"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable Turnstile on WooCommerce checkout form."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable Turnstile on WooCommerce login form."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable Turnstile on WooCommerce registration form."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable Turnstile on WooCommerce password reset form."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Elementor Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable for Elementor Forms"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable Turnstile on all Elementor forms and popups."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "WPForms Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable for WPForms"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable Turnstile on all WPForms forms."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Fluent Forms Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable for Fluent Forms"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable Turnstile on all Fluent Forms forms."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Gravity Forms Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable for Gravity Forms"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable Turnstile on all Gravity Forms forms."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Formidable Forms Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable for Formidable Forms"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable Turnstile on all Formidable Forms forms."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Contact Form 7 Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable for Contact Form 7"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable Turnstile on all Contact Form 7 forms.."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Forminator Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable for Forminator Forms"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable Turnstile on all Forminator forms."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Jetpack Forms Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable for Jetpack Forms"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable Turnstile on all Jetpack Forms."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Kadence Forms Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable for Kadence Forms"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Enable Turnstile on all Kadence Forms (Kadence Blocks)."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Support Active Development"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php
+msgid "Save Settings"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php
+msgid "Please complete the Turnstile challenge."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php
+msgid "Please verify that you are human."
+msgstr ""
+
+#: includes/integrations/ecommerce/class-woocommerce.php
+msgid "Cloudflare Turnstile site key is missing. Please configure it in plugin settings."
+msgstr ""
+
+#: includes/integrations/forms/wpforms.php
+msgid "Cloudflare Turnstile site key is missing. Please configure it in plugin settings."
+msgstr ""
+
+#: includes/integrations/page-builder/class-elementor.php
+msgid "Turnstile site key is missing."
+msgstr ""
+
+#: includes/integrations/wordpress/class-wp-core.php
+msgid "Cloudflare Turnstile site key is missing. Please configure it in plugin settings."
+msgstr ""
+
+#: includes/integrations/forms/fluent-forms.php
+msgid "Security check failed. Please refresh and try again."
+msgstr ""
+
+#: includes/admin/class-onboarding.php
+msgid "Welcome to Kitgenix CAPTCHA for Cloudflare Turnstile"
+msgstr ""
+
+#: includes/admin/class-onboarding.php
+msgid "Thank you for installing Kitgenix CAPTCHA for Cloudflare Turnstile! You’re now protected from spam bots with a modern, privacy-friendly solution powered by Cloudflare."
+msgstr ""
+
+#: includes/admin/class-onboarding.php
+msgid "Getting Started"
+msgstr ""
+
+#: includes/admin/class-onboarding.php
+msgid "Go to <strong>Settings → Cloudflare Turnstile</strong> and enter your Site Key & Secret Key."
+msgstr ""
+
+#: includes/admin/class-onboarding.php
+msgid "Enable Turnstile protection for WordPress, WooCommerce, or Elementor forms."
+msgstr ""
+
+#: includes/admin/class-onboarding.php
+msgid "Customize the appearance and behavior to match your site."
+msgstr ""
+
+#: includes/admin/class-onboarding.php
+msgid "Useful Links"
+msgstr ""
+
+#: includes/admin/class-onboarding.php
+msgid "Go to Settings"
+msgstr ""
+
+#: includes/admin/class-onboarding.php
+msgid "Cloudflare Dashboard"
+msgstr ""

@@ -1,0 +1,230 @@
+/* =====================================================
+   Kitgenix CAPTCHA for Cloudflare Turnstile Admin Styles
+   ===================================================== */
+
+:root {
+    --jt-bg-color: #fff;
+    --jt-border-color: #e5e7eb;
+    --jt-tab-bg: #f1f5f9;
+    --jt-tab-bg-hover: #e2e8f0;
+    --jt-tab-bg-active: #fff;
+    --jt-tab-font-weight: 500;
+    --jt-padding: 24px;
+    --jt-transition: 0.3s cubic-bezier(.4,0,.2,1);
+    --jt-border-radius: 10px;
+    --jt-text-color: #23282d;
+    --jt-font-family: 'Segoe UI', 'Arial', sans-serif;
+    --jt-box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    --jt-hover-color: #f48120;
+    --jt-accent: #f48120;
+    --jt-accent-secondary: #faad3f;
+    --jt-spacing: 18px;
+    --jt-spacing-lg: 32px;
+    --jt-spacing-sm: 10px;
+}
+
+body {
+    font-family: var(--jt-font-family);
+    background: #f8fafc;
+}
+
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app {
+    width: 98.5%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+}
+
+.just-turnstile-wrap,
+.kitgenix-captcha-for-cloudflare-turnstile-card {
+    width: 100%;
+    margin-top: 32px;
+    margin-bottom: 32px;
+    border-radius: var(--jt-border-radius);
+    background: #fff;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.07), 0 1.5px 4px rgba(0,0,0,0.03);
+    border: 1.5px solid var(--jt-border-color);
+    padding-bottom: 24px;
+    text-align: left;
+    transition: box-shadow 0.2s, border-color 0.2s;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-card:hover {
+    box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+    border-color: #d1d5db;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-card h2 {
+    padding: 16px 32px 0 32px;
+    font-size: 1.35em;
+    font-weight: 800;
+    margin: 0;
+    color: #1a202c;
+    margin-bottom: 2px;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-settings-intro {
+    background: linear-gradient(90deg, #f9fafb 80%, #fff7ed 100%);
+    border: 1px solid #e0e4ea;
+    border-left: 4px solid var(--jt-accent);
+    border-radius: var(--jt-border-radius);
+    margin: 24px 0 0 0;
+    padding: 22px 32px 16px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-settings-intro h2, .kitgenix-captcha-for-cloudflare-turnstile-settings-intro h1 {
+    font-size: 2.1em;
+    font-weight: 800;
+    color: #1a202c;
+    margin-bottom: 4px;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-settings-intro p {
+    font-size: 1em;
+    font-weight: 400;
+    color: #374151;
+    line-height: 1.5;
+    margin: 0 0 6px;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-settings-intro a {
+    font-size: 0.95em;
+    font-weight: 600;
+    color: var(--jt-accent);
+    margin-right: 16px;
+    text-decoration: none;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-settings-intro a:hover {
+    color: #f48120;
+    text-decoration: underline;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-section-content {
+    padding: 16px 32px 0 32px;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-section-content input[type="text"],
+.kitgenix-captcha-for-cloudflare-turnstile-section-content textarea,
+.kitgenix-captcha-for-cloudflare-turnstile-section-content select {
+    font-size: 1.05em;
+    padding: 10px 14px;
+    border-radius: var(--jt-border-radius);
+    border: 1.5px solid #e0e4ea;
+    background: #fff;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+    min-height: 38px;
+    width: 100%;
+    max-width: 480px;
+    box-sizing: border-box;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-section-content textarea {
+    min-width: 100%;
+    max-width: 480px;
+    min-height: 70px;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-section-content select {
+    min-width: 100%;
+    max-width: 480px;
+}
+
+/* Header */
+.kitgenix-captcha-for-cloudflare-turnstile-settings-intro {
+    background: linear-gradient(90deg, #f9fafb 80%, #fff7ed 100%);
+    border: 1px solid #e0e4ea;
+    border-left: 4px solid var(--jt-accent);
+    border-radius: var(--jt-border-radius);
+    margin: 24px 0 0 0;
+    padding: 22px 32px 16px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-settings-intro h2, .kitgenix-captcha-for-cloudflare-turnstile-settings-intro h1 {
+    font-size: 2.1em;
+    font-weight: 800;
+    color: #1a202c;
+    margin-bottom: 4px;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-settings-intro p {
+    font-size: 1em;
+    font-weight: 400;
+    color: #374151;
+    line-height: 1.5;
+    margin: 0 0 6px;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-settings-intro a {
+    font-size: 0.95em;
+    font-weight: 600;
+    color: var(--jt-accent);
+    margin-right: 16px;
+    text-decoration: none;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-settings-intro a:hover {
+    color: #f48120;
+    text-decoration: underline;
+}
+
+/* Buttons */
+.kitgenix-captcha-for-cloudflare-turnstile-save-row {
+    margin-top: 36px;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-save-row .button-primary {
+    font-size: 0.98em;
+    padding: 7px 18px;
+    border-radius: var(--jt-border-radius);
+    background: linear-gradient(90deg, var(--jt-accent) 0%, var(--jt-accent-secondary) 100%);
+    border: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-save-row .button-primary:hover {
+    background: linear-gradient(90deg, var(--jt-accent-secondary) 0%, var(--jt-accent) 100%);
+    transform: translateY(-2px) scale(1.03);
+}
+
+/* Left-align the Turnstile widget in the settings page */
+#kitgenix-captcha-for-cloudflare-turnstile-test-widget {
+    margin-left: 0 !important;
+    text-align: left !important;
+    display: block;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .kitgenix-captcha-for-cloudflare-turnstile-card, .kitgenix-captcha-for-cloudflare-turnstile-section-content, .kitgenix-captcha-for-cloudflare-turnstile-settings-intro {
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+    }
+    .kitgenix-captcha-for-cloudflare-turnstile-card h2 {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+}
+@media (max-width: 600px) {
+    .kitgenix-captcha-for-cloudflare-turnstile-card, .kitgenix-captcha-for-cloudflare-turnstile-section-content, .kitgenix-captcha-for-cloudflare-turnstile-settings-intro {
+        padding-left: 2vw !important;
+        padding-right: 2vw !important;
+    }
+}
