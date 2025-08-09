@@ -33,15 +33,6 @@ KitgenixCaptchaForCloudflareTurnstile\Admin\Admin_Options::init();
 require_once KitgenixCaptchaForCloudflareTurnstileINCLUDES_PATH . 'admin/class-settings-ui.php';
 KitgenixCaptchaForCloudflareTurnstile\Admin\Settings_UI::init();
 
-// Load plugin textdomain for translations
-add_action('plugins_loaded', function () {
-    load_plugin_textdomain(
-        'kitgenix-captcha-for-cloudflare-turnstile',
-        false,
-        dirname(plugin_basename(__FILE__)) . '/languages'
-    );
-});
-
 // Initialize Plugin
 add_action('plugins_loaded', 'kitgenix_captcha_for_cloudflare_turnstile_init_plugin');
 function kitgenix_captcha_for_cloudflare_turnstile_init_plugin() {
