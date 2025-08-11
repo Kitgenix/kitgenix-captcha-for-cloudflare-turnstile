@@ -23,26 +23,38 @@ class Script_Handler {
     public static function enqueue_public_assets() {
         $settings = self::get_settings();
 
-        // Turnstile script URL
-        $url = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-        if (!empty($settings['language']) && $settings['language'] !== 'auto') {
-            $url .= '&hl=' . \esc_attr($settings['language']);
+        // Register Cloudflare Turnstile with async (WP 6.3+ supports array $args).
+        $url = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=KGX_TurnstileOnLoad';
+        if ( ! empty( $settings['language'] ) && 'auto' !== $settings['language'] ) {
+            $url .= '&hl=' . \esc_attr( $settings['language'] );
         }
         // Allow filtering of the Turnstile script URL
-        $url = \apply_filters('kitgenix_captcha_for_cloudflare_turnstile_script_url', $url, $settings);
+        $url = \apply_filters( 'kitgenix_captcha_for_cloudflare_turnstile_script_url', $url, $settings );
 
-        // Use null for version to prevent WordPress from appending ?ver=...
-        \wp_enqueue_script('kitgenix-captcha-for-cloudflare-turnstile', $url, [], null, true);
+        // Define the onload callback for Turnstile
+        \wp_add_inline_script(
+            'kitgenix-captcha-for-cloudflare-turnstile',
+            'window.KGX_TurnstileOnLoad = function() { try { if (window.KitgenixCaptchaForCloudflareTurnstile && typeof window.KitgenixCaptchaForCloudflareTurnstile.renderWidgets === "function") { window.KitgenixCaptchaForCloudflareTurnstile.renderWidgets(); } } catch(e) { if(window.console) console.error(e); } };',
+            'before'
+        );
 
-        // Defer Turnstile script if enabled
-        if (!empty($settings['defer_scripts'])) {
-            \add_filter('script_loader_tag', function ($tag, $handle) {
-                if ('kitgenix-captcha-for-cloudflare-turnstile' === $handle) {
-                    // Use async instead of defer for Turnstile script
-                    $tag = str_replace(' src', ' async src', $tag);
-                }
-                return $tag;
-            }, 10, 2);
+        // Use array args on WP 6.3+; fall back to boolean 'in_footer' on older WP.
+        $args = \version_compare( \get_bloginfo( 'version' ), '6.3', '>=' )
+            ? [ 'in_footer' => true, 'strategy' => 'async' ]
+            : true;
+
+        \wp_register_script(
+            'kitgenix-captcha-for-cloudflare-turnstile',
+            $url,
+            [],
+            null,
+            $args
+        );
+        \wp_enqueue_script( 'kitgenix-captcha-for-cloudflare-turnstile' );
+
+        // On WP < 6.3 but >= 5.7, add async via the official helper.
+        if ( \version_compare( \get_bloginfo( 'version' ), '6.3', '<' ) && \version_compare( \get_bloginfo( 'version' ), '5.7', '>=' ) ) {
+            \wp_script_add_data( 'kitgenix-captcha-for-cloudflare-turnstile', 'async', true );
         }
 
         // Load frontend JS/CSS
@@ -51,6 +63,7 @@ class Script_Handler {
 
         // Output config as inline script before public.js
         $config = [
+            'site_key'       => $settings['site_key'] ?? '',
             'disable_submit' => !empty($settings['disable_submit']),
             'appearance'     => $settings['appearance'] ?? 'always',
             'size'           => $settings['widget_size'] ?? 'normal',
