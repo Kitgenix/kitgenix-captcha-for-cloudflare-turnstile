@@ -4,54 +4,122 @@ namespace KitgenixCaptchaForCloudflareTurnstile\Integrations\Forms;
 
 use KitgenixCaptchaForCloudflareTurnstile\Core\Whitelist;
 use KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Validator;
-use function add_action;
-use function add_filter;
-use function get_option;
-use function esc_attr;
-use function esc_html__;
-use function wp_nonce_field;
-use function sanitize_text_field;
-use function wp_remote_post;
-use function is_wp_error;
-use function wp_remote_retrieve_body;
-use function apply_filters;
 
 defined('ABSPATH') || exit;
 
+use function add_action;
+use function add_filter;
+use function esc_attr;
+use function get_option;
+use function sanitize_text_field;
+use function wp_nonce_field;
+use function wp_unslash;
+
 class FormidableForms {
     public static function init() {
-        if (!class_exists('FrmForm') || Whitelist::is_whitelisted()) {
+        if ( ! class_exists('FrmForm') || Whitelist::is_whitelisted() ) {
             return;
         }
+
         $settings = get_option('kitgenix_captcha_for_cloudflare_turnstile_settings', []);
-        if (empty($settings['enable_formidableforms'])) {
+        if ( empty($settings['enable_formidableforms']) ) {
             return;
         }
-        // Inject widget before submit button
+
+        // Inject widget before submit button.
         add_filter('frm_submit_button_html', [__CLASS__, 'inject_turnstile'], 10, 2);
-        // Validate on submit
+
+        // Validate on submit.
         add_action('frm_validate_entry', [__CLASS__, 'validate_turnstile'], 10, 3);
     }
 
+    /**
+     * Prepend Turnstile markup before the submit button.
+     * Adds nonce + hidden token field. Guarded per-form to avoid duplicates.
+     *
+     * @param string $button Submit button HTML (raw string from Formidable).
+     * @param array  $form   Form config array.
+     * @return string
+     */
     public static function inject_turnstile($button, $form) {
         $settings = get_option('kitgenix_captcha_for_cloudflare_turnstile_settings', []);
         $site_key = $settings['site_key'] ?? '';
-        if (!$site_key) return $button;
-        $widget = '';
-        if (function_exists('wp_nonce_field')) {
-            ob_start();
-            wp_nonce_field('kitgenix_captcha_for_cloudflare_turnstile_action', 'kitgenix_captcha_for_cloudflare_turnstile_nonce');
-            $widget .= ob_get_clean();
+        if ( ! $site_key ) {
+            return $button;
         }
-        $widget .= '<div class="cf-turnstile" data-sitekey="' . esc_attr($site_key) . '" data-theme="' . esc_attr($settings['theme'] ?? 'auto') . '" data-size="' . esc_attr($settings['widget_size'] ?? 'normal') . '" data-appearance="' . esc_attr($settings['appearance'] ?? 'always') . '"></div>';
+
+        $form_id = isset($form['id']) ? (int) $form['id'] : 0;
+
+        // Guard: avoid duplicate injection per form.
+        static $rendered_for = [];
+        if ( $form_id && isset($rendered_for[$form_id]) ) {
+            return $button;
+        }
+        if ( $form_id ) {
+            $rendered_for[$form_id] = true;
+        }
+
+        ob_start();
+
+        // Our nonce for Turnstile_Validator::is_valid_submission().
+        if ( function_exists('wp_nonce_field') ) {
+            wp_nonce_field(
+                'kitgenix_captcha_for_cloudflare_turnstile_action',
+                'kitgenix_captcha_for_cloudflare_turnstile_nonce'
+            );
+        }
+
+        // Hidden token input; populated by public JS once the challenge is solved.
+        echo '<input type="hidden" name="cf-turnstile-response" value="" />';
+
+        // Turnstile container; rendered by the global public script.
+        echo '<div class="cf-turnstile"'
+           . ' data-sitekey="'    . esc_attr($site_key) . '"'
+           . ' data-theme="'      . esc_attr($settings['theme']       ?? 'auto') . '"'
+           . ' data-size="'       . esc_attr($settings['widget_size'] ?? 'normal') . '"'
+           . ' data-appearance="' . esc_attr($settings['appearance']  ?? 'always') . '"'
+           . ' data-kitgenix-captcha-for-cloudflare-turnstile-owner="formidable"></div>';
+
+        $widget = ob_get_clean();
+
+        // Return widget + original button markup verbatim.
         return $widget . $button;
     }
 
+    /**
+     * Validate Turnstile on submit.
+     *
+     * @param array $errors   Collects validation errors.
+     * @param array $values   Submitted values.
+     * @param int   $form_id  Form ID.
+     * @return array
+     */
     public static function validate_turnstile($errors, $values, $form_id) {
-        if (!Turnstile_Validator::is_valid_submission()) {
+        // Validate only on POST.
+        if ( self::request_method() !== 'POST' ) {
+            return $errors;
+        }
+
+        if ( ! is_array($errors) ) {
+            $errors = [];
+        }
+
+        if ( ! Turnstile_Validator::is_valid_submission() ) {
+            // Top-level form error so Formidable displays it prominently.
             $errors['form'] = Turnstile_Validator::get_error_message('formidableforms');
         }
+
         return $errors;
+    }
+
+    /**
+     * Sanitize request method (PHPCS-friendly access to $_SERVER).
+     */
+    private static function request_method(): string {
+        $method = isset($_SERVER['REQUEST_METHOD'])
+            ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) )
+            : '';
+        return strtoupper( $method ?: 'GET' );
     }
 }
 

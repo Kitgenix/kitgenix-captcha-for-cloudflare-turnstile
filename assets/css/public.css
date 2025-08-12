@@ -1,87 +1,272 @@
-.cf-turnstile {
-  display: block;
-  text-align: left;
-}
+/**
+ * Kitgenix CAPTCHA for Cloudflare Turnstile — Public CSS
+ *
+ * GUIDE
+ * - These styles render the Cloudflare Turnstile widget wherever the plugin injects
+ *   it (front-end forms you enable in Settings → Cloudflare Turnstile):
+ *   • WordPress core forms (comments; login/register/lost password are handled by
+ *     a tiny alignment stylesheet enqueued on wp-login by PHP).
+ *   • WooCommerce forms (checkout/login/register/lost password).
+ *   • Elementor / WPForms / Fluent Forms / Gravity / Formidable / Forminator / Jetpack / Kadence.
+ * - We avoid invasive resets and !important so theme styles still shine.
+ * - Dark mode, reduced motion, and high-contrast are respected.
+ */
 
-.cf-turnstile > div {
-  display: inline-block;
+/* -----------------------------------------------------------
+   Design tokens (tweakable; keep conservative defaults)
+----------------------------------------------------------- */
+:root {
+  --kt-accent:        #2563eb; /* blue-600 */
+  --kt-accent-weak:   #93c5fd; /* blue-300 */
+  --kt-danger:        #ef4444; /* red-500 */
+  --kt-danger-bg:     #fef2f2; /* red-50 */
+  --kt-warn:          #f59e0b; /* amber-500 */
+  --kt-warn-bg:       #fff7ed; /* amber-50 */
+  --kt-muted:         #6b7280; /* gray-500 */
+  --kt-muted-bg:      #f3f4f6; /* gray-100 */
+  --kt-border:        #e5e7eb; /* gray-200 */
+  --kt-shadow:        0 1px 2px rgba(0,0,0,.06), 0 1px 6px rgba(0,0,0,.04);
 }
-
-/* Loading spinner for Turnstile */
-.cf-turnstile .kitgenix-captcha-for-cloudflare-turnstile-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid #e0e7ef;
-  border-top: 3px solid #2563eb;
-  border-radius: 50%;
-  animation: kitgenix-captcha-for-cloudflare-turnstile-spin 1s linear infinite;
-  margin: 0 auto;
-}
-@keyframes kitgenix-captcha-for-cloudflare-turnstile-spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Warning display for missing site key or errors */
-.kitgenix-captcha-for-cloudflare-turnstile-warning {
-  color: #b91c1c;
-  background-color: #fef2f2;
-  padding: 12px 18px;
-  border-left: 5px solid #ef4444;
-  margin: 12px 0;
-  font-weight: 600;
-  font-size: 15px;
-  border-radius: 5px;
-  box-shadow: 0 1px 4px rgba(239,68,68,0.07);
-}
-
-/* Disabled submit button state */
-.kitgenix-captcha-for-cloudflare-turnstile-disabled {
-  opacity: 0.5 !important;
-  cursor: not-allowed !important;
-  pointer-events: none;
-  background: #f3f4f6 !important;
-  color: #888 !important;
-}
-
-/* Focus style for accessibility */
-.kitgenix-captcha-for-cloudflare-turnstile-disabled:focus, .cf-turnstile:focus {
-  outline: 2px solid #2563eb;
-  outline-offset: 2px;
-}
-
-/* Visually hidden text for screen readers (for spinner) */
-.kitgenix-captcha-for-cloudflare-turnstile-spinner .sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0,0,0,0);
-  border: 0;
-}
-
-/* Dark mode support for warning */
 @media (prefers-color-scheme: dark) {
-  .kitgenix-captcha-for-cloudflare-turnstile-warning {
-    color: #faad3f;
-    background-color: #1e293b;
-    border-left-color: #ef4444;
-    box-shadow: 0 1px 4px rgba(239,68,68,0.13);
+  :root {
+    --kt-accent:      #60a5fa; /* blue-400 */
+    --kt-accent-weak: #3b82f6; /* blue-500 */
+    --kt-danger:      #f87171;
+    --kt-danger-bg:   #1e293b; /* slate-800 */
+    --kt-warn:        #f59e0b;
+    --kt-warn-bg:     #1f2937; /* gray-800 */
+    --kt-muted:       #9ca3af;
+    --kt-muted-bg:    #111827; /* gray-900 */
+    --kt-border:      #334155; /* slate-700 */
+    --kt-shadow:      0 1px 2px rgba(0,0,0,.35), 0 1px 6px rgba(0,0,0,.25);
   }
 }
 
-/* Focus-visible for buttons/inputs */
-button:focus-visible, input[type=submit]:focus-visible {
-  outline: 2px solid #2563eb;
-  outline-offset: 2px;
+/* -----------------------------------------------------------
+   Base container
+   Where: every form we inject into
+----------------------------------------------------------- */
+.cf-turnstile {
+  display: block;
+  text-align: left;               /* don’t force centering globally */
+  line-height: 0;                 /* remove extra whitespace around iframe */
+  max-width: 100%;
+  min-height: 56px;               /* prevent layout shift before render */
+  margin: 10px 0 14px;            /* tasteful breathing room */
 }
 
-/* Responsive spacing for small screens */
+.cf-turnstile > div {
+  display: inline-block;          /* Turnstile's iframe wrapper */
+}
+
+/* Optional “card” feel without boxing themes in */
+.cf-turnstile[data-appearance="interaction-only"] {
+  border-radius: 8px;
+  box-shadow: var(--kt-shadow);
+  padding: 6px;
+  background: transparent;
+}
+
+/* -----------------------------------------------------------
+   Loading spinner
+   Where: placeholder inside the container before API loads
+----------------------------------------------------------- */
+.cf-turnstile .kitgenix-captcha-for-cloudflare-turnstile-spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid #e0e7ef;
+  border-top: 3px solid var(--kt-accent);
+  border-radius: 50%;
+  animation: kitgenix-turnstile-spin 1s linear infinite;
+  margin: 6px auto;
+}
+@keyframes kitgenix-turnstile-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .cf-turnstile .kitgenix-captcha-for-cloudflare-turnstile-spinner {
+    animation: none;
+  }
+}
+
+/* Screen-reader helper (spinner) */
+.kitgenix-captcha-for-cloudflare-turnstile-spinner .sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0);
+  border: 0;
+}
+
+/* -----------------------------------------------------------
+   Disabled submit state (added by JS until token present)
+   Where: any form submit button we manage
+----------------------------------------------------------- */
+.kitgenix-captcha-for-cloudflare-turnstile-disabled {
+  opacity: .55;
+  filter: grayscale(20%);
+  cursor: not-allowed;
+  pointer-events: none;
+  background: var(--kt-muted-bg);
+  color: var(--kt-muted);
+  transition: opacity .18s ease;
+}
+
+/* -----------------------------------------------------------
+   Focus & accessibility
+   Where: widget box and submit controls
+----------------------------------------------------------- */
+.kitgenix-captcha-for-cloudflare-turnstile-disabled:focus,
+.cf-turnstile:focus {
+  outline: 3px solid var(--kt-accent);
+  outline-offset: 2px;
+}
+button:focus-visible,
+input[type=submit]:focus-visible {
+  outline: 3px solid var(--kt-accent);
+  outline-offset: 3px;
+}
+
+/* High-contrast (Windows/UA forced colors) */
+@media (forced-colors: active) {
+  .kitgenix-captcha-for-cloudflare-turnstile-disabled {
+    filter: none;
+    opacity: 1;
+    border: 1px solid ButtonText;
+  }
+  .cf-turnstile:focus,
+  button:focus-visible,
+  input[type=submit]:focus-visible {
+    outline: 2px solid Highlight;
+  }
+}
+
+/* -----------------------------------------------------------
+   Inline warnings / notices
+   Where: when we auto-reset an expired/idle widget (JS)
+----------------------------------------------------------- */
+.kitgenix-captcha-for-cloudflare-turnstile-ts-inline-msg {
+  margin-top: 8px;
+  color: #b91c1c;
+  background: var(--kt-danger-bg);
+  padding: 8px 12px;
+  border-left: 4px solid var(--kt-danger);
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.kitgenix-captcha-for-cloudflare-turnstile-ts-inline-msg.kitgenix-captcha-for-cloudflare-turnstile-type-expired {
+  border-left-color: var(--kt-warn);
+  background: var(--kt-warn-bg);
+  color: #b45309;
+}
+.kitgenix-captcha-for-cloudflare-turnstile-ts-inline-msg.kitgenix-captcha-for-cloudflare-turnstile-type-error {
+  border-left-color: var(--kt-danger);
+}
+@media (prefers-color-scheme: dark) {
+  .kitgenix-captcha-for-cloudflare-turnstile-ts-inline-msg {
+    background: var(--kt-danger-bg);
+    color: #faad3f;
+  }
+}
+
+/* Dev note (only visible to admins in Dev Mode) */
+.kitgenix-captcha-for-cloudflare-turnstile-dev-note {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #92400e;
+  background: var(--kt-warn-bg);
+  border-left: 3px solid var(--kt-warn);
+  padding: 6px 10px;
+  border-radius: 4px;
+}
+@media (prefers-color-scheme: dark) {
+  .kitgenix-captcha-for-cloudflare-turnstile-dev-note {
+    color: var(--kt-warn);
+  }
+}
+
+/* Legacy inline replay message (kept for back-compat) */
+.kitgenix-captcha-for-cloudflare-turnstile-inline-msg.kitgenix-captcha-for-cloudflare-turnstile-replay {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #b45309;
+  background: var(--kt-warn-bg);
+  border-left: 4px solid var(--kt-warn);
+  padding: 8px 10px;
+  border-radius: 4px;
+}
+@media (prefers-color-scheme: dark) {
+  .kitgenix-captcha-for-cloudflare-turnstile-inline-msg.kitgenix-captcha-for-cloudflare-turnstile-replay {
+    color: var(--kt-warn);
+  }
+}
+
+/* -----------------------------------------------------------
+   Gentle warnings (settings or missing keys)
+   Where: front-end notices we print via PHP
+----------------------------------------------------------- */
+.kitgenix-captcha-for-cloudflare-turnstile-warning {
+  color: #b91c1c;
+  background-color: var(--kt-danger-bg);
+  padding: 12px 18px;
+  border-left: 5px solid var(--kt-danger);
+  margin: 12px 0;
+  font-weight: 600;
+  font-size: 15px;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(239,68,68,0.08);
+}
+@media (prefers-color-scheme: dark) {
+  .kitgenix-captcha-for-cloudflare-turnstile-warning {
+    color: #faad3f;
+    box-shadow: 0 1px 6px rgba(0,0,0,.35);
+  }
+}
+
+/* -----------------------------------------------------------
+   Platform-specific spacing (light touch)
+   Where: integrations listed below
+----------------------------------------------------------- */
+form .cf-turnstile:last-child { margin-bottom: 24px; }
+
+/* Elementor: let the widget span full row cleanly */
+.elementor-form .cf-turnstile { display: block; }
+.elementor-field-group .cf-turnstile { grid-column: 1 / -1; }
+
+/* Contact Form 7 */
+.wpcf7 form .cf-turnstile { margin: 8px 0 12px; }
+
+/* WooCommerce checkout/login */
+.woocommerce form .cf-turnstile { margin: 8px 0 12px; }
+
+/* Jetpack / Forminator / Formidable / Gravity */
+.contact-form .cf-turnstile,
+.forminator-custom-form .cf-turnstile,
+.frm_form_fields .cf-turnstile,
+.gform_wrapper .cf-turnstile { margin: 8px 0 12px; }
+
+/* Kadence Blocks Forms */
+.kb-form .cf-turnstile { margin: 8px 0 12px; }
+
+/* Wrapper utility used by some integrations */
+.kitgenix-turnstile-wrap .cf-turnstile {
+  display: block;
+  width: 100%;
+  margin-bottom: .5em;
+}
+
+/* RTL: align to content start */
+.rtl .cf-turnstile { text-align: right; }
+
+/* -----------------------------------------------------------
+   Responsive refinements
+----------------------------------------------------------- */
 @media (max-width: 480px) {
   .cf-turnstile {
-    margin: 12px 0;
+    margin: 10px 0 14px;
     min-height: 56px;
   }
   .kitgenix-captcha-for-cloudflare-turnstile-warning {
@@ -90,16 +275,11 @@ button:focus-visible, input[type=submit]:focus-visible {
   }
 }
 
-/* Ensure form spacing looks good */
-form .cf-turnstile:last-child {
-  margin-bottom: 24px;
-}
-
-.gform_footer.top_label {
-  display: block !important;
-}
-.kitgenix-turnstile-wrap, .cf-turnstile {
-  display: block !important;
-  width: 100%;
-  margin-bottom: 0.5em;
+/* -----------------------------------------------------------
+   Print: don’t waste space on CAPTCHA areas
+----------------------------------------------------------- */
+@media print {
+  .cf-turnstile,
+  .kitgenix-captcha-for-cloudflare-turnstile-ts-inline-msg,
+  .kitgenix-captcha-for-cloudflare-turnstile-warning { display: none !important; }
 }

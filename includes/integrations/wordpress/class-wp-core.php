@@ -3,14 +3,16 @@ namespace KitgenixCaptchaForCloudflareTurnstile\Integrations\WordPress;
 
 use KitgenixCaptchaForCloudflareTurnstile\Core\Whitelist;
 use KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Validator;
-use function esc_html;
-use function esc_html__;
-use function esc_attr;
-use function wp_nonce_field;
-use function wp_die;
 use function add_action;
 use function add_filter;
+use function esc_attr;
+use function esc_html;
+use function esc_html__;
 use function get_option;
+use function sanitize_text_field;
+use function wp_die;
+use function wp_nonce_field;
+use function wp_unslash;
 use \WP_Error;
 
 defined('ABSPATH') || exit;
@@ -21,98 +23,175 @@ class WP_Core {
      * Initialize hooks.
      */
     public static function init() {
-        if (Whitelist::is_whitelisted()) {
+        if ( Whitelist::is_whitelisted() ) {
             return;
         }
 
-        // Add Turnstile widget
-        add_action('login_form', [__CLASS__, 'render_widget']);
-        add_action('register_form', [__CLASS__, 'render_widget']);
-        add_action('lostpassword_form', [__CLASS__, 'render_widget']);
-        add_action('comment_form_after_fields', [__CLASS__, 'render_widget']);
-        add_action('comment_form_logged_in_after', [__CLASS__, 'render_widget']);
+        $settings = get_option( 'kitgenix_captcha_for_cloudflare_turnstile_settings', [] );
 
-        // Validate submission
-        add_filter('authenticate', [__CLASS__, 'validate_login'], 30, 3);
-        add_filter('registration_errors', [__CLASS__, 'validate_generic'], 30, 3);
-        add_action('reset_password_post', [__CLASS__, 'validate_reset'], 5);
-        add_filter('preprocess_comment', [__CLASS__, 'validate_comment']);
+        // Add Turnstile widget (only for enabled core forms)
+        if ( ! empty( $settings['wp_login_form'] ) ) {
+            add_action( 'login_form', [ __CLASS__, 'render_widget' ] );
+        }
+        if ( ! empty( $settings['wp_register_form'] ) ) {
+            add_action( 'register_form', [ __CLASS__, 'render_widget' ] );
+        }
+        if ( ! empty( $settings['wp_lostpassword_form'] ) ) {
+            add_action( 'lostpassword_form', [ __CLASS__, 'render_widget' ] );
+            // Also output on the actual reset form
+            add_action( 'resetpass_form', [ __CLASS__, 'render_widget' ] );
+        }
+        if ( ! empty( $settings['wp_comments_form'] ) ) {
+            add_action( 'comment_form_after_fields',    [ __CLASS__, 'render_widget' ] );
+            add_action( 'comment_form_logged_in_after', [ __CLASS__, 'render_widget' ] );
+        }
+
+        // Validate submissions (POST-only, per context)
+        if ( ! empty( $settings['wp_login_form'] ) ) {
+            add_filter( 'authenticate', [ __CLASS__, 'validate_login' ], 30, 3 ); // login
+        }
+        if ( ! empty( $settings['wp_register_form'] ) ) {
+            add_filter( 'registration_errors', [ __CLASS__, 'validate_registration' ], 30, 3 ); // register
+        }
+        if ( ! empty( $settings['wp_lostpassword_form'] ) ) {
+            add_action( 'lostpassword_post',       [ __CLASS__, 'validate_lostpassword' ], 10, 2 ); // lost password
+            add_action( 'validate_password_reset', [ __CLASS__, 'validate_reset' ],        10, 2 ); // reset password
+        }
+        if ( ! empty( $settings['wp_comments_form'] ) ) {
+            add_filter( 'preprocess_comment', [ __CLASS__, 'validate_comment' ] ); // comments
+        }
     }
 
     /**
      * Render the Turnstile widget HTML.
+     * NOTE: Inline styles are intentionally kept here to ensure centering on core forms.
      */
     public static function render_widget() {
-        $settings = get_option('kitgenix_captcha_for_cloudflare_turnstile_settings', []);
+        $settings = get_option( 'kitgenix_captcha_for_cloudflare_turnstile_settings', [] );
         $site_key = $settings['site_key'] ?? '';
 
-        if (!$site_key) {
-            echo '<p class="kitgenix-captcha-for-cloudflare-turnstile-warning">' . esc_html__( 'Cloudflare Turnstile site key is missing. Please configure it in plugin settings.', 'kitgenix-captcha-for-cloudflare-turnstile' ) . '</p>';
+        if ( ! $site_key ) {
+            echo '<p class="kitgenix-captcha-for-cloudflare-turnstile-warning">'
+               . esc_html__( 'Cloudflare Turnstile site key is missing. Please configure it in plugin settings.', 'kitgenix-captcha-for-cloudflare-turnstile' )
+               . '</p>';
             return;
         }
 
-        // Add a nonce field for CSRF protection
-        wp_nonce_field('kitgenix_captcha_for_cloudflare_turnstile_action', 'kitgenix_captcha_for_cloudflare_turnstile_nonce');
+        // CSRF nonce for validator()
+        wp_nonce_field(
+            'kitgenix_captcha_for_cloudflare_turnstile_action',
+            'kitgenix_captcha_for_cloudflare_turnstile_nonce'
+        );
 
-        // Use current filter/action to determine context for unique ID
+        // Determine context for a unique id
         global $wp_current_filter;
         $context = 'login';
-        if (is_array($wp_current_filter)) {
-            foreach ($wp_current_filter as $filter) {
-                if (strpos($filter, 'register') !== false) {
-                    $context = 'register';
-                    break;
-                } elseif (strpos($filter, 'lostpassword') !== false) {
-                    $context = 'lostpassword';
-                    break;
-                } elseif (strpos($filter, 'comment') !== false) {
-                    $context = 'comment';
-                    break;
-                }
+        if ( is_array( $wp_current_filter ) ) {
+            foreach ( $wp_current_filter as $filter ) {
+                if ( strpos( $filter, 'register' ) !== false )     { $context = 'register';     break; }
+                if ( strpos( $filter, 'lostpassword' ) !== false ) { $context = 'lostpassword'; break; }
+                if ( strpos( $filter, 'resetpass' ) !== false )    { $context = 'resetpass';    break; }
+                if ( strpos( $filter, 'comment' ) !== false )      { $context = 'comment';      break; }
             }
         }
-        $unique_id = 'cf-turnstile-' . esc_attr($context);
+        $unique_id = 'cf-turnstile-' . $context;
 
-        // Always output the id attribute for the Turnstile div
-        echo '<div id="' . esc_attr($unique_id) . '" class="cf-turnstile" style="display: flex; justify-content: center;" data-sitekey="' . esc_attr($site_key) . '" data-theme="' . esc_attr($settings['theme'] ?? 'auto') . '" data-size="' . esc_attr($settings['widget_size'] ?? 'normal') . '" data-appearance="' . esc_attr($settings['appearance'] ?? 'always') . '"></div>';
+        // Keep inline centering style (as requested), but allow filters for future tweaks.
+        $inline_style = (string) apply_filters(
+            'kitgenix_turnstile_inline_style',
+            'display: flex; justify-content: center;',
+            $context
+        );
+
+        echo '<div id="' . esc_attr( $unique_id ) . '" class="cf-turnstile" style="' . esc_attr( $inline_style ) . '"'
+           . ' data-sitekey="'    . esc_attr( $site_key ) . '"'
+           . ' data-theme="'      . esc_attr( $settings['theme']       ?? 'auto' ) . '"'
+           . ' data-size="'       . esc_attr( $settings['widget_size'] ?? 'normal' ) . '"'
+           . ' data-appearance="' . esc_attr( $settings['appearance']  ?? 'always' ) . '"'
+           . '></div>';
     }
 
     /**
-     * Validate Turnstile on login.
+     * Validate Turnstile on login (POST + expected fields only).
      */
-    public static function validate_login($user, $username, $password) {
-        if (!Turnstile_Validator::is_valid_submission()) {
-            return new WP_Error('turnstile_failed', esc_html(Turnstile_Validator::get_error_message('wp_core')));
+    public static function validate_login( $user, $username, $password ) {
+        if ( self::request_method() !== 'POST' ) {
+            return $user;
+        }
+        // WordPress login form posts these fields.
+        if ( ! isset( $_POST['log'], $_POST['pwd'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+            return $user;
+        }
+        if ( ! Turnstile_Validator::is_valid_submission() ) {
+            return new WP_Error( 'turnstile_failed', esc_html( Turnstile_Validator::get_error_message( 'wp_core' ) ) );
         }
         return $user;
     }
 
     /**
-     * Validate on registration and lost password.
+     * Validate registration (POST only).
      */
-    public static function validate_generic($errors) {
-        if (!Turnstile_Validator::is_valid_submission()) {
-            $errors->add('turnstile_failed', esc_html(Turnstile_Validator::get_error_message('wp_core')));
+    public static function validate_registration( $errors, $sanitized_user_login, $user_email ) {
+        if ( self::request_method() !== 'POST' ) {
+            return $errors;
+        }
+        if ( ! Turnstile_Validator::is_valid_submission() ) {
+            $errors->add( 'turnstile_failed', esc_html( Turnstile_Validator::get_error_message( 'wp_core' ) ) );
         }
         return $errors;
     }
 
     /**
-     * Validate on password reset.
+     * Validate lost password (POST only).
+     * Hook: lostpassword_post( WP_Error $errors, WP_User|false $user_data )
      */
-    public static function validate_reset($user) {
-        if (!Turnstile_Validator::is_valid_submission()) {
-            wp_die(esc_html(Turnstile_Validator::get_error_message('wp_core')), 403);
+    public static function validate_lostpassword( $errors, $user_data ) {
+        if ( self::request_method() !== 'POST' ) {
+            return;
+        }
+        if ( ! Turnstile_Validator::is_valid_submission() ) {
+            $errors->add( 'turnstile_failed', esc_html( Turnstile_Validator::get_error_message( 'wp_core' ) ) );
         }
     }
 
     /**
-     * Validate comment form.
+     * Validate reset password (POST only).
+     * Hook: validate_password_reset( WP_Error $errors, WP_User|WP_Error $user )
      */
-    public static function validate_comment($commentdata) {
-        if (!Turnstile_Validator::is_valid_submission()) {
-            wp_die(esc_html(Turnstile_Validator::get_error_message('wp_core')), 403);
+    public static function validate_reset( $errors, $user ) {
+        if ( self::request_method() !== 'POST' ) {
+            return;
+        }
+        if ( ! Turnstile_Validator::is_valid_submission() ) {
+            $errors->add( 'turnstile_failed', esc_html( Turnstile_Validator::get_error_message( 'wp_core' ) ) );
+        }
+    }
+
+    /**
+     * Validate comment form (POST only).
+     */
+    public static function validate_comment( $commentdata ) {
+        if ( self::request_method() !== 'POST' ) {
+            return $commentdata;
+        }
+        if ( ! Turnstile_Validator::is_valid_submission() ) {
+            // Second wp_die() parameter is the TITLE.
+            wp_die(
+                esc_html( Turnstile_Validator::get_error_message( 'wp_core' ) ),
+                esc_html__( 'Comment submission blocked', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+                [ 'response' => 403, 'back_link' => true ]
+            );
         }
         return $commentdata;
+    }
+
+    /**
+     * Get sanitized request method (satisfies PHPCS about $_SERVER access).
+     */
+    private static function request_method(): string {
+        $method = isset($_SERVER['REQUEST_METHOD'])
+            ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) )
+            : '';
+        return strtoupper( $method ?: 'GET' );
     }
 }

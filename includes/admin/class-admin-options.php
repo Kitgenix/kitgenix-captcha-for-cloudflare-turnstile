@@ -13,111 +13,230 @@ class Admin_Options {
     /**
      * Initialize settings registration.
      */
-    public static function init() {
+    public static function init(): void {
         \add_action('admin_init', [__CLASS__, 'register_settings']);
     }
 
     /**
      * Register plugin settings using WordPress Settings API.
      */
-    public static function register_settings() {
-        \register_setting('kitgenix_captcha_for_cloudflare_turnstile_settings_group', self::OPTION_NAME, [
-            'type' => 'array',
-            'description' => \__('Kitgenix CAPTCHA for Cloudflare Turnstile Settings', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'sanitize_callback' => [__CLASS__, 'sanitize'],
-            'show_in_rest' => false,
-            'default' => [],
-        ]);
+    public static function register_settings(): void {
+        \register_setting(
+            'kitgenix_captcha_for_cloudflare_turnstile_settings_group',
+            self::OPTION_NAME,
+            [
+                'type'              => 'array',
+                'description'       => \__('Kitgenix CAPTCHA for Cloudflare Turnstile Settings', 'kitgenix-captcha-for-cloudflare-turnstile'),
+                'sanitize_callback' => [__CLASS__, 'sanitize'],
+                'show_in_rest'      => false,
+                'default'           => [],
+            ]
+        );
     }
 
     /**
      * Sanitize the settings before saving.
      *
-     * @param array $settings
-     * @return array
+     * @param array $settings Raw settings array from the form (may be slashed).
+     * @return array Clean settings to be stored.
      */
-    public static function sanitize($settings) {
-        // Nonce verification for CSRF protection
+    public static function sanitize($settings): array {
+        // Verify nonce (do not wipe options on failure)
         $nonce = '';
         if (isset($_POST['kitgenix_captcha_for_cloudflare_turnstile_settings_nonce'])) {
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce is being verified below
-            $nonce = \sanitize_text_field( \wp_unslash( $_POST['kitgenix_captcha_for_cloudflare_turnstile_settings_nonce'] ) );
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- we verify below
+            $nonce = \sanitize_text_field(\wp_unslash($_POST['kitgenix_captcha_for_cloudflare_turnstile_settings_nonce']));
         }
-        if (empty($nonce) || !function_exists('wp_verify_nonce') || !function_exists('get_option') || !\wp_verify_nonce($nonce, 'kitgenix_captcha_for_cloudflare_turnstile_settings_save')) {
-            // If nonce is invalid, return previous settings to avoid wiping options
-            if (function_exists('get_option')) {
-                return \get_option(self::OPTION_NAME, []);
-            } else {
-                return [];
-            }
+        if (empty($nonce) || !\function_exists('wp_verify_nonce') || !\wp_verify_nonce($nonce, 'kitgenix_captcha_for_cloudflare_turnstile_settings_save')) {
+            return \function_exists('get_option') ? (array) \get_option(self::OPTION_NAME, []) : [];
         }
-        $clean = [];
 
-        // Site Key & Secret
-        $clean['site_key'] = function_exists('sanitize_text_field') ? \sanitize_text_field($settings['site_key'] ?? '') : ($settings['site_key'] ?? '');
-        $clean['secret_key'] = function_exists('sanitize_text_field') ? \sanitize_text_field($settings['secret_key'] ?? '') : ($settings['secret_key'] ?? '');
+        $settings = \is_array($settings) ? $settings : [];
+        $clean    = [];
 
-        // Integrations toggles
-        $clean['enable_wordpress'] = !empty($settings['enable_wordpress']) ? 1 : 0;
-        $clean['enable_woocommerce'] = !empty($settings['enable_woocommerce']) ? 1 : 0;
-        $clean['enable_elementor'] = !empty($settings['enable_elementor']) ? 1 : 0;
-        $clean['enable_wpforms'] = !empty($settings['enable_wpforms']) ? 1 : 0;
-        $clean['enable_fluentforms'] = !empty($settings['enable_fluentforms']) ? 1 : 0;
-        $clean['enable_gravityforms'] = !empty($settings['enable_gravityforms']) ? 1 : 0;
-        $clean['enable_cf7'] = !empty($settings['enable_cf7']) ? 1 : 0;
+        // --- Site keys ---
+        $clean['site_key']   = \sanitize_text_field($settings['site_key']   ?? '');
+        $clean['secret_key'] = \sanitize_text_field($settings['secret_key'] ?? '');
+
+        // --- Master toggles (integrations) ---
+        $clean['enable_wordpress']       = !empty($settings['enable_wordpress']) ? 1 : 0;
+        $clean['enable_woocommerce']     = !empty($settings['enable_woocommerce']) ? 1 : 0;
+        $clean['enable_elementor']       = !empty($settings['enable_elementor']) ? 1 : 0;
+        $clean['enable_wpforms']         = !empty($settings['enable_wpforms']) ? 1 : 0;
+        $clean['enable_fluentforms']     = !empty($settings['enable_fluentforms']) ? 1 : 0;
+        $clean['enable_gravityforms']    = !empty($settings['enable_gravityforms']) ? 1 : 0;
+        $clean['enable_cf7']             = !empty($settings['enable_cf7']) ? 1 : 0;
         $clean['enable_formidableforms'] = !empty($settings['enable_formidableforms']) ? 1 : 0;
-        $clean['enable_forminator'] = !empty($settings['enable_forminator']) ? 1 : 0;
-        $clean['enable_jetpackforms'] = !empty($settings['enable_jetpackforms']) ? 1 : 0;
-        // Per-form toggles for WordPress
-        $clean['wp_login_form'] = !empty($settings['wp_login_form']) ? 1 : 0;
-        $clean['wp_register_form'] = !empty($settings['wp_register_form']) ? 1 : 0;
+        $clean['enable_forminator']      = !empty($settings['enable_forminator']) ? 1 : 0;
+        $clean['enable_jetpackforms']    = !empty($settings['enable_jetpackforms']) ? 1 : 0;
+        $clean['enable_kadenceforms']    = !empty($settings['enable_kadenceforms']) ? 1 : 0;
+
+        // --- Per-form toggles (WordPress Core) ---
+        $clean['wp_login_form']        = !empty($settings['wp_login_form']) ? 1 : 0;
+        $clean['wp_register_form']     = !empty($settings['wp_register_form']) ? 1 : 0;
         $clean['wp_lostpassword_form'] = !empty($settings['wp_lostpassword_form']) ? 1 : 0;
-        $clean['wp_comments_form'] = !empty($settings['wp_comments_form']) ? 1 : 0;
-        // Per-form toggles for WooCommerce
-        $clean['wc_checkout_form'] = !empty($settings['wc_checkout_form']) ? 1 : 0;
-        $clean['wc_login_form'] = !empty($settings['wc_login_form']) ? 1 : 0;
-        $clean['wc_register_form'] = !empty($settings['wc_register_form']) ? 1 : 0;
+        $clean['wp_comments_form']     = !empty($settings['wp_comments_form']) ? 1 : 0;
+
+        // --- Per-form toggles (WooCommerce) ---
+        $clean['wc_checkout_form']     = !empty($settings['wc_checkout_form']) ? 1 : 0;
+        $clean['wc_login_form']        = !empty($settings['wc_login_form']) ? 1 : 0;
+        $clean['wc_register_form']     = !empty($settings['wc_register_form']) ? 1 : 0;
         $clean['wc_lostpassword_form'] = !empty($settings['wc_lostpassword_form']) ? 1 : 0;
 
-        // Display Settings
-        $clean['theme'] = in_array($settings['theme'] ?? '', ['auto', 'light', 'dark'], true) ? $settings['theme'] : 'auto';
-        $clean['language'] = function_exists('sanitize_text_field') ? \sanitize_text_field($settings['language'] ?? 'auto') : ($settings['language'] ?? 'auto');
-        $clean['disable_submit'] = !empty($settings['disable_submit']);
-        $clean['widget_size'] = in_array($settings['widget_size'] ?? '', ['small', 'medium', 'large', 'normal'], true) ? $settings['widget_size'] : 'normal';
-        $clean['appearance'] = in_array($settings['appearance'] ?? '', ['always', 'interaction-only'], true) ? $settings['appearance'] : 'always';
-        $clean['defer_scripts'] = !empty($settings['defer_scripts']);
+        // --- Display settings ---
+        $theme = $settings['theme'] ?? 'auto';
+        $clean['theme'] = \in_array($theme, ['auto', 'light', 'dark'], true) ? $theme : 'auto';
 
-        // Messages
-        $clean['error_message'] = function_exists('sanitize_text_field') ? \sanitize_text_field($settings['error_message'] ?? '') : ($settings['error_message'] ?? '');
-        $clean['extra_message'] = function_exists('sanitize_text_field') ? \sanitize_text_field($settings['extra_message'] ?? '') : ($settings['extra_message'] ?? '');
+        $size = $settings['widget_size'] ?? 'normal';
+        $clean['widget_size'] = \in_array($size, ['small', 'medium', 'large', 'normal'], true) ? $size : 'normal';
 
-        // Whitelist
-        $clean['whitelist_loggedin'] = !empty($settings['whitelist_loggedin']);
-        // Sanitize IPs: only allow valid IPs, one per line
-        $ips = array_filter(array_map('trim', explode("\n", $settings['whitelist_ips'] ?? '')), function($ip) {
-            return filter_var($ip, FILTER_VALIDATE_IP);
-        });
-        $clean['whitelist_ips'] = implode("\n", $ips);
-        // Sanitize user agents: strip tags, trim, one per line
-        $uas = array_filter(array_map('trim', explode("\n", $settings['whitelist_user_agents'] ?? '')), function($ua) {
-            return !empty($ua);
-        });
-        $uas = array_map(function($ua) {
-            return function_exists('sanitize_text_field') ? \sanitize_text_field($ua) : $ua;
-        }, $uas);
-        $clean['whitelist_user_agents'] = implode("\n", $uas);
+        $appearance = $settings['appearance'] ?? 'always';
+        $clean['appearance'] = \in_array($appearance, ['always', 'interaction-only'], true) ? $appearance : 'always';
+
+        $allowed_langs = ['auto','en','es','fr','de','it','pt','ru','zh-CN','zh-TW','ja','ko','ar','tr','pl','nl','sv','fi','da','no','cs','hu','el','he','uk','ro','bg','id','th','vi'];
+        $lang = \sanitize_text_field($settings['language'] ?? 'auto');
+        $clean['language'] = \in_array($lang, $allowed_langs, true) ? $lang : 'auto';
+
+        $clean['disable_submit'] = !empty($settings['disable_submit']) ? 1 : 0;
+        $clean['defer_scripts']  = !empty($settings['defer_scripts']) ? 1 : 0;
+
+        // Replay protection: default ON unless explicitly disabled.
+        $clean['replay_protection'] = isset($settings['replay_protection'])
+            ? (!empty($settings['replay_protection']) ? 1 : 0)
+            : 1;
+
+        // Dev mode (warn-only)
+        $clean['dev_mode_warn_only'] = !empty($settings['dev_mode_warn_only']) ? 1 : 0;
+
+        // --- Messages ---
+        $clean['error_message'] = \sanitize_text_field($settings['error_message'] ?? '');
+        $clean['extra_message'] = \sanitize_text_field($settings['extra_message'] ?? '');
+
+        // --- Whitelist (logged-in + IPs + UAs) ---
+        $clean['whitelist_loggedin']      = !empty($settings['whitelist_loggedin']) ? 1 : 0;
+        $clean['whitelist_ips']           = self::sanitize_ip_patterns($settings['whitelist_ips'] ?? '');
+        $clean['whitelist_user_agents']   = self::sanitize_lines($settings['whitelist_user_agents'] ?? '');
+
+        // --- Legacy/compat flags (kept to support old imports/UI) ---
+        // Not used by core logic, but we persist if provided so exports round-trip cleanly.
+        $clean['respect_proxy_headers'] = !empty($settings['respect_proxy_headers']) ? 1 : 0;
+        $clean['trusted_proxy_ips']     = self::sanitize_ip_patterns($settings['trusted_proxy_ips'] ?? '');
+
+        // --- Proxy / Cloudflare trust (used by Client_IP) ---
+        $clean['trust_proxy'] = !empty($settings['trust_proxy']) ? 1 : 0;
+
+        // Prefer new key 'trusted_proxies'; if absent, fall back to legacy 'trusted_proxy_ips'
+        $trusted_input = $settings['trusted_proxies'] ?? ($settings['trusted_proxy_ips'] ?? '');
+        $clean['trusted_proxies'] = self::sanitize_trusted_proxies_block($trusted_input);
 
         return $clean;
+    }
+
+    /**
+     * Sanitize a textarea of IP patterns (one per line). We allow:
+     *  - exact IPv4/IPv6
+     *  - CIDR (v4/v6), e.g. 203.0.113.0/24 or 2001:db8::/32
+     *  - wildcards using * (v4/v6), e.g. 203.0.113.* or 2001:db8::*
+     */
+    private static function sanitize_ip_patterns(string $text): string {
+        $text  = (string) $text;
+        $lines = preg_split('/[\r\n,]+/', $text);
+        $out   = [];
+
+        foreach ($lines as $raw) {
+            $line = trim((string) $raw);
+            if ($line === '') {
+                continue;
+            }
+            // Keep wildcards/CIDR chars; sanitize to safe subset
+            $line = \wp_kses_post($line);
+            $line = preg_replace('~[^\w\.\:\*\/\-]+~u', '', (string) $line);
+            $line = trim((string) $line);
+            if ($line === '') {
+                continue;
+            }
+
+            // Basic sanity for CIDR suffix if present: "/0".."128" max (IPv6)
+            if (strpos($line, '/') !== false) {
+                [$addr, $bits] = array_pad(explode('/', $line, 2), 2, '');
+                $bits = trim($bits);
+                if ($bits === '' || !ctype_digit($bits)) {
+                    continue;
+                }
+                $bits = (int) $bits;
+                if ($bits < 0 || $bits > 128) {
+                    continue;
+                }
+                // Allow IPv4/IPv6 in $addr; we don't over-validate here.
+            }
+
+            $out[] = $line;
+        }
+
+        return implode("\n", array_unique($out));
+    }
+
+    /**
+     * Sanitize a textarea into clean lines (one per line).
+     */
+    private static function sanitize_lines(string $text): string {
+        $text  = (string) $text;
+        $lines = preg_split('/[\r\n]+/', $text);
+        $out   = [];
+        foreach ($lines as $raw) {
+            $line = trim((string) $raw);
+            if ($line === '') {
+                continue;
+            }
+            $out[] = \sanitize_text_field($line);
+        }
+        return implode("\n", array_unique($out));
+    }
+
+    /**
+     * Sanitize "trusted proxies" block (IPs or CIDRs, one per line).
+     */
+    private static function sanitize_trusted_proxies_block(string $text): string {
+        $text  = (string) $text;
+        $lines = array_map('trim', preg_split('/\r\n|\r|\n/', $text));
+        $out   = [];
+        foreach ($lines as $line) {
+            if ($line === '') { continue; }
+            if (strpos($line, '/') !== false) {
+                // CIDR
+                if (self::is_valid_cidr_format($line)) {
+                    $out[] = $line;
+                }
+            } else {
+                if (filter_var($line, FILTER_VALIDATE_IP)) {
+                    $out[] = $line;
+                }
+            }
+        }
+        return implode("\n", array_values(array_unique($out)));
     }
 
     /**
      * Retrieve plugin settings (safe fallback).
      */
     public static function get_settings(): array {
-        if (!function_exists('get_option')) {
+        if (!\function_exists('get_option')) {
             return [];
         }
         $settings = \get_option(self::OPTION_NAME, []);
-        return is_array($settings) ? $settings : [];
+        return \is_array($settings) ? $settings : [];
+    }
+
+    /**
+     * Validate a CIDR string (e.g. 192.168.0.0/24 or 2001:db8::/32).
+     */
+    private static function is_valid_cidr_format(string $cidr): bool {
+        $parts = explode('/', $cidr, 2);
+        if (count($parts) !== 2) { return false; }
+        [$subnet, $mask] = $parts;
+        if (!filter_var($subnet, FILTER_VALIDATE_IP)) { return false; }
+        $mask = (int) $mask;
+        $bits = strpos($subnet, ':') !== false ? 128 : 32;
+        return $mask >= 0 && $mask <= $bits;
     }
 }

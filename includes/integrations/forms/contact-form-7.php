@@ -4,56 +4,124 @@ namespace KitgenixCaptchaForCloudflareTurnstile\Integrations\Forms;
 
 use KitgenixCaptchaForCloudflareTurnstile\Core\Whitelist;
 use KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Validator;
-use function add_action;
-use function add_filter;
-use function get_option;
-use function esc_attr;
-use function esc_html__;
-use function wp_nonce_field;
-use function sanitize_text_field;
-use function wp_remote_post;
-use function is_wp_error;
-use function wp_remote_retrieve_body;
-use function apply_filters;
 
 defined('ABSPATH') || exit;
 
+use function add_action;
+use function add_filter;
+use function esc_attr;
+use function esc_html__;
+use function get_option;
+use function sanitize_text_field;
+use function wp_nonce_field;
+use function wp_unslash;
+
 class ContactForm7 {
+
     public static function init() {
-        if (!defined('WPCF7_VERSION') || Whitelist::is_whitelisted()) {
+        if ( ! defined('WPCF7_VERSION') || Whitelist::is_whitelisted() ) {
             return;
         }
         $settings = get_option('kitgenix_captcha_for_cloudflare_turnstile_settings', []);
-        if (empty($settings['enable_cf7'])) {
+        if ( empty($settings['enable_cf7']) ) {
             return;
         }
-        // Inject widget before submit button
+
+        // Inject widget before the submit control.
         add_filter('wpcf7_form_elements', [__CLASS__, 'inject_turnstile'], 20, 1);
-        // Validate on submit
-        add_action('wpcf7_validate', [__CLASS__, 'validate_turnstile'], 10, 2);
+
+        // Validate on submit (AJAX + non-AJAX).
+        add_filter('wpcf7_validate', [__CLASS__, 'validate_turnstile'], 10, 2);
     }
 
+    /**
+     * Insert hidden token + Turnstile container before the first submit control.
+     * Handles both <input type="submit"> and <button type="submit">.
+     *
+     * @param string $content Raw CF7 form HTML.
+     * @return string
+     */
     public static function inject_turnstile($content) {
         $settings = get_option('kitgenix_captcha_for_cloudflare_turnstile_settings', []);
         $site_key = $settings['site_key'] ?? '';
-        if (!$site_key) return $content;
-        $widget = '';
-        if (function_exists('wp_nonce_field')) {
-            ob_start();
-            wp_nonce_field('kitgenix_captcha_for_cloudflare_turnstile_action', 'kitgenix_captcha_for_cloudflare_turnstile_nonce');
-            $widget .= ob_get_clean();
+        if ( ! $site_key ) {
+            return $content;
         }
-        $widget .= '<div class="cf-turnstile" data-sitekey="' . esc_attr($site_key) . '" data-theme="' . esc_attr($settings['theme'] ?? 'auto') . '" data-size="' . esc_attr($settings['widget_size'] ?? 'normal') . '" data-appearance="' . esc_attr($settings['appearance'] ?? 'always') . '"></div>';
-        // Insert before submit button
-        $content = preg_replace('/(<input[^>]+type=["\']submit["\'][^>]*>)/i', $widget . '$1', $content, 1);
-        return $content;
+
+        // Don’t inject if there’s already a container in this form.
+        if ( strpos($content, 'class="cf-turnstile"') !== false ) {
+            return $content;
+        }
+
+        ob_start();
+
+        // Our CSRF nonce (used by Turnstile_Validator::is_valid_submission()).
+        if ( function_exists('wp_nonce_field') ) {
+            wp_nonce_field(
+                'kitgenix_captcha_for_cloudflare_turnstile_action',
+                'kitgenix_captcha_for_cloudflare_turnstile_nonce'
+            );
+        }
+
+        // Hidden token field populated by public JS after challenge success.
+        echo '<input type="hidden" name="cf-turnstile-response" value="" />';
+
+        // Container only; global renderer loads/handles the Turnstile widget.
+        echo '<div class="cf-turnstile"'
+           . ' data-sitekey="'    . esc_attr($site_key) . '"'
+           . ' data-theme="'      . esc_attr($settings['theme']       ?? 'auto') . '"'
+           . ' data-size="'       . esc_attr($settings['widget_size'] ?? 'normal') . '"'
+           . ' data-appearance="' . esc_attr($settings['appearance']  ?? 'always') . '"'
+           . ' data-kitgenix-captcha-for-cloudflare-turnstile-owner="cf7"></div>';
+
+        $injection = ob_get_clean();
+
+        // Try to place right before the first submit control.
+        $patterns = [
+            '/(<input[^>]+type=["\']submit["\'][^>]*>)/i',
+            '/(<button[^>]+type=["\']submit["\'][^>]*>)/i',
+        ];
+
+        foreach ( $patterns as $pattern ) {
+            if ( preg_match( $pattern, $content ) ) {
+                return preg_replace( $pattern, $injection . '$1', $content, 1 );
+            }
+        }
+
+        // Fallback: append before closing form tag.
+        return str_ireplace('</form>', $injection . '</form>', $content);
     }
 
-    public static function validate_turnstile($result, $tag) {
-        if (!Turnstile_Validator::is_valid_submission()) {
-            $result->invalidate('*', Turnstile_Validator::get_error_message('cf7'));
+    /**
+     * Validation hook (runs for the form as a whole).
+     * We add a form-level error so CF7 shows the red message box and blocks submit.
+     *
+     * @param \WPCF7_Validation  $result
+     * @param \WPCF7_ContactForm $contact_form
+     * @return \WPCF7_Validation
+     */
+    public static function validate_turnstile($result, $contact_form) {
+        // Only validate on POST (sanitize access to $_SERVER).
+        if ( self::request_method() !== 'POST' ) {
+            return $result;
         }
+
+        if ( ! Turnstile_Validator::is_valid_submission() ) {
+            // Use a generic form-level error (no specific tag).
+            $result->invalidate( 'form', Turnstile_Validator::get_error_message('cf7') );
+        }
+
         return $result;
+    }
+
+    /**
+     * Sanitize request method (PHPCS-friendly).
+     */
+    private static function request_method(): string {
+        $method = isset($_SERVER['REQUEST_METHOD'])
+            ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) )
+            : '';
+        return strtoupper( $method ?: 'GET' );
     }
 }
 

@@ -7,116 +7,178 @@ use KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Validator;
 defined('ABSPATH') || exit;
 
 use function add_action;
-use function get_option;
 use function esc_attr;
-use function esc_html;
-use function esc_attr_e;
-use function __;
-use function wp_enqueue_script;
-use function sanitize_text_field;
-use function wp_remote_post;
-use function is_wp_error;
-use function wp_remote_retrieve_body;
+use function esc_html__;
+use function get_option;
 use function is_admin;
+use function sanitize_text_field;
+use function wp_enqueue_script;
+use function wp_nonce_field;
+use function wp_unslash;
 
 class Elementor {
 
     public static function init() {
-        if (!defined('ELEMENTOR_VERSION')) {
+        if ( ! defined( 'ELEMENTOR_VERSION' ) ) {
             return;
         }
-        if (Whitelist::is_whitelisted()) {
-            if (!is_admin() && isset($_SERVER['REQUEST_URI']) && strpos(sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])), 'elementor') !== false) {
-            } else {
+
+        // Allow Elementor editor/preview even when whitelisted (for UX), otherwise bail if whitelisted.
+        if ( Whitelist::is_whitelisted() ) {
+            $uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
+            $is_elementor_preview = ( ! is_admin() ) && ( strpos( $uri, 'elementor' ) !== false );
+            if ( ! $is_elementor_preview ) {
                 return;
             }
         }
-        add_action('elementor/frontend/init', [__CLASS__, 'register_widget_hooks']);
-        add_action('elementor/widget/form/after_render', [__CLASS__, 'inject_widget_script'], 10, 2);
-        add_action('elementor_pro/forms/validation', [__CLASS__, 'validate_turnstile'], 10, 2);
-        add_action('elementor_pro/forms/pre_render', [__CLASS__, 'disable_submit_css']);
-        add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_scripts']);
-        // Fallback: inject widget for all Elementor forms (free or pro)
-        add_action('wp_footer', [__CLASS__, 'fallback_inject_widget'], 20);
-    }
 
-    public static function register_widget_hooks() {
-        add_action('elementor_pro/forms/render_form_after_fields', [__CLASS__, 'render_widget'], 10, 1);
-    }
+        // Render the widget container after fields (Elementor Pro)
+        add_action( 'elementor_pro/forms/render_form_after_fields', [ __CLASS__, 'render_widget' ], 10, 1 );
 
-    public static function render_widget($form) {
-        $settings = get_option('kitgenix_captcha_for_cloudflare_turnstile_settings', []);
-        $site_key = $settings['site_key'] ?? '';
+        // Elementor Pro forms (server-side validation)
+        add_action( 'elementor_pro/forms/validation', [ __CLASS__, 'validate_turnstile' ], 10, 2 );
 
-        if (!$site_key) {
-            echo '<p class="kitgenix-captcha-for-cloudflare-turnstile-warning">' . esc_html__('Turnstile site key is missing.', 'kitgenix-captcha-for-cloudflare-turnstile') . '</p>';
-            return;
-        }
+        // Keep the Elementor JS *container* helper only (no rendering here)
+        add_action( 'wp_enqueue_scripts', [ __CLASS__, 'enqueue_scripts' ] );
 
-        // Add a nonce field for CSRF protection
-        if (function_exists('wp_nonce_field')) {
-            wp_nonce_field('kitgenix_captcha_for_cloudflare_turnstile_action', 'kitgenix_captcha_for_cloudflare_turnstile_nonce');
-        }
-
-        echo '<div class="cf-turnstile" data-sitekey="' . esc_attr($site_key) . '" data-theme="' . esc_attr($settings['theme'] ?? 'auto') . '" data-size="' . esc_attr($settings['widget_size'] ?? 'normal') . '" data-appearance="' . esc_attr($settings['appearance'] ?? 'always') . '"></div>';
-    }
-
-    public static function inject_widget_script($widget, $args) {
-        // No longer needed; logic moved to elementor.js
+        // Fallback to inject a container for Elementor (free) forms before submit
+        add_action( 'wp_footer', [ __CLASS__, 'fallback_inject_widget' ], 20 );
     }
 
     /**
-     * Fallback: Inject Turnstile widget before the submit button in Elementor forms
+     * Output only the Turnstile container + the hidden input.
+     * Rendering is handled centrally in public.js (do NOT call turnstile.render here).
+     */
+    public static function render_widget( $form ) {
+        $settings = get_option( 'kitgenix_captcha_for_cloudflare_turnstile_settings', [] );
+        $site_key = $settings['site_key'] ?? '';
+
+        if ( ! $site_key ) {
+            echo '<p class="kitgenix-captcha-for-cloudflare-turnstile-warning">'
+               . esc_html__( 'Cloudflare Turnstile site key is missing. Please configure it in plugin settings.', 'kitgenix-captcha-for-cloudflare-turnstile' )
+               . '</p>';
+            return;
+        }
+
+        // CSRF nonce (Elementor Pro posts all fields via AJAX)
+        if ( function_exists( 'wp_nonce_field' ) ) {
+            wp_nonce_field( 'kitgenix_captcha_for_cloudflare_turnstile_action', 'kitgenix_captcha_for_cloudflare_turnstile_nonce' );
+        }
+
+        // Hidden input for token (filled by the global renderer’s callback)
+        echo '<input type="hidden" name="cf-turnstile-response" value="" />';
+
+        // Placeholder Turnstile container (NO rendering done here)
+        echo '<div class="cf-turnstile"'
+           . ' data-sitekey="'   . esc_attr( $site_key ) . '"'
+           . ' data-theme="'     . esc_attr( $settings['theme']       ?? 'auto' ) . '"'
+           . ' data-size="'      . esc_attr( $settings['widget_size'] ?? 'normal' ) . '"'
+           . ' data-appearance="'. esc_attr( $settings['appearance']  ?? 'always' ) . '"'
+           . ' data-kgx-owner="elementor"'
+           . '></div>';
+    }
+
+    /**
+     * Fallback for Elementor (free) forms or cases where the widget didn’t render:
+     * create a container before the submit button. Global renderer will pick it up.
      */
     public static function fallback_inject_widget() {
-        $settings = get_option('kitgenix_captcha_for_cloudflare_turnstile_settings', []);
-        $site_key = $settings['site_key'] ?? '';
-        $theme = $settings['theme'] ?? 'auto';
-        $size = $settings['widget_size'] ?? 'normal';
+        $settings   = get_option( 'kitgenix_captcha_for_cloudflare_turnstile_settings', [] );
+        $site_key   = $settings['site_key'] ?? '';
+        $theme      = $settings['theme'] ?? 'auto';
+        $size       = $settings['widget_size'] ?? 'normal';
         $appearance = $settings['appearance'] ?? 'always';
-        if (!$site_key) return;
+
+        if ( ! $site_key ) {
+            return;
+        }
         ?>
         <script>
         document.addEventListener('DOMContentLoaded', function () {
-            document.querySelectorAll('.elementor-form-fields-wrapper').forEach(function(wrapper) {
-                var submitGroup = wrapper.querySelector('.elementor-field-type-submit');
-                if (!submitGroup) return;
-                if (!wrapper.querySelector('.cf-turnstile')) {
-                    var container = document.createElement('div');
-                    container.className = 'cf-turnstile';
-                    container.setAttribute('data-sitekey', '<?php echo esc_attr($site_key); ?>');
-                    container.setAttribute('data-theme', '<?php echo esc_attr($theme); ?>');
-                    container.setAttribute('data-size', '<?php echo esc_attr($size); ?>');
-                    container.setAttribute('data-appearance', '<?php echo esc_attr($appearance); ?>');
-                    submitGroup.parentNode.insertBefore(container, submitGroup);
-                }
-            });
+          document.querySelectorAll('.elementor-form-fields-wrapper').forEach(function(wrapper){
+            var form = wrapper.closest('form');
+            if (!form) return;
+
+            // If ANY Turnstile container already exists anywhere in the form, just ensure hidden input and skip.
+            if (form.querySelector('.cf-turnstile')) {
+              if (!form.querySelector('input[name="cf-turnstile-response"]')) {
+                var inputExisting = document.createElement('input');
+                inputExisting.type = 'hidden';
+                inputExisting.name = 'cf-turnstile-response';
+                form.appendChild(inputExisting);
+              }
+              return;
+            }
+
+            // Ensure hidden input exists
+            if (!form.querySelector('input[name="cf-turnstile-response"]')) {
+              var input = document.createElement('input');
+              input.type = 'hidden';
+              input.name = 'cf-turnstile-response';
+              form.appendChild(input);
+            }
+
+            // Ensure container exists before submit button
+            var submitGroup = wrapper.querySelector('.elementor-field-type-submit');
+            if (!submitGroup) return;
+
+            var container = document.createElement('div');
+            container.className = 'cf-turnstile';
+            container.setAttribute('data-sitekey', '<?php echo esc_attr( $site_key ); ?>');
+            container.setAttribute('data-theme', '<?php echo esc_attr( $theme ); ?>');
+            container.setAttribute('data-size', '<?php echo esc_attr( $size ); ?>');
+            container.setAttribute('data-appearance', '<?php echo esc_attr( $appearance ); ?>');
+            container.setAttribute('data-kgx-owner', 'elementor');
+            submitGroup.parentNode.insertBefore(container, submitGroup);
+
+            // Hint to global renderer (matches assets/js/public.js listener)
+            document.dispatchEvent(new CustomEvent('kgx:turnstile-containers-added', { detail: { source: 'elementor' } }));
+          });
         });
         </script>
         <?php
     }
 
-    public static function validate_turnstile($record, $handler) {
-        if (!Turnstile_Validator::is_valid_submission()) {
-            $handler->add_error_message(Turnstile_Validator::get_error_message('elementor'));
-            $handler->add_error('__all__');
+    /**
+     * Server-side validation for Elementor Pro forms (AJAX).
+     */
+    public static function validate_turnstile( $record, $ajax_handler ) {
+        if ( self::request_method() !== 'POST' ) {
+            return;
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Elementor posts its own nonce; we only validate Turnstile token here.
+        $token = isset( $_POST['cf-turnstile-response'] )
+            ? sanitize_text_field( wp_unslash( $_POST['cf-turnstile-response'] ) )
+            : '';
+
+        $ok = ( $token !== '' ) && Turnstile_Validator::validate_token( $token );
+
+        if ( ! $ok ) {
+            $ajax_handler->add_error_message( Turnstile_Validator::get_error_message( 'elementor' ) );
+            $ajax_handler->add_error( '__all__' );
         }
     }
 
-    public static function disable_submit_css() {
-        // No longer needed; logic moved to elementor.js or CSS file
-    }
-
     public static function enqueue_scripts() {
+        // Do NOT load the Cloudflare API here; it is loaded once globally by the public script.
         wp_enqueue_script(
             'kitgenix-captcha-for-cloudflare-turnstile-elementor',
             KitgenixCaptchaForCloudflareTurnstileASSETS_URL . 'js/elementor.js',
-            ['jquery', 'elementor-frontend'],
+            [ 'jquery', 'elementor-frontend' ],
             KitgenixCaptchaForCloudflareTurnstileVERSION,
             true
         );
-        // Optionally enqueue a CSS file if you want to move styles out of JS
-        // wp_enqueue_style('kitgenix-captcha-for-cloudflare-turnstile-elementor', KitgenixCaptchaForCloudflareTurnstileASSETS_URL . 'css/elementor.css', [], KitgenixCaptchaForCloudflareTurnstileVERSION);
+    }
+
+    /**
+     * Get sanitized request method to satisfy PHPCS for $_SERVER access.
+     */
+    private static function request_method(): string {
+        $method = isset( $_SERVER['REQUEST_METHOD'] )
+            ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) )
+            : '';
+        return strtoupper( $method ?: 'GET' );
     }
 }
 

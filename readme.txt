@@ -6,11 +6,11 @@ Author URI: https://kitgenix.com
 Documentation URI: https://kitgenix.com/plugins/kitgenix-captcha-for-cloudflare-turnstile/documentation
 Support URI: https://kitgenix.com/plugins/kitgenix-captcha-for-cloudflare-turnstile/support
 Feature Request URI: https://kitgenix.com/plugins/kitgenix-captcha-for-cloudflare-turnstile/feature-request
-Donate link: https://kitgenix.com/plugins/support-us/
+Donate link: https://buymeacoffee.com/kitgenix
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Tags: cloudflare turnstile, captcha, spam protection, wordpress security, turnstile
@@ -30,7 +30,7 @@ Cloudflare Turnstile CAPTCHA for WordPress core forms, WooCommerce, Elementor (P
 - **Production‑ready** — CSRF protection (nonces), onboarding screen, clear settings, and robust error messages.  
 - **Multisite aware** — Clean uninstall removes settings site‑wide (and network‑wide when run on Multisite).
 
-### Supported Integrations (v1.0.1)
+### Supported Integrations (v1.0.2)
 - **WordPress Core:** Login, Registration, Lost Password, Comment Form  
 - **WooCommerce:** Checkout, Login, Registration, Lost Password  
 - **Elementor Pro:** Forms & Popups (fallback injector for Elementor forms generally)  
@@ -178,6 +178,44 @@ The plugin itself does not store personal data. Cloudflare Turnstile processes I
 
 == Changelog ==
 
+= 1.0.2 =
+Fix: Run Turnstile validation only on POST submissions for core forms (login, register, lost password, reset password, comments). Prevents the “Please complete the Turnstile challenge” message on refresh or wrong password.
+Fix: Added widget render on resetpass_form and proper validation via validate_password_reset; lost password now validates via lostpassword_post.
+Fix: Reintroduced inline centering on wp-login/wp-admin to stabilize layout across all auth screens.
+Fix: Expose the public module globally as window.KitgenixCaptchaForCloudflareTurnstile so the Cloudflare API onload callback can actually call renderWidgets() (prevents “no widget → no token” failures).
+Fix: Guarded “render once” logic so widgets don’t duplicate across hooks (core + WooCommerce + form plugins).
+Fix: Contact Form 7 integrates cleanly (single injection, resets on CF7 error events).
+Fix: WooCommerce login handles both modern woocommerce_process_login_errors and legacy woocommerce_login_errors.
+Fix: Duplicate Turnstile API loader detection with a dismissible admin notice (surfaces on our Settings page and Plugins screen).
+Improvement: When Disable Submit Button is enabled, submit buttons are now disabled immediately on render and re-enabled only after a valid token callback (previously disabled only on error/expired).
+Improvement: Added a canonical token channel. (getLastToken() helper and kitgenixcaptchaforcloudflareturnstile:token-updated event dispatched on each token change.) (Hidden cf-turnstile-response input is auto-created in forms that don’t already have it.)
+Improvement: Token freshness & UX. (Idle timer and token-age timer auto-reset widgets after ~150s (filterable via kitgenix_turnstile_freshness_ms).) (Gentle inline “Expired / Verification error — please verify again.” message displayed next to the widget.)
+Improvement: Add preconnect/dns-prefetch resource hints for https://challenges.cloudflare.com to speed up first paint.
+Improvement: Public CSS greatly reduced in scope (fewer global !importants), small min-height to prevent CLS, better RTL + reduced-motion support, and per-integration spacing.
+Improvement: Admin CSS fully scoped to the settings wrapper, compact modern fields, focus-visible styles, and reduced-motion fallback.
+Improvement: “Test widget” is rendered only via a tight inline onload callback (prevents double-render / undefined globals).
+Improvement: Site Health test (“Cloudflare Turnstile readiness”) reporting keys presence, duplicate loader detection, last verification snapshot, and possible JS delay/defer from optimization plugins (with guidance).
+Improvement: Export / Import JSON for settings (merge/replace). Optional inclusion of Secret Key (explicitly allowed).
+Improvement: Onboarding screen with one-time activation redirect, quick start steps, and helpful links.
+Improvement: Late alignment helpers for consistent widget placement on login/admin.
+Improvement: Housekeeping—centralized render flow, lightweight MutationObserver to catch dynamically added forms, safer class/existence guards.
+Improvement: Ensure hidden input + container are present; don’t inject a container if no site key is available. (Elementor)
+Improvement: Include token in Elementor Pro AJAX payloads; re-render in popups and dynamic forms; reset widget on submit/errors.
+Improvement: Server-side validation hook support (elementor_pro/forms/validation).
+Improvement: Consistent widget + validation across checkout/login/register/lost password. (WooCommerce Classic)
+Improvement: Checkout protected via woocommerce_checkout_process and woocommerce_after_checkout_validation. (WooCommerce Classic)
+Improvement: Inject container next to the “Place order” area via render_block_woocommerce/checkout-actions-block. (WooCommerce Blocks)
+Improvement: Validate Store API POSTs early via REST auth filter; token accepted from X-Turnstile-Token header or extensions. (WooCommerce Blocks)
+Improvement: Reliable widget injection before submit, spinner cleanup, and re-render on each plugin’s AJAX/DOM events.
+Improvement: Server-side validation mapped to each plugin’s native API.
+Improvement: Preserve CIDR and wildcard IP patterns instead of stripping them; sanitize lines while keeping valid patterns.
+New: Added advanced fields - respect_proxy_headers and trusted_proxy_ips (legacy), plus new trust_proxy and trusted_proxies (current).
+New: Developer Mode (warn-only) — Turnstile failures are logged and annotated inline for admins but do not block submissions (great for staging/troubleshooting).
+New: Replay protection — caches recent Turnstile tokens (hashed) for ~10 minutes and rejects re-use. Enabled by default; duration filterable via kitgenix_turnstile_replay_ttl.
+Security: Added Cloudflare/Proxy-aware client IP handling. New Trust Cloudflare/Proxy headers + Trusted Proxy IPs/CIDRs settings. We only honor CF-Connecting-IP / X-Forwarded-For when the request comes from a trusted proxy; otherwise fall back to REMOTE_ADDR.
+Security: Whitelist supports logged-in bypass, IPs with exact/wildcard/CIDR (IPv4/IPv6), and UA wildcards; decision cached per request and filterable via kitgenix_turnstile_is_whitelisted.
+Security: Validator accepts token from POST, X-Turnstile-Token header, or custom filter; memoized siteverify; robust HTTP args; remote IP + URL + timeouts filterable; friendly error mapping; last verify snapshot stored for diagnostics.
+
 = 1.0.1 =
 * Fix: Center Cloudflare Turnstile on all `wp-login.php` variants (login, lost password, reset, register) and across wp-admin.
 * Change: Overhauled includes/core/class-script-handler.php to use the modern Script API (async strategy on WP 6.3+, attribute helpers on 5.7–6.2) and eliminated raw <script> output.
@@ -186,51 +224,51 @@ The plugin itself does not store personal data. Cloudflare Turnstile processes I
 * Docs: Expanded readme and updated links.
 
 = 1.0.0 =
-Initial release
-WordPress Login Integration
-WordPress Registration Integration
-WordPress Lost Password Integration
-WordPress Comment Integration
-WooCommerce Checkout Integration
-WooCommerce Login Integration
-WooCommerce Registration Integration
-WooCommerce Lost Password Integration
-Elementor Forms Integration
-WPForms Integration
-Kandence Forms Integration
-Jetpack Forms Integration
-Gravity Forms Integration
-Forminator Forms Integration
-Formidable Forms Integration
-Fluent Forms Integration
-Contact Form 7 Integration
-Conditional Script Loading for Performance
-Widget Size, Theme, and Appearance Options
-Defer Scripts and Disable-Submit Logic
-Whitelist by IP, User Agent, or Logged-in Users
-Custom Error and Fallback Messages
-Modern Admin UI with Onboarding Wizard
-Optional Plugin Badge
-Multisite Support
-Works With Elementor Element Cache
-GDPR-friendly, No Cookies or Tracking
-Optimized for Caching, AJAX, and Dynamic Forms
-No Impact on Core Web Vitals
-Site Key & Secret Key Management
-Per-Form and Per-Integration Enable/Disable
-Language Selection for Widget
-Customizable Widget Appearance
-Server-Side Validation for All Supported Forms
-CSRF Protection (Nonce Fields)
-Error Handling and User Feedback
-Support for AJAX and Dynamic Form Rendering
-Admin Notices and Settings Errors
-Plugin Translations/Localization
+* Initial release
+* WordPress Login Integration
+* WordPress Registration Integration
+* WordPress Lost Password Integration
+* WordPress Comment Integration
+* WooCommerce Checkout Integration
+* WooCommerce Login Integration
+* WooCommerce Registration Integration
+* WooCommerce Lost Password Integration
+* Elementor Forms Integration
+* WPForms Integration
+* Kandence Forms Integration
+* Jetpack Forms Integration
+* Gravity Forms Integration
+* Forminator Forms Integration
+* Formidable Forms Integration
+* Fluent Forms Integration
+* Contact Form 7 Integration
+* Conditional Script Loading for Performance
+* Widget Size, Theme, and Appearance Options
+* Defer Scripts and Disable-Submit Logic
+* Whitelist by IP, User Agent, or Logged-in Users
+* Custom Error and Fallback Messages
+* Modern Admin UI with Onboarding Wizard
+* Optional Plugin Badge
+* Multisite Support
+* Works With Elementor Element Cache
+* GDPR-friendly, No Cookies or Tracking
+* Optimized for Caching, AJAX, and Dynamic Forms
+* No Impact on Core Web Vitals
+* Site Key & Secret Key Management
+* Per-Form and Per-Integration Enable/Disable
+* Language Selection for Widget
+* Customizable Widget Appearance
+* Server-Side Validation for All Supported Forms
+* CSRF Protection (Nonce Fields)
+* Error Handling and User Feedback
+* Support for AJAX and Dynamic Form Rendering
+* Admin Notices and Settings Errors
+* Plugin Translations/Localization
 
 == Upgrade Notice ==
 
-= 1.0.1 =
-No Major Changes.
+= 1.0.2 =
+Update Notice: No Major Changes.
 
 == Copyright ==
 Kitgenix CAPTCHA for Cloudflare Turnstile is built with ❤️ by Kitgenix.
