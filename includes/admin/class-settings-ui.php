@@ -86,13 +86,6 @@ class Settings_UI {
             return;
         }
 
-        // Remove default success notice WordPress adds automatically
-        \add_filter('get_settings_errors', function ($errors) {
-            return array_filter((array) $errors, function ($error) {
-                return isset($error['code']) && $error['code'] !== 'settings_updated';
-            });
-        });
-
         $settings = Admin_Options::get_settings();
 
         // Active plugins (single site)
@@ -564,7 +557,13 @@ class Settings_UI {
                 </div>
                 <?php endif; ?>
 
-                <!-- Export / Import -->
+                <!-- Save (end of main settings form) -->
+                <div class="kitgenix-captcha-for-cloudflare-turnstile-save-row">
+                    <?php submit_button(\__('Save Settings', 'kitgenix-captcha-for-cloudflare-turnstile'), 'primary', 'submit', false, ['style' => 'min-width:160px;font-size:17px;']); ?>
+                </div>
+            </form>
+
+            <!-- Export / Import -->
                 <div class="kitgenix-captcha-for-cloudflare-turnstile-card">
                     <h2><?php echo \esc_html(\__('Export / Import Settings', 'kitgenix-captcha-for-cloudflare-turnstile')); ?></h2>
                     <div class="kitgenix-captcha-for-cloudflare-turnstile-section-content">
@@ -631,11 +630,6 @@ class Settings_UI {
                     <p style="margin-bottom:8px; font-size:1.05em; max-width:100%;"><?php echo \esc_html__('If you find Kitgenix CAPTCHA for Cloudflare Turnstile useful, please consider buying us a coffee! Your support helps us maintain and actively develop this plugin for the WordPress community.', 'kitgenix-captcha-for-cloudflare-turnstile'); ?></p>
                     <a href="<?php echo \esc_url('https://buymeacoffee.com/kitgenix'); ?>" target="_blank" rel="noopener" style="color:var(--jt-accent);font-weight:600;">☕ <?php echo \esc_html__('Buy us a coffee', 'kitgenix-captcha-for-cloudflare-turnstile'); ?></a>
                 </div>
-
-                <div class="kitgenix-captcha-for-cloudflare-turnstile-save-row">
-                    <?php submit_button(\__('Save Settings', 'kitgenix-captcha-for-cloudflare-turnstile'), 'primary', 'submit', false, ['style' => 'min-width:160px;font-size:17px;']); ?>
-                </div>
-            </form>
         </div>
         <?php
     }

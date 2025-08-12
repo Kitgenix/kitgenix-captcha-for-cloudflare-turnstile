@@ -3,7 +3,7 @@
  * Plugin Name: Kitgenix CAPTCHA for Cloudflare Turnstile
  * Plugin URI: https://wordpress.org/plugins/kitgenix-captcha-for-cloudflare-turnstile
  * Description: Seamlessly integrate Cloudflare Turnstile with WordPress, WooCommerce, and Elementor forms.
- * Version: 1.0.2
+ * Version: 1.0.4
  * Requires at least: 5.0
  * Tested up to: 6.8
  * Requires PHP: 7.0
@@ -22,7 +22,7 @@ defined('ABSPATH') || exit;
  * Constants (guarded)
  */
 if ( ! defined('KitgenixCaptchaForCloudflareTurnstileVERSION') ) {
-    define('KitgenixCaptchaForCloudflareTurnstileVERSION', '1.0.2'); // match header
+    define('KitgenixCaptchaForCloudflareTurnstileVERSION', '1.0.4'); // match header
 }
 if ( ! defined('KitgenixCaptchaForCloudflareTurnstileFILE') ) {
     define('KitgenixCaptchaForCloudflareTurnstileFILE', __FILE__);
