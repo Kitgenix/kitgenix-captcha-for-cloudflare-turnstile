@@ -131,5 +131,7 @@ class Turnstile_Loader {
         if (!empty($settings['enable_kadenceforms']) && class_exists('Kadence_Blocks_Form')) {
             require_once KitgenixCaptchaForCloudflareTurnstileINCLUDES_PATH . 'integrations/forms/kadence-forms.php';
         }
+
+        
     }
 }

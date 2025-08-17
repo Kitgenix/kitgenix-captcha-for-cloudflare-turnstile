@@ -305,11 +305,11 @@ class Script_Handler {
      * Runs with priority 99 so it overrides earlier rules.
      */
     public static function align_login_turnstile() {
-        \wp_register_style( 'kitgenix-turnstile-login-align', false, [], constant( 'KitgenixCaptchaForCloudflareTurnstileVERSION' ) );
-        \wp_enqueue_style( 'kitgenix-turnstile-login-align' );
+        \wp_register_style( 'kitgenix-captcha-for-cloudflare-turnstile-login-align', false, [], constant( 'KitgenixCaptchaForCloudflareTurnstileVERSION' ) );
+        \wp_enqueue_style( 'kitgenix-captcha-for-cloudflare-turnstile-login-align' );
 
         \wp_add_inline_style(
-            'kitgenix-turnstile-login-align',
+            'kitgenix-captcha-for-cloudflare-turnstile-login-align',
             // General catch-all on wp-login pages:
             'body.login .cf-turnstile{width:100% !important;display:grid !important;place-items:center !important;text-align:center !important;margin:8px 0 16px}
              body.login .cf-turnstile > div, body.login .cf-turnstile iframe{margin:0 auto !important;float:none !important}
@@ -325,11 +325,11 @@ class Script_Handler {
      * Late CSS for ALL wp-admin screens to center Turnstile.
      */
     public static function align_admin_turnstile() {
-        \wp_register_style( 'kitgenix-turnstile-admin-align', false, [], constant( 'KitgenixCaptchaForCloudflareTurnstileVERSION' ) );
-        \wp_enqueue_style( 'kitgenix-turnstile-admin-align' );
+        \wp_register_style( 'kitgenix-captcha-for-cloudflare-turnstile-admin-align', false, [], constant( 'KitgenixCaptchaForCloudflareTurnstileVERSION' ) );
+        \wp_enqueue_style( 'kitgenix-captcha-for-cloudflare-turnstile-admin-align' );
 
         \wp_add_inline_style(
-            'kitgenix-turnstile-admin-align',
+            'kitgenix-captcha-for-cloudflare-turnstile-admin-align',
             'body.wp-admin .cf-turnstile{width:100% !important;display:grid !important;place-items:center !important}
              body.wp-admin .cf-turnstile > div, body.wp-admin .cf-turnstile iframe{margin:0 auto !important;float:none !important}'
         );

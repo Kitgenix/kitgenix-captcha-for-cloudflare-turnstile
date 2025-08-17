@@ -1,13 +1,15 @@
-/* Kitgenix CAPTCHA for Cloudflare Turnstile — Admin UI
-   This stylesheet styles ONLY the plugin's settings screen. */
+/* Kitgenix CAPTCHA for Cloudflare Turnstile — Admin UI */
 
 /* ----------------------------------------------------------------
-   Design tokens
+   Design tokens (with WP admin color fallback)
 ----------------------------------------------------------------- */
 :root {
-  --jt-bg-color: #fff;
+  color-scheme: light dark;
+
+  --jt-bg-color: #ffffff;
   --jt-surface: #ffffff;
   --jt-surface-alt: #f9fafb;
+  --jt-surface-muted: #f3f4f6;
   --jt-border-color: #e5e7eb;
   --jt-border-color-strong: #d1d5db;
 
@@ -15,8 +17,10 @@
   --jt-text-muted: #6b7280;          /* gray-500 */
   --jt-heading: #111827;             /* gray-900 */
 
-  --jt-accent: #f48120;              /* brand orange */
+  /* Prefer WP admin theme color if present */
+  --jt-accent: var(--wp-admin-theme-color, #f48120);
   --jt-accent-2: #faad3f;            /* warm gradient pair */
+  --jt-accent-contrast: #fff;
 
   --jt-radius: 10px;
   --jt-radius-sm: 8px;
@@ -25,26 +29,32 @@
   --jt-pad-x: 22px;
   --jt-pad-y: 16px;
 
-  --jt-input-font: 14px;            /* smaller, modern */
+  --jt-input-font: 14px;
   --jt-input-pad-y: 8px;
   --jt-input-pad-x: 12px;
   --jt-input-height: 34px;
-  --jt-input-width: 420px;          /* not huge */
+  --jt-input-width: 420px;
 
   --jt-transition: .18s ease;
-  --jt-focus-ring: 0 0 0 3px rgba(244,129,32,.18);
+  --jt-focus-ring: 0 0 0 3px color-mix(in srgb, var(--jt-accent) 30%, transparent);
+
+  --jt-danger: #e3342f;
+  --jt-danger-2: #f87171;
+  --jt-danger-strong: #b91c1c;
 }
 
 /* ----------------------------------------------------------------
-   Page wrapper
+   Scope: page wrapper
 ----------------------------------------------------------------- */
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app {
   width: 100%;
-  max-width: 1160px;
+  max-width: 1300px;
   margin: 0;
   padding: 0;
   color: var(--jt-text-color);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Intro banner */
@@ -58,8 +68,7 @@
   display: grid;
   gap: 8px;
 }
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-settings-intro h1,
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-settings-intro h2 {
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-settings-intro :is(h1,h2) {
   font-size: 22px;
   line-height: 1.25;
   font-weight: 800;
@@ -89,20 +98,18 @@
 /* ----------------------------------------------------------------
    Cards / sections
 ----------------------------------------------------------------- */
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-card,
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app .just-turnstile-wrap {
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app :is(.kitgenix-captcha-for-cloudflare-turnstile-card, .just-turnstile-wrap) {
   margin: 22px 0;
   background: var(--jt-surface);
   border: 1px solid var(--jt-border-color);
   border-radius: var(--jt-radius);
   box-shadow: var(--jt-shadow);
-  transition: box-shadow var(--jt-transition), border-color var(--jt-transition);
+  transition: box-shadow var(--jt-transition), border-color var(--jt-transition), background var(--jt-transition);
 }
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-card:hover {
   border-color: var(--jt-border-color-strong);
   box-shadow: 0 12px 32px rgba(0,0,0,.07), 0 2px 10px rgba(0,0,0,.05);
 }
-
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-card h2 {
   padding: 14px 18px 0 18px;
   margin: 0 0 6px;
@@ -110,21 +117,20 @@
   font-weight: 800;
   color: var(--jt-heading);
 }
-
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-section-content {
   padding: 8px 18px 18px 18px;
 }
 
 /* ----------------------------------------------------------------
-   Form layout (tight, readable)
+   Form layout
 ----------------------------------------------------------------- */
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app .form-table {
   border-collapse: separate;
-  border-spacing: 0 10px;      /* row gap */
-  width: 100%;
+  border-spacing: 0 10px;
+  inline-size: 100%;
 }
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app .form-table th {
-  width: 240px;
+  inline-size: 240px;
   padding: 6px 12px 6px 0;
   font-weight: 600;
   color: var(--jt-heading);
@@ -143,63 +149,124 @@
   line-height: 1.45;
 }
 
-/* Inputs (smaller, crisp) */
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-section-content input[type="text"],
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-section-content textarea,
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-section-content select {
+/* Inputs */
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-section-content :is(
+  input[type="text"], input[type="url"], input[type="email"], input[type="password"],
+  textarea, select
+) {
   font-size: var(--jt-input-font);
   line-height: 1.25;
   padding: var(--jt-input-pad-y) var(--jt-input-pad-x);
   min-height: var(--jt-input-height);
-  width: 100%;
-  max-width: var(--jt-input-width);
+  inline-size: 100%;
+  max-inline-size: var(--jt-input-width);
   border-radius: var(--jt-radius-sm);
   border: 1px solid var(--jt-border-color);
   background: #fff;
-  box-shadow: 0 1px 2px rgba(0,0,0,.03);
+  box-shadow: 0 1px 2px rgba(0,0,0,.03) inset;
   transition: border-color var(--jt-transition), box-shadow var(--jt-transition), background var(--jt-transition);
   box-sizing: border-box;
 }
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-section-content textarea {
-  min-height: 84px;
+  min-block-size: 84px;
   resize: vertical;
 }
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-section-content input[type="text"]:focus,
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-section-content textarea:focus,
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-section-content select:focus {
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-section-content :is(
+  input[type="text"], input[type="url"], input[type="email"], input[type="password"],
+  textarea, select
+):focus-visible {
   outline: none;
   border-color: var(--jt-accent);
   box-shadow: var(--jt-focus-ring);
   background: #fff;
 }
 
-/* Checkbox / radios (modern accent color, tighter sizing) */
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app input[type="checkbox"],
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app input[type="radio"] {
-  width: 16px;
-  height: 16px;
+/* Checkbox / radios */
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app :is(input[type="checkbox"], input[type="radio"]) {
+  inline-size: 16px;
+  block-size: 16px;
   accent-color: var(--jt-accent);
   vertical-align: middle;
   transform: translateY(-1px);
-  margin-right: 6px;
+  margin-inline-end: 6px;
 }
 
-/* Code/inline samples */
+/* Inline code */
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app code {
-  background: #f3f4f6;
+  background: var(--jt-surface-muted);
   border: 1px solid var(--jt-border-color);
   padding: 2px 6px;
   border-radius: 6px;
   font-size: 12.5px;
 }
 
-/* Test widget placement */
-/* Make the test widget inline with the label */
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app #kitgenix-captcha-for-cloudflare-turnstile-test-widget {
-  margin-left: 0 !important;
-  text-align: left !important;
+/* ----------------------------------------------------------------
+   Turnstile test widget row (progressive enhancement)
+----------------------------------------------------------------- */
+
+/* Keep the widget left-aligned & inline with success text */
+#kitgenix-captcha-for-cloudflare-turnstile-test-widget {
+  margin-inline-start: 0 !important;
+  text-align: start !important;
   display: inline-block;
   vertical-align: middle;
+  margin-top: 6px;
+}
+
+/* Ensure inner iframe doesn’t auto-center (WP admin sometimes does) */
+#kitgenix-captcha-for-cloudflare-turnstile-test-widget > div,
+#kitgenix-captcha-for-cloudflare-turnstile-test-widget iframe {
+  margin-inline-start: 0 !important;
+  margin-inline-end: auto !important;
+  float: none !important;
+}
+
+/* Success pill */
+#kitgenix-captcha-for-cloudflare-turnstile-test-success {
+  display: none; /* shown by JS callback */
+  margin: 0;
+  padding: 8px 10px;
+  background: #ecfdf5;
+  color: #065f46;
+  border-inline-start: 4px solid #10b981;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* If you can add a helper class in markup (recommended):
+   <tr class="jt-has-turnstile-test">…</tr> */
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app tr.jt-has-turnstile-test :is(th, td) {
+  display: block;
+  inline-size: 100%;
+  padding-inline-start: 0;
+}
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app tr.jt-has-turnstile-test th label {
+  display: block;
+  margin-bottom: 6px;
+}
+
+/* Fallback using :has(), gated for supported browsers */
+@supports selector(tr:has(#kitgenix-captcha-for-cloudflare-turnstile-test-widget)) {
+  #kitgenix-captcha-for-cloudflare-turnstile-admin-app tr:has(#kitgenix-captcha-for-cloudflare-turnstile-test-widget) :is(th, td) {
+    display: block;
+    inline-size: 100%;
+    padding-inline-start: 0;
+  }
+  #kitgenix-captcha-for-cloudflare-turnstile-admin-app tr:has(#kitgenix-captcha-for-cloudflare-turnstile-test-widget) th label {
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  /* Make widget + success note sit inline and wrap on narrow screens */
+  #kitgenix-captcha-for-cloudflare-turnstile-admin-app td:has(#kitgenix-captcha-for-cloudflare-turnstile-test-widget) {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    text-align: start;
+  }
 }
 
 /* ----------------------------------------------------------------
@@ -212,14 +279,13 @@
   justify-content: flex-start;
   gap: 10px;
 }
-
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-save-row .button-primary {
   font-size: 14px;
   padding: 8px 16px;
   border-radius: 9px;
   background: linear-gradient(90deg, var(--jt-accent) 0%, var(--jt-accent-2) 100%);
   border: none;
-  color: #fff;
+  color: var(--jt-accent-contrast);
   font-weight: 800;
   letter-spacing: .2px;
   box-shadow: 0 2px 10px rgba(0,0,0,.08);
@@ -237,6 +303,12 @@
   outline: 2px solid #1e40af;
   outline-offset: 2px;
 }
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-save-row .button-primary:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
+}
 
 /* Secondary WP buttons inside our cards */
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app .button.button-secondary {
@@ -246,7 +318,7 @@
 }
 
 /* ----------------------------------------------------------------
-   Notices inside our app
+   Notices (inside our app)
 ----------------------------------------------------------------- */
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app .notice {
   margin: 12px 18px;
@@ -263,11 +335,61 @@
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app a:hover { color: var(--jt-accent-2); }
 
 /* ----------------------------------------------------------------
+   Support / Review CTA
+----------------------------------------------------------------- */
+.kitgenix-captcha-for-cloudflare-turnstile-support-cta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 18px;
+  margin: 28px 0 0 0;
+  padding: 0 2px 10px 2px;
+}
+.kitgenix-captcha-for-cloudflare-turnstile-support-btn {
+  background: linear-gradient(90deg, var(--jt-danger) 0%, var(--jt-danger-2) 100%);
+  color: #fff !important;
+  font-weight: 800;
+  font-size: 15px;
+  padding: 10px 22px;
+  border-radius: 8px;
+  text-decoration: none;
+  box-shadow: 0 2px 10px rgba(227,52,47,0.10);
+  transition: background var(--jt-transition), box-shadow var(--jt-transition), transform var(--jt-transition);
+  border: none;
+  outline: none;
+  display: inline-block;
+}
+.kitgenix-captcha-for-cloudflare-turnstile-support-btn:hover,
+.kitgenix-captcha-for-cloudflare-turnstile-support-btn:focus-visible {
+  background: linear-gradient(90deg, #c81e1e 0%, #ef4444 100%);
+  color: #fff;
+  text-decoration: underline;
+  transform: translateY(-1px) scale(1.03);
+}
+.kitgenix-captcha-for-cloudflare-turnstile-support-or {
+  color: var(--jt-danger-strong);
+  font-weight: 600;
+  font-size: 14px;
+  margin: 0 4px;
+}
+.kitgenix-captcha-for-cloudflare-turnstile-review-link {
+  color: var(--jt-danger);
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: underline;
+  transition: color var(--jt-transition);
+}
+.kitgenix-captcha-for-cloudflare-turnstile-review-link:hover,
+.kitgenix-captcha-for-cloudflare-turnstile-review-link:focus-visible {
+  color: var(--jt-danger-strong);
+}
+
+/* ----------------------------------------------------------------
    Responsive tweaks
 ----------------------------------------------------------------- */
 @media (max-width: 960px) {
   #kitgenix-captcha-for-cloudflare-turnstile-admin-app .form-table th {
-    width: 180px;
+    inline-size: 180px;
   }
 }
 @media (max-width: 782px) {
@@ -281,7 +403,7 @@
     border-spacing: 0 8px;
   }
   #kitgenix-captcha-for-cloudflare-turnstile-admin-app .form-table th {
-    width: auto;
+    inline-size: auto;
     display: block;
     padding-bottom: 2px;
   }
@@ -289,10 +411,11 @@
     display: block;
     padding-top: 0;
   }
-  #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-section-content input[type="text"],
-  #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-section-content textarea,
-  #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-section-content select {
-    max-width: 100%;
+  #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-section-content :is(
+    input[type="text"], input[type="url"], input[type="email"], input[type="password"],
+    textarea, select
+  ) {
+    max-inline-size: 100%;
   }
   #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-save-row {
     padding: 10px 14px 16px;
@@ -300,96 +423,47 @@
 }
 
 /* ----------------------------------------------------------------
-   Motion sensitivity
+   Accessibility: motion / forced colors
 ----------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
-  #kitgenix-captcha-for-cloudflare-turnstile-admin-app * {
-    transition: none !important;
+  #kitgenix-captcha-for-cloudflare-turnstile-admin-app * { transition: none !important; }
+}
+@media (forced-colors: active) {
+  #kitgenix-captcha-for-cloudflare-turnstile-admin-app .button-primary {
+    border: 1px solid ButtonText;
+  }
+  #kitgenix-captcha-for-cloudflare-turnstile-test-success {
+    border-inline-start-color: SelectedItem;
   }
 }
 
-/* Settings → make the test widget and success note sit inline */
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app
-  td:has(#kitgenix-captcha-for-cloudflare-turnstile-test-widget) {
-  display: flex;
-  align-items: center;
-  gap: 12px;            /* space between widget and text */
-  flex-wrap: wrap;      /* wrap on narrow screens */
-}
-
-/* Tidy the success pill */
-#kitgenix-captcha-for-cloudflare-turnstile-test-success {
-  display: none;        /* shown by JS callback */
-  margin: 0;
-  padding: 8px 10px;
-  background: #ecfdf5;
-  color: #065f46;
-  border-left: 4px solid #10b981;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.2;
-}
-
-/* Keep the widget left-aligned */
-#kitgenix-captcha-for-cloudflare-turnstile-test-widget {
-  margin-left: 0 !important;
-  text-align: left !important;
-  display: block;
-}
-
-/* Dark mode touch */
+/* ----------------------------------------------------------------
+   Full dark mode pass
+----------------------------------------------------------------- */
 @media (prefers-color-scheme: dark) {
+  :root {
+    --jt-bg-color: #0b0f14;
+    --jt-surface: #0f151b;
+    --jt-surface-alt: #131a22;
+    --jt-surface-muted: #1a2330;
+    --jt-border-color: #1f2937;
+    --jt-border-color-strong: #293241;
+
+    --jt-text-color: #e5e7eb;
+    --jt-text-muted: #9ca3af;
+    --jt-heading: #f3f4f6;
+
+    --jt-focus-ring: 0 0 0 3px color-mix(in srgb, var(--jt-accent) 40%, transparent);
+  }
+  #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-settings-intro {
+    background: linear-gradient(90deg, var(--jt-surface-alt) 75%, color-mix(in srgb, var(--jt-accent) 10%, transparent) 100%);
+  }
+  #kitgenix-captcha-for-cloudflare-turnstile-admin-app code {
+    background: var(--jt-surface-muted);
+  }
   #kitgenix-captcha-for-cloudflare-turnstile-test-success {
     background: #052e2b;
     color: #a7f3d0;
-    border-left-color: #34d399;
+    border-inline-start-color: #34d399;
   }
-}
-
-/* Stack the Turnstile test widget under its label */
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app
-  tr:has(#kitgenix-captcha-for-cloudflare-turnstile-test-widget) th,
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app
-  tr:has(#kitgenix-captcha-for-cloudflare-turnstile-test-widget) td {
-  display: block;       /* break the two-column table row into a vertical stack */
-  width: 100%;
-  padding-left: 0;
-}
-
-#kitgenix-captcha-for-cloudflare-turnstile-test-widget { margin-top: 6px; }
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app
-  tr:has(#kitgenix-captcha-for-cloudflare-turnstile-test-widget) th label {
-  display: block;
-  margin-bottom: 6px;
-}
-
-/* Stack the "Test Cloudflare Turnstile Response" row */
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app
-  tr:has(#kitgenix-captcha-for-cloudflare-turnstile-test-widget) th,
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app
-  tr:has(#kitgenix-captcha-for-cloudflare-turnstile-test-widget) td {
-  display: block;
-  width: 100%;
-  padding-left: 0;
-}
-
-/* Left-align the test widget (override the global admin centering) */
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app
-  #kitgenix-captcha-for-cloudflare-turnstile-test-widget {
-  display: block !important;            /* cancel grid centering */
-  text-align: left !important;
-  place-items: initial !important;
-  justify-items: start !important;
-  margin-top: 6px;
-}
-
-/* Ensure the inner iframe isn’t auto-centered */
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app
-  #kitgenix-captcha-for-cloudflare-turnstile-test-widget > div,
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app
-  #kitgenix-captcha-for-cloudflare-turnstile-test-widget iframe {
-  margin-left: 0 !important;
-  margin-right: auto !important;
-  float: none !important;
 }

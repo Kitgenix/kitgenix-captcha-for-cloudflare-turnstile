@@ -60,6 +60,9 @@ class WPForms {
             $rendered_for[ $form_id ] = true;
         }
 
+        // Wrap outputs so integrations can target spacing consistently.
+        echo '<div class="kitgenix-captcha-for-cloudflare-turnstile-wrap">';
+
         // CSRF nonce for our validator
         if ( function_exists( 'wp_nonce_field' ) ) {
             wp_nonce_field( 'kitgenix_captcha_for_cloudflare_turnstile_action', 'kitgenix_captcha_for_cloudflare_turnstile_nonce' );
@@ -76,6 +79,8 @@ class WPForms {
            . ' data-appearance="' . esc_attr( $settings['appearance']  ?? 'always' ) . '"'
            . ' data-kgx-owner="wpforms"'
            . '></div>';
+
+        echo '</div>';
     }
 
     /**

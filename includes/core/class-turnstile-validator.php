@@ -310,7 +310,7 @@ class Turnstile_Validator {
         $args = [
             'timeout'   => (int) apply_filters('kitgenix_turnstile_siteverify_timeout', 10),
             'headers'   => [
-                'User-Agent' => 'Kitgenix-Turnstile/1.0',
+                'User-Agent' => 'kitgenix-captcha-for-cloudflare-turnstile/1.0',
                 'Accept'     => 'application/json',
             ],
             'body'      => $body,

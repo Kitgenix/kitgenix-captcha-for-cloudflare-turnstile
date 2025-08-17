@@ -102,7 +102,7 @@ class Site_Health {
         $desc  = '<p>' . \esc_html__('Checks your Turnstile configuration and common pitfalls.', 'kitgenix-captcha-for-cloudflare-turnstile') . '</p>';
         $desc .= '<ul style="margin-left:18px;list-style:disc;">' . implode('', $issues) . '</ul>';
 
-        $settings_url = \admin_url('options-general.php?page=kitgenix-turnstile');
+        $settings_url = \admin_url('options-general.php?page=kitgenix-captcha-for-cloudflare-turnstile');
         $actions = '<p><a class="button button-primary" href="' . \esc_url($settings_url) . '">' .
             \esc_html__('Open Turnstile Settings', 'kitgenix-captcha-for-cloudflare-turnstile') .
         '</a></p>';

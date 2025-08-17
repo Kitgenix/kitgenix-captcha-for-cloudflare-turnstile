@@ -69,7 +69,7 @@ class Admin_Options {
         $clean['enable_formidableforms'] = !empty($settings['enable_formidableforms']) ? 1 : 0;
         $clean['enable_forminator']      = !empty($settings['enable_forminator']) ? 1 : 0;
         $clean['enable_jetpackforms']    = !empty($settings['enable_jetpackforms']) ? 1 : 0;
-        $clean['enable_kadenceforms']    = !empty($settings['enable_kadenceforms']) ? 1 : 0;
+    $clean['enable_kadenceforms']    = !empty($settings['enable_kadenceforms']) ? 1 : 0;
 
         // --- Per-form toggles (WordPress Core) ---
         $clean['wp_login_form']        = !empty($settings['wp_login_form']) ? 1 : 0;

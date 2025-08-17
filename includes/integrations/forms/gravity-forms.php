@@ -79,7 +79,7 @@ class GravityForms {
            . ' data-kitgenix-captcha-for-cloudflare-turnstile-owner="gravityforms"'
            . '></div>';
 
-        $widget = '<div class="kitgenix-turnstile-wrap">' . ob_get_clean() . '</div>';
+        $widget = '<div class="kitgenix-captcha-for-cloudflare-turnstile-wrap">' . ob_get_clean() . '</div>';
 
         // Return our widget + original button (GF expects raw HTML here)
         return $widget . $button;

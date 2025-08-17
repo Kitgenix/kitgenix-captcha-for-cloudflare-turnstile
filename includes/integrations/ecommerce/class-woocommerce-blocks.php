@@ -106,7 +106,7 @@ class WooCommerce_Blocks {
         }
 
         // Our namespace in extensions
-        $ns         = 'kitgenix-turnstile';
+        $ns         = 'kitgenix-captcha-for-cloudflare-turnstile';
         $extensions = isset( $json['extensions'] ) && is_array( $json['extensions'] ) ? $json['extensions'] : [];
         $token      = '';
 
@@ -151,8 +151,8 @@ class WooCommerce_Blocks {
     public static function annotate_order( $order, $request ) {
         $ext = $request->get_param( 'extensions' );
         if ( is_array( $ext )
-            && isset( $ext['kitgenix-turnstile']['token'] )
-            && $ext['kitgenix-turnstile']['token'] !== ''
+            && isset( $ext['kitgenix-captcha-for-cloudflare-turnstile']['token'] )
+            && $ext['kitgenix-captcha-for-cloudflare-turnstile']['token'] !== ''
         ) {
             // Use GMT to avoid runtime timezone side effects.
             $order->update_meta_data( '_kitgenix_turnstile_verified', gmdate( 'Y-m-d H:i:s' ) );

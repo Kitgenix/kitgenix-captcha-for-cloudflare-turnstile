@@ -77,10 +77,10 @@
   border: 3px solid #e0e7ef;
   border-top: 3px solid var(--kt-accent);
   border-radius: 50%;
-  animation: kitgenix-turnstile-spin 1s linear infinite;
+  animation: kitgenix-captcha-for-cloudflare-turnstile-spin 1s linear infinite;
   margin: 6px auto;
 }
-@keyframes kitgenix-turnstile-spin {
+@keyframes kitgenix-captcha-for-cloudflare-turnstile-spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
@@ -236,11 +236,22 @@ form .cf-turnstile:last-child { margin-bottom: 24px; }
 .elementor-form .cf-turnstile { display: block; }
 .elementor-field-group .cf-turnstile { grid-column: 1 / -1; }
 
+/* WPForms: ensure a small gap above the submit button and let the widget span full width */
+.wpforms-form .cf-turnstile,
+.wpforms-form .kitgenix-captcha-for-cloudflare-turnstile-wrap .cf-turnstile {
+  display: block;
+  width: 100%;
+  margin: 8px 0 12px;
+}
+
 /* Contact Form 7 */
 .wpcf7 form .cf-turnstile { margin: 8px 0 12px; }
 
 /* WooCommerce checkout/login */
 .woocommerce form .cf-turnstile { margin: 8px 0 12px; }
+
+/* Product reviews: prefer left-align above the submit button */
+.single-product .comment-form .cf-turnstile { display: flex; justify-content: flex-start; margin: 8px 0 12px; }
 
 /* Jetpack / Forminator / Formidable / Gravity */
 .contact-form .cf-turnstile,
@@ -248,11 +259,30 @@ form .cf-turnstile:last-child { margin-bottom: 24px; }
 .frm_form_fields .cf-turnstile,
 .gform_wrapper .cf-turnstile { margin: 8px 0 12px; }
 
+/* Gravity Forms */
+.gform_wrapper .kitgenix-captcha-for-cloudflare-turnstile-wrap {
+  display: block;
+  width: 100%;
+  margin: 8px 0 12px;
+  text-align: left;
+}
+.gform_wrapper .kitgenix-captcha-for-cloudflare-turnstile-wrap .cf-turnstile {
+  display: block;
+  width: 100%;
+  margin: 0 0 8px;
+}
+.gform_wrapper .gform_footer input[type="submit"],
+.gform_wrapper .gform_footer button,
+.gform_wrapper .gform_footer .gform_button {
+  display: block;
+  clear: both; 
+}
+
 /* Kadence Blocks Forms */
 .kb-form .cf-turnstile { margin: 8px 0 12px; }
 
 /* Wrapper utility used by some integrations */
-.kitgenix-turnstile-wrap .cf-turnstile {
+.kitgenix-captcha-for-cloudflare-turnstile-wrap .cf-turnstile {
   display: block;
   width: 100%;
   margin-bottom: .5em;

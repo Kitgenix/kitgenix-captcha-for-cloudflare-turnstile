@@ -56,7 +56,7 @@ class Settings_Transfer {
 
         $json     = \wp_json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         // Use gmdate() to avoid timezone-dependent output.
-        $filename = 'kitgenix-turnstile-settings-' . \gmdate('Ymd-His') . '.json';
+        $filename = 'kitgenix-captcha-for-cloudflare-turnstile-settings-' . \gmdate('Ymd-His') . '.json';
 
         \nocache_headers();
         header('Content-Type: application/json; charset=' . \get_option('blog_charset'));
@@ -162,6 +162,7 @@ class Settings_Transfer {
             'enable_wordpress','enable_woocommerce','enable_elementor','enable_wpforms',
             'enable_fluentforms','enable_gravityforms','enable_cf7','enable_formidableforms',
             'enable_forminator','enable_jetpackforms',
+            'enable_kadenceforms',
             // WordPress sub-toggles
             'wp_login_form','wp_register_form','wp_lostpassword_form','wp_comments_form',
             // Woo sub-toggles
