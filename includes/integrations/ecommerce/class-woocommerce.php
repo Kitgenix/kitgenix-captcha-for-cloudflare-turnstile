@@ -52,7 +52,15 @@ class WooCommerce {
 
         // Lost/reset password (My Account)
         if ( ! empty($settings['wc_lostpassword_form']) ) {
-            add_action('woocommerce_lostpassword_form',         [__CLASS__, 'render_widget']);
+            // Primary hook used by WooCommerce when showing the lost-password form
+            add_action('woocommerce_lostpassword_form', [__CLASS__, 'render_widget']);
+
+            // Some WooCommerce versions/themes fire a slightly different action when
+            // displaying the reset-password form. Add both common variants to be safe.
+            add_action('woocommerce_resetpassword_form',     [__CLASS__, 'render_widget']);
+            add_action('woocommerce_reset_password_form',    [__CLASS__, 'render_widget']);
+
+            // Validation hook (server-side) when the reset is submitted.
             add_action('woocommerce_reset_password_validation', [__CLASS__, 'validate_generic']);
         }
 
@@ -88,12 +96,15 @@ class WooCommerce {
             return;
         }
 
-        // Render once per request to avoid duplicates across multiple hook points.
-        static $rendered = false;
-        if ( $rendered ) {
+        // Render once per request *per hook* to avoid duplicates while allowing
+        // multiple widgets on the same page (for example WooCommerce's My Account
+        // which can contain both login and register forms).
+        static $rendered = [];
+        $hook = function_exists('current_filter') ? current_filter() : 'global';
+        if ( isset( $rendered[ $hook ] ) ) {
             return;
         }
-        $rendered = true;
+        $rendered[ $hook ] = true;
 
         if ( function_exists('wp_nonce_field') ) {
             wp_nonce_field(
@@ -106,7 +117,8 @@ class WooCommerce {
         echo '<input type="hidden" name="cf-turnstile-response" value="" />';
 
         // Container; global public JS renders Turnstile.
-        echo '<div class="cf-turnstile"'
+    echo '<div class="cf-turnstile"'
+       . ' data-hook="'      . esc_attr( $hook ) . '"'
            . ' data-sitekey="'    . esc_attr($site_key) . '"'
            . ' data-theme="'      . esc_attr($settings['theme']       ?? 'auto') . '"'
            . ' data-size="'       . esc_attr($settings['widget_size'] ?? 'normal') . '"'
@@ -132,6 +144,12 @@ class WooCommerce {
      * Generic validator for registration / reset flows (non-Blocks).
      */
     public static function validate_generic() {
+        // If this is an admin-initiated user edit (eg. resetting a user's password
+        // from wp-admin), skip Turnstile validation — there is no front-end widget.
+        if ( is_admin() && function_exists('current_user_can') && current_user_can('edit_users') ) {
+            return;
+        }
+
         if ( ! Turnstile_Validator::is_valid_submission() ) {
             wc_add_notice( Turnstile_Validator::get_error_message('woocommerce'), 'error' );
         }

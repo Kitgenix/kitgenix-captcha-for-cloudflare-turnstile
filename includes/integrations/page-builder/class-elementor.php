@@ -11,10 +11,15 @@ use function esc_attr;
 use function esc_html__;
 use function get_option;
 use function is_admin;
+use function defined;
+use function function_exists;
+use function wp_doing_ajax;
+use function wp_doing_cron;
 use function sanitize_text_field;
 use function wp_enqueue_script;
 use function wp_nonce_field;
 use function wp_unslash;
+use function is_object;
 
 class Elementor {
 
@@ -162,6 +167,24 @@ class Elementor {
 
     public static function enqueue_scripts() {
         // Do NOT load the Cloudflare API here; it is loaded once globally by the public script.
+        // Guard enqueuing to frontend page loads that have a valid global $post. Elementor's
+        // adapter may attempt to read global post properties (e.g. post_title). When there is
+        // no post (REST/AJAX/cron requests or some early hooks), that triggers a PHP warning
+        // in the Elementor plugin. Skip enqueuing in those contexts to avoid the warning.
+        if ( is_admin() ) {
+            return;
+        }
+
+        if ( ( defined( 'REST_REQUEST' ) && REST_REQUEST ) || ( function_exists( 'wp_doing_ajax' ) && wp_doing_ajax() ) || ( function_exists( 'wp_doing_cron' ) && wp_doing_cron() ) ) {
+            return;
+        }
+
+        global $post;
+        if ( empty( $post ) || ! is_object( $post ) ) {
+            // No global post context — skip to avoid Elementor reading null post properties.
+            return;
+        }
+
         wp_enqueue_script(
             'kitgenix-captcha-for-cloudflare-turnstile-elementor',
             KitgenixCaptchaForCloudflareTurnstileASSETS_URL . 'js/elementor.js',

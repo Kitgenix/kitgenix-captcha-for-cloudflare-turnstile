@@ -10,7 +10,7 @@ Donate link: https://buymeacoffee.com/kitgenix
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 1.0.4
+Stable tag: 1.0.5
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Tags: cloudflare, captcha, anti-spam, security, woocommerce
@@ -35,7 +35,7 @@ Turnstile is a modern, low-friction, **reCAPTCHA-free** experience that keeps bo
 - **Production-ready admin** – Onboarding, Site Health test, JSON import/export, accessible UI.
 - **Multisite aware** – Clean uninstall removes settings site-wide (and network-wide on Multisite).
 
-## Supported Forms & Integrations (v1.0.4) ##
+## Supported Forms & Integrations (v1.0.5) ##
 
 **WordPress Core:** Login, Registration, Lost/Reset Password, Comment Form  
 **WooCommerce:** Checkout (Classic & Blocks / Store API), Login, Registration, Lost Password  
@@ -246,7 +246,22 @@ The plugin doesn’t store personal data. Cloudflare Turnstile processes IP and 
 
 == Changelog ==
 
-= 1.0.4 =  
+= 1.0.6 =
+
+* Fix: Expose the public JavaScript module as `window.KitgenixCaptchaForCloudflareTurnstile` so the Cloudflare API onload callback can reliably call `renderWidgets()` (prevents "no widget → no token" failures).
+* Fix: Guarded "render once" logic to prevent duplicate widget rendering across core, WooCommerce and form plugin hooks.
+* Fix: Contact Form 7 integration now injects once and resets cleanly on CF7 validation/error events.
+* Fix: WooCommerce compatibility fixes (login handling across modern and legacy hooks, correct placement near "Place order" for Classic and Blocks Store API support).
+* Fix: Prevent Turnstile overlapping submit buttons for Gravity Forms and WPForms; adjusted spacing and placement heuristics.
+* Fix: Admin: detect duplicate Turnstile API loader and display a dismissible admin notice on Settings and Plugins screens.
+* Fix: "Disable Submit Until Verified" now disables submit buttons immediately on render and only re-enables them after a valid token callback.
+* Fix: Token handling improvements — canonical token channel, auto-created hidden `cf-turnstile-response` input for forms that lack it, `getLastToken()` helper and `kitgenixcaptchaforcloudflareturnstile:token-updated` event dispatch.
+* Fix: Sanitization and import/export hardening — preserve CIDR and wildcard IP patterns when sanitizing trusted proxies/whitelists.
+* Fix: Guarded Elementor script enqueue to avoid reading global post properties when no post object exists (prevents "Attempt to read property \"post_title\" on null" PHP warning in some contexts such as REST/AJAX or early hooks). Thank you @wpclimb for reporting.
+* Improvement: More reliable widget injection and spinner/cleanup on AJAX or dynamic DOM events; re-render/reset behavior tightened across integrations.
+* Security: Replay protection enabled by default to reject reused tokens (TTL filterable via `kitgenix_turnstile_replay_ttl`).
+
+= 1.0.4 = 
 * Fix: Position Turnstile above the WooCommerce reviews submit button. Thank You @carlbensy16.
 * Fix: Prevent Turnstile from rendering inline with the submit button on Gravity Forms. Thank You @carlbensy16.
 * Fix: Add spacing so Turnstile no longer overlaps the WPForms submit button. Thank You @carlbensy16.
@@ -343,7 +358,7 @@ The plugin doesn’t store personal data. Cloudflare Turnstile processes IP and 
 
 == Upgrade Notice ==
 
-= 1.0.4 =  
+= 1.0.5 =  
 No major changes. Recommended for fixes and stability.
 
 == Copyright ==

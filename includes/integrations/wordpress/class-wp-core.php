@@ -13,6 +13,8 @@ use function sanitize_text_field;
 use function wp_die;
 use function wp_nonce_field;
 use function wp_unslash;
+use function is_admin;
+use function current_user_can;
 use \WP_Error;
 
 defined('ABSPATH') || exit;
@@ -238,6 +240,12 @@ class WP_Core {
      */
     public static function validate_reset( $errors, $user ) {
         if ( self::request_method() !== 'POST' ) {
+            return;
+        }
+        // If this is an admin-initiated password reset (user edit screen), skip
+        // Turnstile validation. Admins manage users from wp-admin and there is
+        // no front-end Turnstile widget or nonce present.
+        if ( is_admin() && current_user_can('edit_users') ) {
             return;
         }
         if ( ! Turnstile_Validator::is_valid_submission() ) {
