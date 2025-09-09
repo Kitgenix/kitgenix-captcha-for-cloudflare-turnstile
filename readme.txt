@@ -246,8 +246,7 @@ The plugin doesn’t store personal data. Cloudflare Turnstile processes IP and 
 
 == Changelog ==
 
-= 1.0.6 =
-
+= 1.0.5 =
 * Fix: Expose the public JavaScript module as `window.KitgenixCaptchaForCloudflareTurnstile` so the Cloudflare API onload callback can reliably call `renderWidgets()` (prevents "no widget → no token" failures).
 * Fix: Guarded "render once" logic to prevent duplicate widget rendering across core, WooCommerce and form plugin hooks.
 * Fix: Contact Form 7 integration now injects once and resets cleanly on CF7 validation/error events.
