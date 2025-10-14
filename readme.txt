@@ -1,5 +1,5 @@
 === Kitgenix CAPTCHA for Cloudflare Turnstile ===
-Contributors: kitgenix, carlbensy16
+Contributors: kitgenix
 Plugin URI: https://wordpress.org/plugins/kitgenix-captcha-for-cloudflare-turnstile
 Author: Kitgenix
 Author URI: https://kitgenix.com
@@ -253,6 +253,9 @@ The plugin itself doesn’t store personal data. Cloudflare Turnstile processes 
 - Expanded compatibility notes for optimization plugins
 
 == Changelog ==
+
+= 1.0.6 (14 October 2025) =
+
 
 = 1.0.6 (10 September 2025) =
 * Improvement: Updated plugin assets (banners, icons, screenshots with clearer cropping/labels).
