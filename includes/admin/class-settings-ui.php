@@ -260,8 +260,9 @@ class Settings_UI {
 										<option value="small"  <?php selected( $settings['widget_size'] ?? '', 'small' );  ?>><?php echo \esc_html__( 'Small',  'kitgenix-captcha-for-cloudflare-turnstile' ); ?></option>
 										<option value="medium" <?php selected( $settings['widget_size'] ?? '', 'medium' ); ?>><?php echo \esc_html__( 'Medium', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></option>
 										<option value="large"  <?php selected( $settings['widget_size'] ?? '', 'large' );  ?>><?php echo \esc_html__( 'Large',  'kitgenix-captcha-for-cloudflare-turnstile' ); ?></option>
+										<option value="flexible"  <?php selected( $settings['widget_size'] ?? '', 'flexible' );  ?>><?php echo \esc_html__( 'Flexible (100% width)',  'kitgenix-captcha-for-cloudflare-turnstile' ); ?></option>
 									</select>
-									<p class="description"><?php echo \esc_html__( 'Pick a size that fits your layout.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></p>
+									<p class="description"><?php echo \esc_html__( 'Pick a size that fits your layout. "Flexible" makes the iframe scale to 100% of its container (Cloudflare Turnstile data-size=flexible).', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></p>
 								</td>
 							</tr>
 							<tr>

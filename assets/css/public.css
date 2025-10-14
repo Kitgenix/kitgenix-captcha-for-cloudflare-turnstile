@@ -67,6 +67,22 @@
   background: transparent;
 }
 
+/* Collapse gap when appearance=interaction-only before user interaction */
+.cf-turnstile.kt-ts-collapsed[data-appearance="interaction-only"] {
+  min-height: 0 !important; /* remove reserved space */
+  margin: 0 0 4px !important; /* tighter gap until expanded */
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Flexible (data-size=flexible) — make iframe stretch full width */
+.cf-turnstile[data-size="flexible"],
+.cf-turnstile[data-size="flexible"] > div,
+.cf-turnstile[data-size="flexible"] iframe {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
 /* -----------------------------------------------------------
    Loading spinner
    Where: placeholder inside the container before API loads

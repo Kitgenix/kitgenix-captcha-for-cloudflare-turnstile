@@ -87,8 +87,9 @@ class Admin_Options {
         $theme = $settings['theme'] ?? 'auto';
         $clean['theme'] = \in_array($theme, ['auto', 'light', 'dark'], true) ? $theme : 'auto';
 
-        $size = $settings['widget_size'] ?? 'normal';
-        $clean['widget_size'] = \in_array($size, ['small', 'medium', 'large', 'normal'], true) ? $size : 'normal';
+    $size = $settings['widget_size'] ?? 'normal';
+    // Allow new 'flexible' size (full-width) per Cloudflare docs.
+    $clean['widget_size'] = \in_array($size, ['small', 'medium', 'large', 'normal', 'flexible'], true) ? $size : 'normal';
 
         $appearance = $settings['appearance'] ?? 'always';
         $clean['appearance'] = \in_array($appearance, ['always', 'interaction-only'], true) ? $appearance : 'always';

@@ -112,7 +112,8 @@
       medium: 'normal',
       large: 'normal',
       standard: 'normal',
-      normal: 'normal'
+      normal: 'normal',
+      flexible: 'flexible' // Cloudflare will stretch to 100% width
     },
 
     /**
@@ -145,6 +146,9 @@
             this.setResponseInput(el, token);
             this.enableSubmit(el);
             this._scheduleTokenAgeReset(el); // token age window
+            if (el.getAttribute('data-appearance') === 'interaction-only') {
+              el.classList.remove('kt-ts-collapsed');
+            }
           },
           'expired-callback': () => {
             this.setResponseInput(el, '');
@@ -158,6 +162,10 @@
           }
         };
 
+        // Collapse visual gap for interaction-only until it actually renders/expands
+        if (params.appearance === 'interaction-only') {
+          el.classList.add('kt-ts-collapsed');
+        }
         turnstile.render(el, params);
         el.dataset.rendered = 'true';
 
@@ -225,10 +233,14 @@
             this.setResponseInput(el, token);
             this.enableSubmit(el);
             this._scheduleTokenAgeReset(el);
+            if (el.getAttribute('data-appearance') === 'interaction-only') {
+              el.classList.remove('kt-ts-collapsed');
+            }
           },
           'expired-callback': () => { this.resetWidget(el, 'expired'); },
           'error-callback': () => { this.resetWidget(el, 'error'); }
         };
+        if (params.appearance === 'interaction-only') { el.classList.add('kt-ts-collapsed'); }
         turnstile.render(el, params);
         el.dataset.rendered = 'true';
         if (this.config.disable_submit) this.disableSubmit(el);
@@ -254,10 +266,14 @@
             this.setResponseInput(el, token);
             this.enableSubmit(el);
             this._scheduleTokenAgeReset(el);
+            if (el.getAttribute('data-appearance') === 'interaction-only') {
+              el.classList.remove('kt-ts-collapsed');
+            }
           },
           'expired-callback': () => { this.resetWidget(el, 'expired'); },
           'error-callback': () => { this.resetWidget(el, 'error'); }
         };
+        if (params.appearance === 'interaction-only') { el.classList.add('kt-ts-collapsed'); }
         turnstile.render(el, params);
         el.dataset.rendered = 'true';
         if (this.config.disable_submit) this.disableSubmit(el);
@@ -283,10 +299,14 @@
             this.setResponseInput(el, token);
             this.enableSubmit(el);
             this._scheduleTokenAgeReset(el);
+            if (el.getAttribute('data-appearance') === 'interaction-only') {
+              el.classList.remove('kt-ts-collapsed');
+            }
           },
           'expired-callback': () => { this.resetWidget(el, 'expired'); },
           'error-callback': () => { this.resetWidget(el, 'error'); }
         };
+        if (params.appearance === 'interaction-only') { el.classList.add('kt-ts-collapsed'); }
         turnstile.render(el, params);
         el.dataset.rendered = 'true';
         if (this.config.disable_submit) this.disableSubmit(el);
@@ -312,10 +332,14 @@
             this.setResponseInput(el, token);
             this.enableSubmit(el);
             this._scheduleTokenAgeReset(el);
+            if (el.getAttribute('data-appearance') === 'interaction-only') {
+              el.classList.remove('kt-ts-collapsed');
+            }
           },
           'expired-callback': () => { this.resetWidget(el, 'expired'); },
           'error-callback': () => { this.resetWidget(el, 'error'); }
         };
+        if (params.appearance === 'interaction-only') { el.classList.add('kt-ts-collapsed'); }
         turnstile.render(el, params);
         el.dataset.rendered = 'true';
         if (this.config.disable_submit) this.disableSubmit(el);
@@ -341,10 +365,14 @@
             this.setResponseInput(el, token);
             this.enableSubmit(el);
             this._scheduleTokenAgeReset(el);
+            if (el.getAttribute('data-appearance') === 'interaction-only') {
+              el.classList.remove('kt-ts-collapsed');
+            }
           },
           'expired-callback': () => { this.resetWidget(el, 'expired'); },
           'error-callback': () => { this.resetWidget(el, 'error'); }
         };
+        if (params.appearance === 'interaction-only') { el.classList.add('kt-ts-collapsed'); }
         turnstile.render(el, params);
         el.dataset.rendered = 'true';
         if (this.config.disable_submit) this.disableSubmit(el);
@@ -480,10 +508,14 @@
               KitgenixCaptchaForCloudflareTurnstile.setResponseInput(el, token); 
               KitgenixCaptchaForCloudflareTurnstile.enableSubmit(el);
               KitgenixCaptchaForCloudflareTurnstile._scheduleTokenAgeReset(el);
+              if (el.getAttribute('data-appearance') === 'interaction-only') {
+                el.classList.remove('kt-ts-collapsed');
+              }
             },
             'expired-callback': function () { KitgenixCaptchaForCloudflareTurnstile.resetWidget(el, 'expired'); },
             'error-callback': function () { KitgenixCaptchaForCloudflareTurnstile.resetWidget(el, 'error'); }
           };
+          if (params.appearance === 'interaction-only') { el.classList.add('kt-ts-collapsed'); }
           turnstile.render(el, params);
           el.dataset.rendered = 'true';
           if (KitgenixCaptchaForCloudflareTurnstile.config.disable_submit) KitgenixCaptchaForCloudflareTurnstile.disableSubmit(el);
@@ -531,11 +563,15 @@
             KitgenixCaptchaForCloudflareTurnstile.setResponseInput(el, token); 
             KitgenixCaptchaForCloudflareTurnstile.enableSubmit(el);
             KitgenixCaptchaForCloudflareTurnstile._scheduleTokenAgeReset(el);
+              if (el.getAttribute('data-appearance') === 'interaction-only') {
+                el.classList.remove('kt-ts-collapsed');
+              }
           },
           'expired-callback': function () { KitgenixCaptchaForCloudflareTurnstile.resetWidget(el, 'expired'); },
           'error-callback': function () { KitgenixCaptchaForCloudflareTurnstile.resetWidget(el, 'error'); }
         };
-        turnstile.render(el, params);
+          if (params.appearance === 'interaction-only') { el.classList.add('kt-ts-collapsed'); }
+          turnstile.render(el, params);
         el.dataset.rendered = 'true';
         if (KitgenixCaptchaForCloudflareTurnstile.config.disable_submit) KitgenixCaptchaForCloudflareTurnstile.disableSubmit(el);
         KitgenixCaptchaForCloudflareTurnstile._scheduleIdleReset(el);

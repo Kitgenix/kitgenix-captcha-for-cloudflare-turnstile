@@ -10,7 +10,7 @@ Donate link: https://buymeacoffee.com/kitgenix
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 1.0.6
+Stable tag: 1.0.7
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Tags: cloudflare, turnstile, captcha, anti-spam, woocommerce
@@ -254,8 +254,16 @@ The plugin itself doesn’t store personal data. Cloudflare Turnstile processes 
 
 == Changelog ==
 
-= 1.0.6 (14 October 2025) =
-
+= 1.0.7 (14 October 2025) =
+* New: Added "Flexible (100% width)" widget size (Cloudflare Turnstile `data-size="flexible"`) for fully responsive, container-width layouts. (Thank You: @kammsw)
+* New: Interaction Only UX refinement – collapses initial blank gap (no more 50+px empty space) until the user interacts or the widget needs to expand. (Thank You: @kammsw)
+* Improvement: Unified size handling in JS (`flexible` passes straight through; existing custom sizes still map to Cloudflare equivalents).
+* Improvement: Consistent collapsed/expand logic across Elementor, Gravity Forms, Formidable, Forminator, Jetpack, Fluent Forms, Kadence, WPForms, and core render paths.
+* Improvement: CSS enhancements for flexible width + reduced gap state (`.kt-ts-collapsed`).
+* Prep: Foundation laid for upcoming modal/delayed form robustness (MutationObserver structure ready for attribute watching & visibility checks in a future release).
+* Dev: Sanitization now allows `flexible`; admin settings UI updated with help text.
+* Note: If you previously forced width via custom CSS, review and remove redundant rules when using the new Flexible option.
+* Safe Update: No database schema changes; only front-end assets and settings sanitization logic touched.
 
 = 1.0.6 (10 September 2025) =
 * Improvement: Updated plugin assets (banners, icons, screenshots with clearer cropping/labels).
@@ -372,8 +380,8 @@ The plugin itself doesn’t store personal data. Cloudflare Turnstile processes 
 
 == Upgrade Notice ==
 
-= 1.0.6 =
-Docs & assets refresh (no code changes). Update to see new screenshots and improved readme details.
+= 1.0.7 =
+Adds Flexible (full-width) widget size and removes the large blank gap for Interaction Only mode. Update recommended for better UX. Clear/minify caches so new CSS/JS take effect.
 
 == External Services ==
 
