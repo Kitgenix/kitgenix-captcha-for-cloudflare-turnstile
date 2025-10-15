@@ -122,7 +122,7 @@ class Turnstile_Validator {
                 : '';
             if ( ! $nonce || ! wp_verify_nonce( $nonce, 'kitgenix_captcha_for_cloudflare_turnstile_action' ) ) {
                 self::$last_error_codes[] = 'nonce_invalid';
-                self::$last_error_msg     = __('Security check failed (nonce).', 'kitgenix-captcha-for-cloudflare-turnstile');
+                self::$last_error_msg     = __('Security check failed. Please refresh and try again.', 'kitgenix-captcha-for-cloudflare-turnstile');
                 self::log_dev('nonce_invalid');
                 self::record_last_verify(false, self::$last_error_codes);
                 return self::dev_mode_enabled();
@@ -133,7 +133,7 @@ class Turnstile_Validator {
         $response = self::get_token_from_request();
         if ( $response === '' ) {
             self::$last_error_codes[] = 'token_missing';
-            self::$last_error_msg     = __('Turnstile token missing.', 'kitgenix-captcha-for-cloudflare-turnstile');
+            self::$last_error_msg     = __('Please complete the Turnstile challenge.', 'kitgenix-captcha-for-cloudflare-turnstile');
             self::log_dev('token_missing');
             self::record_last_verify(false, self::$last_error_codes);
             return self::dev_mode_enabled();
@@ -159,7 +159,7 @@ class Turnstile_Validator {
         // SUCCESS → replay check
         if ( self::is_replay( $response ) ) {
             self::$last_error_codes[] = 'replay_detected';
-            self::$last_error_msg     = __('Security check failed: token reuse detected. Please refresh and try again.', 'kitgenix-captcha-for-cloudflare-turnstile');
+            self::$last_error_msg     = __('Verification expired. Please try again.', 'kitgenix-captcha-for-cloudflare-turnstile');
             self::log_dev('replay_detected');
             self::flag_replay_frontend();
             self::record_last_verify(false, self::$last_error_codes);
@@ -182,7 +182,7 @@ class Turnstile_Validator {
         $token = sanitize_text_field( (string) $token );
         if ($token === '') {
             self::$last_error_codes = ['missing-input-response'];
-            self::$last_error_msg   = __('Turnstile token missing.', 'kitgenix-captcha-for-cloudflare-turnstile');
+            self::$last_error_msg   = __('Please complete the Turnstile challenge.', 'kitgenix-captcha-for-cloudflare-turnstile');
             self::record_last_verify(false, self::$last_error_codes);
             return false;
         }
@@ -198,7 +198,7 @@ class Turnstile_Validator {
 
         if ( self::is_replay( $token ) ) {
             self::$last_error_codes[] = 'replay_detected';
-            self::$last_error_msg     = __('Security check failed: token reuse detected. Please refresh and try again.', 'kitgenix-captcha-for-cloudflare-turnstile');
+            self::$last_error_msg     = __('Verification expired. Please try again.', 'kitgenix-captcha-for-cloudflare-turnstile');
             self::log_dev('replay_detected');
             self::flag_replay_frontend();
             self::record_last_verify(false, self::$last_error_codes);
@@ -221,7 +221,7 @@ class Turnstile_Validator {
 
         // Replay gets a specific message
         if ( in_array('replay_detected', self::$last_error_codes, true) ) {
-            $replay = __('Your verification expired. Please complete the Turnstile challenge again.', 'kitgenix-captcha-for-cloudflare-turnstile');
+            $replay = __('Your verification expired. Please complete the Turnstile challenge.', 'kitgenix-captcha-for-cloudflare-turnstile');
             $replay = apply_filters('kitgenix_turnstile_replay_message', $replay, $context);
             $message = $replay;
         } else {
@@ -372,24 +372,24 @@ class Turnstile_Validator {
         // Known mappings (Cloudflare Turnstile)
         $map = [
             // Config / key issues
-            'missing-input-secret'    => __('Turnstile secret key is missing. Please configure the plugin.', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'invalid-input-secret'    => __('Turnstile secret key is invalid. Please check your key.', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'sitekey-secret-mismatch' => __('Site key and secret do not match. Verify your keys.', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'missing-input-secret'    => __('Configuration error: secret key missing.', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'invalid-input-secret'    => __('Configuration error: invalid secret key.', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'sitekey-secret-mismatch' => __('Configuration error: site key and secret mismatch.', 'kitgenix-captcha-for-cloudflare-turnstile'),
 
             // Token / response issues
             'missing-input-response'  => __('Please complete the Turnstile challenge.', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'invalid-input-response'  => __('Invalid Turnstile token. Please try again.', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'timeout-or-duplicate'    => __('Your verification expired. Please complete the Turnstile challenge again.', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'invalid-input-response'  => __('Verification failed. Please try again.', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'timeout-or-duplicate'    => __('Verification expired. Please try again.', 'kitgenix-captcha-for-cloudflare-turnstile'),
 
             // Request issues
-            'bad-request'             => __('Invalid verification request. Please refresh and try again.', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'internal-error'          => __('Verification service is temporarily unavailable. Please try again.', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'bad-request'             => __('Verification request invalid. Please try again.', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'internal-error'          => __('Verification temporarily unavailable. Please try again.', 'kitgenix-captcha-for-cloudflare-turnstile'),
 
             // Our own internal markers
             'http_error'              => __('Verification request failed. Please try again.', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'nonce_invalid'           => __('Security check failed. Please refresh and try again.', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'nonce_invalid'           => __('Security check failed. Please try again.', 'kitgenix-captcha-for-cloudflare-turnstile'),
             'token_missing'           => __('Please complete the Turnstile challenge.', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'replay_detected'         => __('Your verification expired. Please complete the Turnstile challenge again.', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'replay_detected'         => __('Verification expired. Please try again.', 'kitgenix-captcha-for-cloudflare-turnstile'),
         ];
 
         // First known code wins

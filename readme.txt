@@ -10,7 +10,7 @@ Donate link: https://buymeacoffee.com/kitgenix
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 1.0.7
+Stable tag: 1.0.9
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Tags: cloudflare, turnstile, captcha, anti-spam, woocommerce
@@ -254,6 +254,22 @@ The plugin itself doesn’t store personal data. Cloudflare Turnstile processes 
 
 == Changelog ==
 
+= 1.0.9 (15 October 2025) =
+* Fix: “Disable Submit Button” now respects “Interaction Only” — submit stays enabled when Turnstile can verify invisibly, and is disabled only if a visible challenge is actually required (unsupported/timeout/error). Applies to Elementor, WordPress Core forms, WooCommerce, Gravity Forms, Formidable, Forminator, Jetpack, Fluent Forms, and Kadence.
+* Improvement: Proactive reveal for Interaction Only — if auto-verification doesn’t complete after a short period (~5s), the widget is surfaced and the challenge is triggered so users aren’t left waiting.
+* Improvement: Submit-time guards — for regular forms and Elementor AJAX; when no token is present, we halt that submission, reveal the widget, scroll it into view, and start a fresh challenge.
+* Improvement: Streamlined inline messaging to align with Cloudflare’s own phrasing; reduced redundant prompts to let Cloudflare’s UI lead the experience.
+* Dev: Standardized render locks and defensive pre-render cleanup across remaining integrations to prevent duplicate iframes and race conditions.
+
+= 1.0.8 (15 October 2025) =
+* Fix: Interaction Only placeholder stays collapsed (no gap/shadow) after invisible validation; it only expands when UI is truly required (via `unsupported`/`timeout`/`error` callbacks or actual visible challenge).
+* Fix: Prevent loader overlay, no spinner is injected for Interaction Only while the API loads; collapsed state fully hides any inner spinner and spinners never intercept clicks.
+* Fix: Elementor popup - reliably renders Turnstile when popups open after page load (e.g., delayed by timer); if a widget initialized while hidden, it is reset and re-rendered on open.
+* Fix: Elementor popup duplicates - de-duplicated popup/form event listeners and centralized rendering to avoid multiple widget instances; idempotent guards ensure one render per container.
+* Fix: Prevent duplicate renders on Gravity Forms, Formidable, Forminator, and Jetpack by adding per-element render locks and pre-render cleanup.
+* Improvement: Deferred render - widgets now render when their container is visible (Elementor + generic paths), reducing layout thrash and improving perceived load times across dynamic UIs.
+* Dev: Simplified collapse logic by removing the previous mutation-based watcher and relying on Turnstile callbacks + visibility checks.
+
 = 1.0.7 (14 October 2025) =
 * New: Added "Flexible (100% width)" widget size (Cloudflare Turnstile `data-size="flexible"`) for fully responsive, container-width layouts. (Thank You: @kammsw)
 * New: Interaction Only UX refinement – collapses initial blank gap (no more 50+px empty space) until the user interacts or the widget needs to expand. (Thank You: @kammsw)
@@ -262,8 +278,6 @@ The plugin itself doesn’t store personal data. Cloudflare Turnstile processes 
 * Improvement: CSS enhancements for flexible width + reduced gap state (`.kt-ts-collapsed`).
 * Prep: Foundation laid for upcoming modal/delayed form robustness (MutationObserver structure ready for attribute watching & visibility checks in a future release).
 * Dev: Sanitization now allows `flexible`; admin settings UI updated with help text.
-* Note: If you previously forced width via custom CSS, review and remove redundant rules when using the new Flexible option.
-* Safe Update: No database schema changes; only front-end assets and settings sanitization logic touched.
 
 = 1.0.6 (10 September 2025) =
 * Improvement: Updated plugin assets (banners, icons, screenshots with clearer cropping/labels).
@@ -380,8 +394,8 @@ The plugin itself doesn’t store personal data. Cloudflare Turnstile processes 
 
 == Upgrade Notice ==
 
-= 1.0.7 =
-Adds Flexible (full-width) widget size and removes the large blank gap for Interaction Only mode. Update recommended for better UX. Clear/minify caches so new CSS/JS take effect.
+= 1.0.9 =
+Recommended to update as soon as possible to fix button disable on “Interaction Only”.
 
 == External Services ==
 

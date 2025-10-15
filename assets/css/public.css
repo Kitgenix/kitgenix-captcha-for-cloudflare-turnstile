@@ -59,11 +59,10 @@
   display: inline-block;          /* Turnstile's iframe wrapper */
 }
 
-/* Optional “card” feel without boxing themes in */
+/* Keep neutral look; rely on Cloudflare's own UI */
 .cf-turnstile[data-appearance="interaction-only"] {
-  border-radius: 8px;
-  box-shadow: var(--kt-shadow);
-  padding: 6px;
+  border-radius: 0;
+  box-shadow: none;
   background: transparent;
 }
 
@@ -73,6 +72,13 @@
   margin: 0 0 4px !important; /* tighter gap until expanded */
   padding: 0 !important;
   box-shadow: none !important;
+  height: 0 !important;           /* fully collapse */
+  overflow: hidden !important;     /* hide any inner placeholder/spinner */
+}
+
+/* In collapsed state, never show the loading spinner */
+.cf-turnstile.kt-ts-collapsed .kitgenix-captcha-for-cloudflare-turnstile-spinner {
+  display: none !important;
 }
 
 /* Flexible (data-size=flexible) — make iframe stretch full width */
@@ -95,6 +101,7 @@
   border-radius: 50%;
   animation: kitgenix-captcha-for-cloudflare-turnstile-spin 1s linear infinite;
   margin: 6px auto;
+  pointer-events: none;              /* spinner is visual only */
 }
 @keyframes kitgenix-captcha-for-cloudflare-turnstile-spin {
   0% { transform: rotate(0deg); }
@@ -164,27 +171,29 @@ input[type=submit]:focus-visible {
    Where: when we auto-reset an expired/idle widget (JS)
 ----------------------------------------------------------- */
 .kitgenix-captcha-for-cloudflare-turnstile-ts-inline-msg {
-  margin-top: 8px;
-  color: #b91c1c;
-  background: var(--kt-danger-bg);
-  padding: 8px 12px;
-  border-left: 4px solid var(--kt-danger);
+  margin: 8px 0 0;
+  color: #111827;
+  background: var(--kt-warn-bg);
+  padding: 10px 12px;
+  border-left: 4px solid var(--kt-warn);
   border-radius: 6px;
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 .kitgenix-captcha-for-cloudflare-turnstile-ts-inline-msg.kitgenix-captcha-for-cloudflare-turnstile-type-expired {
   border-left-color: var(--kt-warn);
   background: var(--kt-warn-bg);
-  color: #b45309;
+  color: #92400e;
 }
 .kitgenix-captcha-for-cloudflare-turnstile-ts-inline-msg.kitgenix-captcha-for-cloudflare-turnstile-type-error {
   border-left-color: var(--kt-danger);
+  background: var(--kt-danger-bg);
+  color: #7f1d1d;
 }
 @media (prefers-color-scheme: dark) {
   .kitgenix-captcha-for-cloudflare-turnstile-ts-inline-msg {
-    background: var(--kt-danger-bg);
-    color: #faad3f;
+    background: var(--kt-warn-bg);
+    color: #e5e7eb;
   }
 }
 
