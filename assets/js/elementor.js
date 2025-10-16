@@ -67,7 +67,7 @@
     if (cfg.theme)      container.setAttribute('data-theme', String(cfg.theme));
     if (cfg.size)       container.setAttribute('data-size', String(cfg.size));
     if (cfg.appearance) container.setAttribute('data-appearance', String(cfg.appearance));
-    container.setAttribute('data-kitgenix-captcha-for-cloudflare-turnstile-owner', 'elementor');
+    container.setAttribute('data-kgx-owner', 'elementor');
 
     if (submitGroup && submitGroup.parentNode) {
       submitGroup.parentNode.insertBefore(container, submitGroup);
@@ -77,11 +77,7 @@
 
     // Hint global renderer that new containers exist (public.js will render them)
     try {
-      document.dispatchEvent(
-        new CustomEvent('kitgenixcaptchaforcloudflareturnstile:turnstile-containers-added', {
-          detail: { source: 'elementor' }
-        })
-      );
+      document.dispatchEvent(new CustomEvent('kgx:turnstile-containers-added', { detail: { source: 'elementor' } }));
     } catch (e) {}
   }
 
@@ -113,6 +109,11 @@
         var $form = $(this);
         var $input = $form.find('input[name="cf-turnstile-response"]');
         if ($input.length) $input.val('');
+        // Collapse and hide containers to eliminate any layout gap after success
+        $form.find('.cf-turnstile').each(function(){
+          this.classList.add('kt-ts-collapsed');
+          this.classList.add('kt-ts-hide');
+        });
       });
     }
   });

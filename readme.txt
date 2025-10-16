@@ -10,7 +10,7 @@ Donate link: https://buymeacoffee.com/kitgenix
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 1.0.9
+Stable tag: 1.0.10
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Tags: cloudflare, turnstile, captcha, anti-spam, woocommerce
@@ -254,6 +254,14 @@ The plugin itself doesn’t store personal data. Cloudflare Turnstile processes 
 
 == Changelog ==
 
+= 1.0.10 (16 October 2025) =
+* Fix: Elementor Popups — reliably initializes the Turnstile challenge when a popup opens (even if the widget was inserted while hidden). Clears stale render flags, resets hidden iframes, and triggers a fresh render on show.
+* Fix: Hidden input — always ensures `input[name="cf-turnstile-response"]` exists for Elementor forms (including popups) so the token is properly captured and validated.
+* Fix: Interaction Only empty gaps — placeholders are now fully collapsed until the widget actually renders (via `data-rendered`). After successful AJAX submits, the container is collapsed/hidden to prevent any blank space.
+* Fix: Multiple forms on a page — consistent collapsed behavior across instances; prevents duplicate containers in Elementor popups and re-renders only when needed.
+* Improvement: Event-driven rendering — added `kgx:turnstile-containers-added` event from injectors; public script listens and re-initializes rendering automatically for dynamically added containers.
+* Improvement: Stability and UX — defensive re-render guards, explicit `data-rendered` attribute for CSS control, and safer visibility checks to avoid rendering inside hidden containers.
+
 = 1.0.9 (15 October 2025) =
 * Fix: “Disable Submit Button” now respects “Interaction Only” — submit stays enabled when Turnstile can verify invisibly, and is disabled only if a visible challenge is actually required (unsupported/timeout/error). Applies to Elementor, WordPress Core forms, WooCommerce, Gravity Forms, Formidable, Forminator, Jetpack, Fluent Forms, and Kadence.
 * Improvement: Proactive reveal for Interaction Only — if auto-verification doesn’t complete after a short period (~5s), the widget is surfaced and the challenge is triggered so users aren’t left waiting.
@@ -394,8 +402,9 @@ The plugin itself doesn’t store personal data. Cloudflare Turnstile processes 
 
 == Upgrade Notice ==
 
-= 1.0.9 =
-Recommended to update as soon as possible to fix button disable on “Interaction Only”.
+= 1.0.10 =
+Recommended update for Elementor Popups and Interaction Only UX. Fixes missing challenge/hidden input inside popups and removes blank gaps after submission by collapsing placeholders until rendered and after success. Also improves multi-form pages and dynamic render reliability.
+
 
 == External Services ==
 

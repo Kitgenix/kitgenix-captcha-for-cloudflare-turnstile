@@ -148,6 +148,18 @@
       flexible: 'flexible' // Cloudflare will stretch to 100% width
     },
 
+    // Ensure a hidden input exists for the closest form so we can store the token.
+    ensureHiddenInput: function (el) {
+      try {
+        const $form = jQuery(el).closest('form');
+        if (!$form.length) return;
+        let $input = $form.find('input[name="cf-turnstile-response"]');
+        if (!$input.length) {
+          $input = jQuery('<input type="hidden" name="cf-turnstile-response" />').appendTo($form);
+        }
+      } catch (e) { /* ignore */ }
+    },
+
     // Deduplicate extra containers in Elementor popups: keep only the first per form
     _dedupeElementorContainers(scope) {
       try {
@@ -184,6 +196,11 @@
         if (el.dataset.rendered || el.dataset.kgxRendering === '1') return;
         $(el).find('.kitgenix-captcha-for-cloudflare-turnstile-spinner').remove();
         el.dataset.kgxRendering = '1';
+
+        // Always ensure hidden input exists for this form before rendering
+        this.ensureHiddenInput(el);
+        // If previously hidden after success, unhide now for a fresh render
+        try { el.classList.remove('kt-ts-hide'); } catch (e) {}
 
         const params = {
           sitekey: el.getAttribute('data-sitekey'),
@@ -235,6 +252,8 @@
           try { el.innerHTML = ''; } catch (e) {}
           turnstile.render(el, params);
           el.dataset.rendered = 'true';
+          // Mark on attribute too so CSS selectors may rely on it
+          try { el.setAttribute('data-rendered', 'true'); } catch (e) {}
           delete el.dataset.kgxRendering;
 
           // If the UI becomes visible later (rare), uncollapse once it actually has height
@@ -320,6 +339,11 @@
         if (el.dataset.rendered || el.dataset.kgxRendering === '1') return;
         $(el).find('.kitgenix-captcha-for-cloudflare-turnstile-spinner').remove();
         el.dataset.kgxRendering = '1';
+
+        // Ensure hidden input exists even before first token
+        this.ensureHiddenInput(el);
+        // If previously hidden after success, unhide prior to rendering
+        try { el.classList.remove('kt-ts-hide'); } catch (e) {}
         const params = {
           sitekey: el.getAttribute('data-sitekey'),
           theme: el.getAttribute('data-theme') || this.config.theme || 'auto',
@@ -346,6 +370,7 @@
           try { el.innerHTML = ''; } catch (e) {}
           turnstile.render(el, params);
           el.dataset.rendered = 'true';
+          try { el.setAttribute('data-rendered', 'true'); } catch (e) {}
           if (this.config.disable_submit && (params.appearance !== 'interaction-only')) this.disableSubmit(el);
           this._scheduleIdleReset(el);
           delete el.dataset.kgxRendering;
@@ -699,14 +724,16 @@
               const already = !!el.dataset.rendered;
               const iframe = el.querySelector('iframe');
               const visible = iframe && iframe.offsetHeight > 0 && iframe.offsetWidth > 0;
+              // Always clear a stale "rendering" flag so the renderer can retry
+              if (el.dataset.kgxRendering === '1') { try { delete el.dataset.kgxRendering; } catch (e) {} }
               if (!already) {
-                // Fresh pass
-                return; // renderElementorWidgets() below will handle it
-              }
-              if (!visible) {
+                // Fresh pass, ensure hidden input exists pre-render
+                try { KitgenixCaptchaForCloudflareTurnstile.ensureHiddenInput(el); } catch (e) {}
+              } else if (!visible) {
+                // Was rendered while hidden; force a reset + allow re-render
                 try { if (typeof turnstile !== 'undefined') turnstile.reset(el); } catch (e) {}
-                el.dataset.rendered = '';
-                delete el.dataset.rendered;
+                try { el.removeAttribute('data-rendered'); } catch (e) {}
+                try { delete el.dataset.rendered; } catch (e) {}
               }
             });
             KitgenixCaptchaForCloudflareTurnstile.renderElementorWidgets();
@@ -955,10 +982,31 @@
     }, 100);
   });
 
+  // Collapse gaps after successful Elementor AJAX submit to avoid empty space
+  // Detection via generic ajaxSuccess to avoid brittle event name coupling
+  $(document).ajaxSuccess(function (_e, _xhr, settings) {
+    try {
+      var data = settings && settings.data ? String(settings.data) : '';
+      if (data.indexOf('action=elementor_pro_forms_send_form') !== -1) {
+        // Re-collapse interaction-only containers in all Elementor forms
+        jQuery('.elementor-form .cf-turnstile[data-appearance="interaction-only"]').each(function () {
+          this.classList.add('kt-ts-collapsed');
+        });
+      }
+    } catch (err) { /* ignore */ }
+  });
+
   // Additional Elementor hooks for popups/dynamic forms
   $(window).on('elementor/frontend/init', function () {
     setTimeout(() => { try { KitgenixCaptchaForCloudflareTurnstile.renderElementorWidgets(); } catch (e) { if (window.console) console.error(e); } }, 100);
   });
+
+  // Render when external scripts announce new containers
+  try {
+    document.addEventListener('kgx:turnstile-containers-added', function () {
+      try { KitgenixCaptchaForCloudflareTurnstile.init(); } catch (e) { if (window.console) console.error(e); }
+    });
+  } catch (e) {}
   // Note: popup/form events are handled inside elementorIntegration() to avoid duplicate bindings
   $(document).on('gform_post_render', function () {
     setTimeout(() => { try { KitgenixCaptchaForCloudflareTurnstile.renderGravityFormsWidgets(); } catch (e) { if (window.console) console.error(e); } }, 100);

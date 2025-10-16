@@ -67,13 +67,20 @@
 }
 
 /* Collapse gap when appearance=interaction-only before user interaction */
-.cf-turnstile.kt-ts-collapsed[data-appearance="interaction-only"] {
+.cf-turnstile.kt-ts-collapsed[data-appearance="interaction-only"],
+/* Safety: also collapse any interaction-only placeholder until it has data-rendered */
+.cf-turnstile[data-appearance="interaction-only"]:not([data-rendered]) {
   min-height: 0 !important; /* remove reserved space */
   margin: 0 0 4px !important; /* tighter gap until expanded */
   padding: 0 !important;
   box-shadow: none !important;
   height: 0 !important;           /* fully collapse */
   overflow: hidden !important;     /* hide any inner placeholder/spinner */
+}
+
+/* Once rendered, restore a minimal natural height so layout is correct */
+.cf-turnstile[data-appearance="interaction-only"][data-rendered] {
+  min-height: 24px;
 }
 
 /* In collapsed state, never show the loading spinner */
@@ -103,6 +110,9 @@
   margin: 6px auto;
   pointer-events: none;              /* spinner is visual only */
 }
+
+/* Utility: fully hide and collapse the widget (used after successful submits) */
+.cf-turnstile.kt-ts-hide { display: none !important; height: 0 !important; margin: 0 !important; padding: 0 !important; }
 @keyframes kitgenix-captcha-for-cloudflare-turnstile-spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
