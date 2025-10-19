@@ -10,7 +10,7 @@ Donate link: https://buymeacoffee.com/kitgenix
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 1.0.10
+Stable tag: 1.0.11
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Tags: cloudflare, turnstile, captcha, anti-spam, woocommerce
@@ -254,6 +254,9 @@ The plugin itself doesn’t store personal data. Cloudflare Turnstile processes 
 
 == Changelog ==
 
+= 1.0.11 (19 October 2025) =
+* Fix: Elementor AJAX regression — prevented a brief layout “bump” where interaction-only lost `.kt-ts-collapsed` during the AJAX send; the container now stays collapsed unless a visible challenge is explicitly required.
+
 = 1.0.10 (16 October 2025) =
 * Fix: Elementor Popups — reliably initializes the Turnstile challenge when a popup opens (even if the widget was inserted while hidden). Clears stale render flags, resets hidden iframes, and triggers a fresh render on show.
 * Fix: Hidden input — always ensures `input[name="cf-turnstile-response"]` exists for Elementor forms (including popups) so the token is properly captured and validated.
@@ -402,9 +405,8 @@ The plugin itself doesn’t store personal data. Cloudflare Turnstile processes 
 
 == Upgrade Notice ==
 
-= 1.0.10 =
-Recommended update for Elementor Popups and Interaction Only UX. Fixes missing challenge/hidden input inside popups and removes blank gaps after submission by collapsing placeholders until rendered and after success. Also improves multi-form pages and dynamic render reliability.
-
+= 1.0.11 =
+No Major Changes.
 
 == External Services ==
 

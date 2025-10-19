@@ -258,15 +258,7 @@
 
           // If the UI becomes visible later (rare), uncollapse once it actually has height
           if (params.appearance === 'interaction-only') {
-            try {
-              const ro = new ResizeObserver(() => {
-                if (el.classList.contains('kt-ts-collapsed') && el.offsetHeight > 0) {
-                  el.classList.remove('kt-ts-collapsed');
-                  ro.disconnect();
-                }
-              });
-              ro.observe(el);
-            } catch (e) {}
+            // Do not auto-uncollapse on size changes; only reveal explicitly on need
             // If no token after a short delay, surface the UI proactively
             this._scheduleRevealIfNoToken(el);
           }
@@ -376,15 +368,7 @@
           delete el.dataset.kgxRendering;
 
           if (params.appearance === 'interaction-only') {
-            try {
-              const ro = new ResizeObserver(() => {
-                if (el.classList.contains('kt-ts-collapsed') && el.offsetHeight > 0) {
-                  el.classList.remove('kt-ts-collapsed');
-                  ro.disconnect();
-                }
-              });
-              ro.observe(el);
-            } catch (e) {}
+            // Do not auto-uncollapse on size changes; only reveal explicitly on need
             KitgenixCaptchaForCloudflareTurnstile._scheduleRevealIfNoToken(el);
           }
         };
@@ -432,15 +416,7 @@
           delete el.dataset.kgxRendering;
 
           if (params.appearance === 'interaction-only') {
-            try {
-              const ro = new ResizeObserver(() => {
-                if (el.classList.contains('kt-ts-collapsed') && el.offsetHeight > 0) {
-                  el.classList.remove('kt-ts-collapsed');
-                  ro.disconnect();
-                }
-              });
-              ro.observe(el);
-            } catch (e) {}
+            // Do not auto-uncollapse on size changes; only reveal explicitly on need
             KitgenixCaptchaForCloudflareTurnstile._scheduleRevealIfNoToken(el);
           }
         };
@@ -488,15 +464,7 @@
           delete el.dataset.kgxRendering;
 
           if (params.appearance === 'interaction-only') {
-            try {
-              const ro = new ResizeObserver(() => {
-                if (el.classList.contains('kt-ts-collapsed') && el.offsetHeight > 0) {
-                  el.classList.remove('kt-ts-collapsed');
-                  ro.disconnect();
-                }
-              });
-              ro.observe(el);
-            } catch (e) {}
+            // Do not auto-uncollapse on size changes; only reveal explicitly on need
             KitgenixCaptchaForCloudflareTurnstile._scheduleRevealIfNoToken(el);
           }
         };
@@ -528,7 +496,7 @@
           'expired-callback': () => { this.resetWidget(el, 'expired'); },
           'error-callback': () => { this.resetWidget(el, 'error'); if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kt-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } }
         };
-  if (params.appearance === 'interaction-only') { el.classList.add('kt-ts-collapsed'); this._ensureInteractionOnlyCollapseWatcher(el); }
+  if (params.appearance === 'interaction-only') { el.classList.add('kt-ts-collapsed'); }
           try { el.innerHTML = ''; } catch (e) {}
           turnstile.render(el, params);
         el.dataset.rendered = 'true';
@@ -741,13 +709,9 @@
         };
         requestAnimationFrame(() => setTimeout(reRenderInPopup, 60));
       });
-      $(document).on('submit', '.elementor-form', function () {
-        $(this).find('.cf-turnstile').each(function () {
-          if (typeof turnstile !== 'undefined' && this.dataset.rendered) {
-            turnstile.reset(this);
-          }
-        });
-      });
+      // IMPORTANT: Do NOT reset widgets on submit; doing so briefly expands the iframe
+      // and our ResizeObserver may uncollapse the container, causing a layout bump
+      // during AJAX send. Resets are handled after success or on error elsewhere.
     },
     
     // Global form guard: if Interaction Only has no token yet, surface UI immediately and block submit once.
