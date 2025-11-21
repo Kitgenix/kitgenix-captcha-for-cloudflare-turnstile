@@ -55,8 +55,25 @@ class Admin_Options {
         $clean    = [];
 
         // --- Site keys ---
-        $clean['site_key']   = \sanitize_text_field($settings['site_key']   ?? '');
-        $clean['secret_key'] = \sanitize_text_field($settings['secret_key'] ?? '');
+        $clean['site_key'] = \sanitize_text_field($settings['site_key'] ?? '');
+
+        // Secret handling: For safety we do not rely on the form field being
+        // populated when a secret already exists. If the admin leaves the
+        // secret input empty but `secret_key_present` was set, preserve the
+        // existing stored secret unless `secret_key_clear` is explicitly set.
+        $incoming_secret = isset($settings['secret_key']) ? \sanitize_text_field($settings['secret_key']) : '';
+        $secret_present_flag = !empty($settings['secret_key_present']);
+        $clear_secret = !empty($settings['secret_key_clear']);
+
+        if ($clear_secret) {
+            $clean['secret_key'] = '';
+        } elseif ($incoming_secret === '' && $secret_present_flag) {
+            // Preserve previously stored secret when the admin didn't submit a new one.
+            $current = \get_option(self::OPTION_NAME, []);
+            $clean['secret_key'] = \sanitize_text_field($current['secret_key'] ?? '');
+        } else {
+            $clean['secret_key'] = $incoming_secret;
+        }
 
         // --- Master toggles (integrations) ---
         $clean['enable_wordpress']       = !empty($settings['enable_wordpress']) ? 1 : 0;
@@ -69,7 +86,9 @@ class Admin_Options {
         $clean['enable_formidableforms'] = !empty($settings['enable_formidableforms']) ? 1 : 0;
         $clean['enable_forminator']      = !empty($settings['enable_forminator']) ? 1 : 0;
         $clean['enable_jetpackforms']    = !empty($settings['enable_jetpackforms']) ? 1 : 0;
-    $clean['enable_kadenceforms']    = !empty($settings['enable_kadenceforms']) ? 1 : 0;
+        $clean['enable_kadenceforms']    = !empty($settings['enable_kadenceforms']) ? 1 : 0;
+        $clean['enable_buddypress']      = !empty($settings['enable_buddypress']) ? 1 : 0;
+        $clean['enable_bbpress']         = !empty($settings['enable_bbpress']) ? 1 : 0;
 
         // --- Per-form toggles (WordPress Core) ---
         $clean['wp_login_form']        = !empty($settings['wp_login_form']) ? 1 : 0;
@@ -129,6 +148,46 @@ class Admin_Options {
         // Prefer new key 'trusted_proxies'; if absent, fall back to legacy 'trusted_proxy_ips'
         $trusted_input = $settings['trusted_proxies'] ?? ($settings['trusted_proxy_ips'] ?? '');
         $clean['trusted_proxies'] = self::sanitize_trusted_proxies_block($trusted_input);
+
+    // --- Per-integration mode flags ('auto' or 'shortcode') ---
+    $allowed_modes = ['auto', 'shortcode'];
+
+    $mode = \sanitize_text_field( $settings['mode_wpforms'] ?? 'auto' );
+    $clean['mode_wpforms'] = \in_array( $mode, $allowed_modes, true ) ? $mode : 'auto';
+
+    $mode = \sanitize_text_field( $settings['mode_fluentforms'] ?? 'auto' );
+    $clean['mode_fluentforms'] = \in_array( $mode, $allowed_modes, true ) ? $mode : 'auto';
+
+    $mode = \sanitize_text_field( $settings['mode_gravityforms'] ?? 'auto' );
+    $clean['mode_gravityforms'] = \in_array( $mode, $allowed_modes, true ) ? $mode : 'auto';
+
+    $mode = \sanitize_text_field( $settings['mode_forminator'] ?? 'auto' );
+    $clean['mode_forminator'] = \in_array( $mode, $allowed_modes, true ) ? $mode : 'auto';
+
+    $mode = \sanitize_text_field( $settings['mode_formidableforms'] ?? 'auto' );
+    $clean['mode_formidableforms'] = \in_array( $mode, $allowed_modes, true ) ? $mode : 'auto';
+
+    $mode = \sanitize_text_field( $settings['mode_cf7'] ?? 'auto' );
+    $clean['mode_cf7'] = \in_array( $mode, $allowed_modes, true ) ? $mode : 'auto';
+
+    $mode = \sanitize_text_field( $settings['mode_jetpackforms'] ?? 'auto' );
+    $clean['mode_jetpackforms'] = \in_array( $mode, $allowed_modes, true ) ? $mode : 'auto';
+
+    $mode = \sanitize_text_field( $settings['mode_kadenceforms'] ?? 'auto' );
+    $clean['mode_kadenceforms'] = \in_array( $mode, $allowed_modes, true ) ? $mode : 'auto';
+
+    // Non-form integrations
+    $mode = \sanitize_text_field( $settings['mode_woocommerce'] ?? 'auto' );
+    $clean['mode_woocommerce'] = \in_array( $mode, $allowed_modes, true ) ? $mode : 'auto';
+
+    $mode = \sanitize_text_field( $settings['mode_woocommerce_blocks'] ?? 'auto' );
+    $clean['mode_woocommerce_blocks'] = \in_array( $mode, $allowed_modes, true ) ? $mode : 'auto';
+
+    $mode = \sanitize_text_field( $settings['mode_elementor'] ?? 'auto' );
+    $clean['mode_elementor'] = \in_array( $mode, $allowed_modes, true ) ? $mode : 'auto';
+
+    $mode = \sanitize_text_field( $settings['mode_wp_core'] ?? 'auto' );
+    $clean['mode_wp_core'] = \in_array( $mode, $allowed_modes, true ) ? $mode : 'auto';
 
         return $clean;
     }

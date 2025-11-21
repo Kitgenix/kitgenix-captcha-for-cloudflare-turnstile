@@ -3,7 +3,7 @@
  * Plugin Name: Kitgenix CAPTCHA for Cloudflare Turnstile
  * Plugin URI: https://wordpress.org/plugins/kitgenix-captcha-for-cloudflare-turnstile
  * Description: Seamlessly integrate Cloudflare Turnstile with WordPress, WooCommerce, and Elementor forms.
- * Version: 1.0.11
+ * Version: 1.0.12
  * Requires at least: 5.0
  * Tested up to: 6.8
  * Requires PHP: 7.0
@@ -22,7 +22,7 @@ defined('ABSPATH') || exit;
  * Constants (guarded)
  */
 if ( ! defined('KitgenixCaptchaForCloudflareTurnstileVERSION') ) {
-    define('KitgenixCaptchaForCloudflareTurnstileVERSION', '1.0.11');
+    define('KitgenixCaptchaForCloudflareTurnstileVERSION', '1.0.12');
 }
 if ( ! defined('KitgenixCaptchaForCloudflareTurnstileFILE') ) {
     define('KitgenixCaptchaForCloudflareTurnstileFILE', __FILE__);
@@ -53,16 +53,7 @@ require_once KitgenixCaptchaForCloudflareTurnstileINCLUDES_PATH . 'admin/class-s
 KitgenixCaptchaForCloudflareTurnstile\Admin\Admin_Options::init();
 KitgenixCaptchaForCloudflareTurnstile\Admin\Settings_UI::init();
 
-/**
- * Load text domain for translations
- */
-add_action('init', function () {
-    load_plugin_textdomain(
-        'kitgenix-captcha-for-cloudflare-turnstile',
-        false,
-        dirname(plugin_basename(__FILE__)) . '/languages'
-    );
-});
+// Translations are loaded automatically by WordPress.org; no manual call required.
 
 /**
  * Initialize Plugin (after all plugins loaded)
@@ -94,14 +85,14 @@ function kitgenix_captcha_for_cloudflare_turnstile_activate_plugin() {
 
     if ( version_compare(PHP_VERSION, $min_php, '<') || version_compare(get_bloginfo('version'), $min_wp, '<') ) {
         deactivate_plugins(plugin_basename(__FILE__));
-        /* translators: 1: PHP version, 2: WordPress version */
         $msg = sprintf(
+            /* translators: 1: PHP version, 2: WordPress version */
             esc_html__( 'Kitgenix Turnstile requires PHP %1$s+ and WordPress %2$s+.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
             esc_html($min_php),
             esc_html($min_wp)
         );
         wp_die(
-            $msg,
+            esc_html( $msg ),
             esc_html__( 'Plugin Activation Error', 'kitgenix-captcha-for-cloudflare-turnstile' ),
             ['back_link' => true]
         );

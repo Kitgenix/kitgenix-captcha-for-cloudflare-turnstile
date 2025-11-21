@@ -21,6 +21,7 @@ class Turnstile_Loader {
         require_once KitgenixCaptchaForCloudflareTurnstileINCLUDES_PATH . 'core/class-client-ip.php';
         require_once KitgenixCaptchaForCloudflareTurnstileINCLUDES_PATH . 'core/class-turnstile-validator.php';
         require_once KitgenixCaptchaForCloudflareTurnstileINCLUDES_PATH . 'core/class-script-handler.php';
+    require_once KitgenixCaptchaForCloudflareTurnstileINCLUDES_PATH . 'core/class-turnstile-shortcode.php';
         require_once KitgenixCaptchaForCloudflareTurnstileINCLUDES_PATH . 'core/class-whitelist.php';
 
         \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::init();
@@ -130,6 +131,24 @@ class Turnstile_Loader {
         // Kadence Forms (auto-init)
         if (!empty($settings['enable_kadenceforms']) && class_exists('Kadence_Blocks_Form')) {
             require_once KitgenixCaptchaForCloudflareTurnstileINCLUDES_PATH . 'integrations/forms/kadence-forms.php';
+        }
+
+        // BuddyPress (forums) integration — accept multiple presence signals
+        $bp_present = defined( 'BP_VERSION' ) || class_exists( 'BuddyPress' ) || function_exists( 'bp_is_active' ) || function_exists( 'bp_register' );
+        if ( ! empty( $settings['enable_buddypress'] ) && $bp_present ) {
+            require_once KitgenixCaptchaForCloudflareTurnstileINCLUDES_PATH . 'integrations/forums/buddypress.php';
+            if ( class_exists( \KitgenixCaptchaForCloudflareTurnstile\Integrations\Forums\BuddyPress::class ) ) {
+                \KitgenixCaptchaForCloudflareTurnstile\Integrations\Forums\BuddyPress::init();
+            }
+        }
+
+        // bbPress integration — accept multiple presence signals (constant, class, or common function)
+        $bbp_present = defined( 'BBPRESS_VERSION' ) || defined( 'BBP_VERSION' ) || class_exists( 'bbPress' ) || function_exists( 'bbp_is_single_forum' );
+        if ( ! empty( $settings['enable_bbpress'] ) && $bbp_present ) {
+            require_once KitgenixCaptchaForCloudflareTurnstileINCLUDES_PATH . 'integrations/forums/bbpress.php';
+            if ( class_exists( \KitgenixCaptchaForCloudflareTurnstile\Integrations\Forums\BbPress::class ) ) {
+                \KitgenixCaptchaForCloudflareTurnstile\Integrations\Forums\BbPress::init();
+            }
         }
 
         

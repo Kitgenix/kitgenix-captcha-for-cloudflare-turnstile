@@ -12,7 +12,7 @@ class Client_IP {
      *   prefer CF/True-Client-IP/XFF/X-Real-IP, taking the first PUBLIC routable IP.
      */
     public static function get(): string {
-        $remote = isset($_SERVER['REMOTE_ADDR']) ? self::clean($_SERVER['REMOTE_ADDR']) : '';
+        $remote = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
         if (!filter_var($remote, FILTER_VALIDATE_IP)) {
             return '0.0.0.0';
         }
@@ -29,18 +29,18 @@ class Client_IP {
         }
 
         // Prefer Cloudflare & proxy headers (PUBLIC IPs only).
-        $cfc = isset($_SERVER['HTTP_CF_CONNECTING_IP']) ? self::clean($_SERVER['HTTP_CF_CONNECTING_IP']) : '';
+        $cfc = isset($_SERVER['HTTP_CF_CONNECTING_IP']) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ) : '';
         if ($cfc && self::is_public_ip($cfc)) {
             return $cfc;
         }
 
-        $tci = isset($_SERVER['HTTP_TRUE_CLIENT_IP']) ? self::clean($_SERVER['HTTP_TRUE_CLIENT_IP']) : '';
+        $tci = isset($_SERVER['HTTP_TRUE_CLIENT_IP']) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_TRUE_CLIENT_IP'] ) ) : '';
         if ($tci && self::is_public_ip($tci)) {
             return $tci;
         }
 
         // Left-most client in XFF that is PUBLIC.
-        $xff = isset($_SERVER['HTTP_X_FORWARDED_FOR']) ? self::clean($_SERVER['HTTP_X_FORWARDED_FOR']) : '';
+        $xff = isset($_SERVER['HTTP_X_FORWARDED_FOR']) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) : '';
         if ($xff) {
             foreach (explode(',', $xff) as $ip) {
                 $ip = trim($ip);
@@ -50,7 +50,7 @@ class Client_IP {
             }
         }
 
-        $xri = isset($_SERVER['HTTP_X_REAL_IP']) ? self::clean($_SERVER['HTTP_X_REAL_IP']) : '';
+        $xri = isset($_SERVER['HTTP_X_REAL_IP']) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_REAL_IP'] ) ) : '';
         if ($xri && self::is_public_ip($xri)) {
             return $xri;
         }

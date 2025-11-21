@@ -91,6 +91,12 @@ class WP_Core {
             return $submit_field;
         }
 
+        // Respect per-integration mode: allow admin to switch WP core forms to shortcode-only.
+        $mode = $settings['mode_wp_core'] ?? 'auto';
+        if ( $mode === 'shortcode' ) {
+            return $submit_field;
+        }
+
         // If markup already contains a container, don't inject.
         if ( is_string( $submit_field ) && strpos( $submit_field, 'cf-turnstile' ) !== false ) {
             return $submit_field;

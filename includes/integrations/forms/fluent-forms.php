@@ -29,6 +29,13 @@ class FluentForms {
         // Inject Turnstile (field-based, before submit).
         add_filter('fluentform_rendering_field_data', [__CLASS__, 'inject_turnstile_field'], 10, 3);
 
+        // If shortcode-only mode is selected for FluentForms, ensure shortcodes inside
+        // custom HTML field content are processed when Fluent renders fields.
+        $mode = $settings['mode_fluentforms'] ?? 'auto';
+        if ( $mode === 'shortcode' && function_exists( 'add_filter' ) ) {
+            add_filter( 'fluentform_rendering_field_data', [ __CLASS__, 'process_shortcodes_in_fluent_field' ], 9, 3 );
+        }
+
         // Fallback: render container right above the submit button (covers custom layouts).
         add_action('fluentform/render_item_submit_button', [__CLASS__, 'render_turnstile_above_submit'], 5, 2);
 
@@ -52,11 +59,18 @@ class FluentForms {
             return $fields;
         }
 
-        // Avoid duplicates if already injected.
-        foreach ($fields as $f) {
-            if (!empty($f['settings']['html']) && strpos($f['settings']['html'], 'class="cf-turnstile"') !== false) {
-                return $fields;
-            }
+        // Respect per-integration mode: skip auto-inject if shortcode-only is selected.
+        $mode = $settings['mode_fluentforms'] ?? 'auto';
+        if ( $mode === 'shortcode' ) {
+            return $fields;
+        }
+
+        // Avoid duplicates if already injected or a rendered widget container is present in fields/form.
+        // We deliberately ignore literal shortcode tokens here (pass false) so auto-mode isn't blocked
+        // by users leaving the shortcode text in form content.
+        if ( \KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Shortcode::has_shortcode_in( $fields, false )
+            || \KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Shortcode::has_shortcode_in( $form, false ) ) {
+            return $fields;
         }
 
         $hidden_input = [
@@ -109,6 +123,12 @@ class FluentForms {
             return;
         }
 
+        // Respect per-integration mode: skip auto-inject if shortcode-only is selected.
+        $mode = $settings['mode_fluentforms'] ?? 'auto';
+        if ( $mode === 'shortcode' ) {
+            return;
+        }
+
         $form_id = isset($form->id) ? (int) $form->id : (isset($form['id']) ? (int) $form['id'] : 0);
         static $rendered_for = [];
         if ($form_id && isset($rendered_for[$form_id])) {
@@ -134,6 +154,29 @@ class FluentForms {
     }
 
     /**
+     * Process potential shortcodes inside FluentForms field HTML.
+     *
+     * @param array $field
+     * @param array|object $form
+     * @param int $form_id
+     * @return array
+     */
+    public static function process_shortcodes_in_fluent_field( $field, $form, $form_id ) {
+        if ( ! is_array( $field ) ) {
+            return $field;
+        }
+        if ( ! function_exists( 'do_shortcode' ) ) {
+            return $field;
+        }
+
+        if ( isset( $field['settings']['html'] ) && is_string( $field['settings']['html'] ) && strpos( $field['settings']['html'], '[' ) !== false ) {
+            $field['settings']['html'] = \do_shortcode( $field['settings']['html'] );
+        }
+
+        return $field;
+    }
+
+    /**
      * AJAX-friendly validation hook. Returns errors array; no wp_die.
      *
      * @param array $errors
@@ -146,9 +189,16 @@ class FluentForms {
             return $errors;
         }
 
-        $token = isset($_POST['cf-turnstile-response'])
-            ? sanitize_text_field( wp_unslash( $_POST['cf-turnstile-response'] ) )
-            : '';
+        // Prefer Fluent Forms' provided $formData array instead of direct
+        // $_POST access — this avoids PHPCS nonce warnings for POST reads
+        // while still allowing Fluent's AJAX validation path to provide the token.
+        $token = '';
+        if ( is_array( $formData ) && isset( $formData['cf-turnstile-response'] ) ) {
+            $token = sanitize_text_field( (string) $formData['cf-turnstile-response'] );
+        } elseif ( isset( $_SERVER['HTTP_X_TURNSTILE_TOKEN'] ) ) {
+            // Also support header-style tokens (fetch/Blocks flows).
+            $token = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_TURNSTILE_TOKEN'] ) );
+        }
 
         // Validate token directly (no plugin nonce requirement for Fluent’s AJAX path).
         if ( ! $token || ! Turnstile_Validator::validate_token($token) ) {

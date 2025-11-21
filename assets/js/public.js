@@ -73,8 +73,8 @@
             const token = $form.find('input[name="cf-turnstile-response"]').val() || '';
             if (token) return; // already verified invisibly
             if (el.getAttribute('data-appearance') === 'interaction-only') {
-              if (el.classList.contains('kt-ts-collapsed')) {
-                el.classList.remove('kt-ts-collapsed');
+              if (el.classList.contains('kitgenix-ts-collapsed')) {
+                el.classList.remove('kitgenix-ts-collapsed');
               }
               if (this.config.disable_submit) {
                 this.disableSubmit(el);
@@ -198,9 +198,47 @@
         el.dataset.kgxRendering = '1';
 
         // Always ensure hidden input exists for this form before rendering
+        // If a container requests placement at the BuddyPress Post Update button,
+        // attempt to relocate it before the form submit button so it appears in the
+        // expected spot rather than above the activity type box.
+        try {
+          var placement = el.getAttribute && el.getAttribute('data-placement');
+          if (placement === 'buddypress-post-update') {
+            var form = (el.closest && el.closest('form')) || document.getElementById('whats-new-form') || document.querySelector('.activity-form') || document.querySelector('.bp-activity-form');
+            var moved = false;
+            if (form) {
+              var submitBtn = form.querySelector('button[type=submit], input[type=submit], input[type=button]');
+              if (submitBtn && submitBtn.parentNode) {
+                submitBtn.parentNode.insertBefore(el, submitBtn);
+                moved = true;
+              }
+            }
+
+            // Try to locate a BuddyPress 'Post Update' button by visible text if not found above
+            if (!moved) {
+              var candidates = Array.prototype.slice.call(document.querySelectorAll('button, input[type=submit], input[type=button], a.button'));
+              for (var i = 0; i < candidates.length; i++) {
+                try {
+                  var btn = candidates[i];
+                  var txt = (btn.textContent || btn.value || '').trim();
+                  if (!txt) continue;
+                  if (/^\s*post update\s*$/i.test(txt) || /^\s*post\s+update\s*$/i.test(txt) || (/post update/i.test(txt))) {
+                    if (btn.parentNode) { btn.parentNode.insertBefore(el, btn); moved = true; break; }
+                  }
+                } catch (err) { /* ignore per-button errors */ }
+              }
+            }
+
+            // Last-resort fallbacks: insert into common BuddyPress action containers
+            if (!moved) {
+              var fallback = document.querySelector('.activity-form .activity-controls, .activity-form .activity-buttons, .bp-activity .activity-actions, #whats-new-form');
+              if (fallback) { try { fallback.appendChild(el); moved = true; } catch (e) {} }
+            }
+          }
+        } catch (e) { /* ignore placement errors */ }
         this.ensureHiddenInput(el);
         // If previously hidden after success, unhide now for a fresh render
-        try { el.classList.remove('kt-ts-hide'); } catch (e) {}
+        try { el.classList.remove('kitgenix-ts-hide'); } catch (e) {}
 
         const params = {
           sitekey: el.getAttribute('data-sitekey'),
@@ -221,19 +259,19 @@
           'error-callback': () => {
             this.resetWidget(el, 'error');
             if (el.getAttribute('data-appearance') === 'interaction-only') {
-              el.classList.remove('kt-ts-collapsed');
+              el.classList.remove('kitgenix-ts-collapsed');
               if (this.config.disable_submit) this.disableSubmit(el);
             }
           },
           'unsupported-callback': () => {
             if (el.getAttribute('data-appearance') === 'interaction-only') {
-              el.classList.remove('kt-ts-collapsed');
+              el.classList.remove('kitgenix-ts-collapsed');
               if (this.config.disable_submit) this.disableSubmit(el);
             }
           },
           'timeout-callback': () => {
             if (el.getAttribute('data-appearance') === 'interaction-only') {
-              el.classList.remove('kt-ts-collapsed');
+              el.classList.remove('kitgenix-ts-collapsed');
               if (this.config.disable_submit) this.disableSubmit(el);
             }
           }
@@ -241,7 +279,7 @@
 
         // Collapse visual gap for interaction-only until it actually renders/expands
         if (params.appearance === 'interaction-only') {
-          el.classList.add('kt-ts-collapsed');
+          el.classList.add('kitgenix-ts-collapsed');
         }
         const renderWhenVisible = () => {
           const style = window.getComputedStyle(el);
@@ -250,7 +288,13 @@
 
           // Clean any stale children (defensive, in case of prior duplicate render attempts)
           try { el.innerHTML = ''; } catch (e) {}
-          turnstile.render(el, params);
+          try {
+            turnstile.render(el, params);
+          } catch (err) {
+            if (window.console && window.console.error) {
+              console.error('[KitgenixTurnstile] turnstile.render error', err);
+            }
+          }
           el.dataset.rendered = 'true';
           // Mark on attribute too so CSS selectors may rely on it
           try { el.setAttribute('data-rendered', 'true'); } catch (e) {}
@@ -305,7 +349,7 @@
       //   - not interaction-only OR
       //   - interaction-only but UI is visible (container uncollapsed)
       var isInteractionOnly = (el.getAttribute('data-appearance') === 'interaction-only');
-      var uiVisible = !el.classList.contains('kt-ts-collapsed');
+      var uiVisible = !el.classList.contains('kitgenix-ts-collapsed');
       if (this.config.disable_submit && (!isInteractionOnly || (isInteractionOnly && uiVisible))) {
         this.disableSubmit(el);
       }
@@ -335,7 +379,7 @@
         // Ensure hidden input exists even before first token
         this.ensureHiddenInput(el);
         // If previously hidden after success, unhide prior to rendering
-        try { el.classList.remove('kt-ts-hide'); } catch (e) {}
+        try { el.classList.remove('kitgenix-ts-hide'); } catch (e) {}
         const params = {
           sitekey: el.getAttribute('data-sitekey'),
           theme: el.getAttribute('data-theme') || this.config.theme || 'auto',
@@ -349,11 +393,11 @@
             // Keep collapsed; watcher will uncollapse only if visible
           },
           'expired-callback': () => { this.resetWidget(el, 'expired'); },
-          'error-callback': () => { this.resetWidget(el, 'error'); if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kt-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } },
-          'unsupported-callback': () => { if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kt-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } },
-          'timeout-callback': () => { if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kt-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } }
+          'error-callback': () => { this.resetWidget(el, 'error'); if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kitgenix-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } },
+          'unsupported-callback': () => { if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kitgenix-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } },
+          'timeout-callback': () => { if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kitgenix-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } }
         };
-        if (params.appearance === 'interaction-only') { el.classList.add('kt-ts-collapsed'); }
+        if (params.appearance === 'interaction-only') { el.classList.add('kitgenix-ts-collapsed'); }
         const renderWhenVisible = () => {
           const style = window.getComputedStyle(el);
           const visible = style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
@@ -398,11 +442,11 @@
             // Keep collapsed; watcher handles visibility
           },
           'expired-callback': () => { this.resetWidget(el, 'expired'); },
-          'error-callback': () => { this.resetWidget(el, 'error'); if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kt-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } },
-          'unsupported-callback': () => { if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kt-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } },
-          'timeout-callback': () => { if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kt-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } }
+          'error-callback': () => { this.resetWidget(el, 'error'); if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kitgenix-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } },
+          'unsupported-callback': () => { if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kitgenix-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } },
+          'timeout-callback': () => { if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kitgenix-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } }
         };
-        if (params.appearance === 'interaction-only') { el.classList.add('kt-ts-collapsed'); }
+        if (params.appearance === 'interaction-only') { el.classList.add('kitgenix-ts-collapsed'); }
         const renderWhenVisibleF = () => {
           const style = window.getComputedStyle(el);
           const visible = style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
@@ -446,11 +490,11 @@
             // Keep collapsed; watcher handles visibility
           },
           'expired-callback': () => { this.resetWidget(el, 'expired'); },
-          'error-callback': () => { this.resetWidget(el, 'error'); if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kt-ts-collapsed'); } },
-          'unsupported-callback': () => { if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kt-ts-collapsed'); } },
-          'timeout-callback': () => { if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kt-ts-collapsed'); } }
+          'error-callback': () => { this.resetWidget(el, 'error'); if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kitgenix-ts-collapsed'); } },
+          'unsupported-callback': () => { if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kitgenix-ts-collapsed'); } },
+          'timeout-callback': () => { if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kitgenix-ts-collapsed'); } }
         };
-        if (params.appearance === 'interaction-only') { el.classList.add('kt-ts-collapsed'); }
+        if (params.appearance === 'interaction-only') { el.classList.add('kitgenix-ts-collapsed'); }
         const renderWhenVisibleJ = () => {
           const style = window.getComputedStyle(el);
           const visible = style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
@@ -494,9 +538,9 @@
             // Keep collapsed; watcher handles visibility
           },
           'expired-callback': () => { this.resetWidget(el, 'expired'); },
-          'error-callback': () => { this.resetWidget(el, 'error'); if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kt-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } }
+          'error-callback': () => { this.resetWidget(el, 'error'); if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kitgenix-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } }
         };
-  if (params.appearance === 'interaction-only') { el.classList.add('kt-ts-collapsed'); }
+  if (params.appearance === 'interaction-only') { el.classList.add('kitgenix-ts-collapsed'); }
           try { el.innerHTML = ''; } catch (e) {}
           turnstile.render(el, params);
         el.dataset.rendered = 'true';
@@ -530,11 +574,11 @@
             this._scheduleTokenAgeReset(el);
           },
           'expired-callback': () => { this.resetWidget(el, 'expired'); },
-          'error-callback': () => { this.resetWidget(el, 'error'); if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kt-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } },
-          'unsupported-callback': () => { if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kt-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } },
-          'timeout-callback': () => { if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kt-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } }
+          'error-callback': () => { this.resetWidget(el, 'error'); if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kitgenix-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } },
+          'unsupported-callback': () => { if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kitgenix-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } },
+          'timeout-callback': () => { if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kitgenix-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } }
         };
-        if (params.appearance === 'interaction-only') { el.classList.add('kt-ts-collapsed'); }
+        if (params.appearance === 'interaction-only') { el.classList.add('kitgenix-ts-collapsed'); }
         const renderWhenVisible = () => {
           const style = window.getComputedStyle(el);
           const visible = style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
@@ -550,8 +594,8 @@
           if (params.appearance === 'interaction-only') {
             try {
               const ro = new ResizeObserver(() => {
-                if (el.classList.contains('kt-ts-collapsed') && el.offsetHeight > 0) {
-                  el.classList.remove('kt-ts-collapsed');
+                if (el.classList.contains('kitgenix-ts-collapsed') && el.offsetHeight > 0) {
+                  el.classList.remove('kitgenix-ts-collapsed');
                   ro.disconnect();
                 }
               });
@@ -656,8 +700,8 @@
           const $inter = $form.find('.cf-turnstile[data-appearance="interaction-only"]');
           if ($inter.length) {
             const el = $inter.get(0);
-            if (el.classList.contains('kt-ts-collapsed')) {
-              el.classList.remove('kt-ts-collapsed');
+            if (el.classList.contains('kitgenix-ts-collapsed')) {
+              el.classList.remove('kitgenix-ts-collapsed');
             }
             if (KitgenixCaptchaForCloudflareTurnstile.config.disable_submit) {
               KitgenixCaptchaForCloudflareTurnstile.disableSubmit(el);
@@ -727,8 +771,8 @@
           const $inter = $form.find('.cf-turnstile[data-appearance="interaction-only"]');
           if (!$inter.length) return;
           const el = $inter.get(0);
-          if (el.classList.contains('kt-ts-collapsed')) {
-            el.classList.remove('kt-ts-collapsed');
+          if (el.classList.contains('kitgenix-ts-collapsed')) {
+            el.classList.remove('kitgenix-ts-collapsed');
           }
           if (KitgenixCaptchaForCloudflareTurnstile.config.disable_submit) {
             KitgenixCaptchaForCloudflareTurnstile.disableSubmit(el);
@@ -768,24 +812,24 @@
             'error-callback': function () { 
               KitgenixCaptchaForCloudflareTurnstile.resetWidget(el, 'error'); 
               if (el.getAttribute('data-appearance') === 'interaction-only') { 
-                el.classList.remove('kt-ts-collapsed'); 
+                el.classList.remove('kitgenix-ts-collapsed'); 
                 if (KitgenixCaptchaForCloudflareTurnstile.config.disable_submit) KitgenixCaptchaForCloudflareTurnstile.disableSubmit(el);
               }
             },
             'unsupported-callback': function () { 
               if (el.getAttribute('data-appearance') === 'interaction-only') { 
-                el.classList.remove('kt-ts-collapsed'); 
+                el.classList.remove('kitgenix-ts-collapsed'); 
                 if (KitgenixCaptchaForCloudflareTurnstile.config.disable_submit) KitgenixCaptchaForCloudflareTurnstile.disableSubmit(el);
               }
             },
             'timeout-callback': function () { 
               if (el.getAttribute('data-appearance') === 'interaction-only') { 
-                el.classList.remove('kt-ts-collapsed'); 
+                el.classList.remove('kitgenix-ts-collapsed'); 
                 if (KitgenixCaptchaForCloudflareTurnstile.config.disable_submit) KitgenixCaptchaForCloudflareTurnstile.disableSubmit(el);
               }
             }
           };
-          if (params.appearance === 'interaction-only') { el.classList.add('kt-ts-collapsed'); }
+          if (params.appearance === 'interaction-only') { el.classList.add('kitgenix-ts-collapsed'); }
           try { el.innerHTML = ''; } catch (e) {}
           turnstile.render(el, params);
           el.dataset.rendered = 'true';
@@ -844,24 +888,24 @@
           'error-callback': function () { 
             KitgenixCaptchaForCloudflareTurnstile.resetWidget(el, 'error'); 
             if (el.getAttribute('data-appearance') === 'interaction-only') { 
-              el.classList.remove('kt-ts-collapsed'); 
+              el.classList.remove('kitgenix-ts-collapsed'); 
               if (KitgenixCaptchaForCloudflareTurnstile.config.disable_submit) KitgenixCaptchaForCloudflareTurnstile.disableSubmit(el);
             }
           },
           'unsupported-callback': function () { 
             if (el.getAttribute('data-appearance') === 'interaction-only') { 
-              el.classList.remove('kt-ts-collapsed'); 
+              el.classList.remove('kitgenix-ts-collapsed'); 
               if (KitgenixCaptchaForCloudflareTurnstile.config.disable_submit) KitgenixCaptchaForCloudflareTurnstile.disableSubmit(el);
             }
           },
           'timeout-callback': function () { 
             if (el.getAttribute('data-appearance') === 'interaction-only') { 
-              el.classList.remove('kt-ts-collapsed'); 
+              el.classList.remove('kitgenix-ts-collapsed'); 
               if (KitgenixCaptchaForCloudflareTurnstile.config.disable_submit) KitgenixCaptchaForCloudflareTurnstile.disableSubmit(el);
             }
           }
         };
-          if (params.appearance === 'interaction-only') { el.classList.add('kt-ts-collapsed'); }
+          if (params.appearance === 'interaction-only') { el.classList.add('kitgenix-ts-collapsed'); }
           // Render without visibility guard here (Kadence blocks are typically visible), but keep logic consistent if needed
           try { el.innerHTML = ''; } catch (e) {}
           turnstile.render(el, params);
@@ -954,7 +998,7 @@
       if (data.indexOf('action=elementor_pro_forms_send_form') !== -1) {
         // Re-collapse interaction-only containers in all Elementor forms
         jQuery('.elementor-form .cf-turnstile[data-appearance="interaction-only"]').each(function () {
-          this.classList.add('kt-ts-collapsed');
+          this.classList.add('kitgenix-ts-collapsed');
         });
       }
     } catch (err) { /* ignore */ }
@@ -993,5 +1037,9 @@
 
   // EXPOSE THE MODULE GLOBALLY (GUIDE: used by Woo Blocks fetch bridge)
   window.KitgenixCaptchaForCloudflareTurnstile = KitgenixCaptchaForCloudflareTurnstile;
+
+// SAFETY: Fallback checker — ensure we render widgets if order-of-load caused us to miss the
+// Cloudflare API onload or other race conditions. This will try for ~15 seconds and then stop.
+// Fallback removed: rely on API onload and `init()` retry loop for robustness.
 
 })(jQuery);

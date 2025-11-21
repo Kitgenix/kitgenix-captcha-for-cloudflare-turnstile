@@ -6,41 +6,215 @@
 :root {
   color-scheme: light dark;
 
-  --jt-bg-color: #ffffff;
-  --jt-surface: #ffffff;
-  --jt-surface-alt: #f9fafb;
-  --jt-surface-muted: #f3f4f6;
-  --jt-border-color: #e5e7eb;
-  --jt-border-color-strong: #d1d5db;
+  --kitgenix-bg-color: #ffffff;
+  --kitgenix-surface: #ffffff;
+  --kitgenix-surface-alt: #f9fafb;
+  --kitgenix-surface-muted: #f3f4f6;
+  --kitgenix-border-color: #e5e7eb;
+  --kitgenix-border-color-strong: #d1d5db;
 
-  --jt-text-color: #1f2937;          /* slate-800 */
-  --jt-text-muted: #6b7280;          /* gray-500 */
-  --jt-heading: #111827;             /* gray-900 */
+  --kitgenix-text-color: #1f2937;          /* slate-800 */
+  --kitgenix-text-muted: #6b7280;          /* gray-500 */
+  --kitgenix-heading: #111827;             /* gray-900 */
 
   /* Prefer WP admin theme color if present */
-  --jt-accent: var(--wp-admin-theme-color, #f48120);
-  --jt-accent-2: #faad3f;            /* warm gradient pair */
-  --jt-accent-contrast: #fff;
+  --kitgenix-accent: var(--wp-admin-theme-color, #f48120);
+  --kitgenix-accent-2: #faad3f;            /* warm gradient pair */
+  --kitgenix-accent-contrast: #fff;
 
-  --jt-radius: 10px;
-  --jt-radius-sm: 8px;
-  --jt-shadow: 0 8px 28px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
+  --kitgenix-radius: 10px;
+  --kitgenix-radius-sm: 8px;
+  --kitgenix-shadow: 0 8px 28px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
 
-  --jt-pad-x: 22px;
-  --jt-pad-y: 16px;
+  --kitgenix-pad-x: 22px;
+  --kitgenix-pad-y: 16px;
 
-  --jt-input-font: 14px;
-  --jt-input-pad-y: 8px;
-  --jt-input-pad-x: 12px;
-  --jt-input-height: 34px;
-  --jt-input-width: 420px;
+  --kitgenix-input-font: 14px;
+  --kitgenix-input-pad-y: 8px;
+  --kitgenix-input-pad-x: 12px;
+  --kitgenix-input-height: 34px;
+  --kitgenix-input-width: 420px;
 
-  --jt-transition: .18s ease;
-  --jt-focus-ring: 0 0 0 3px color-mix(in srgb, var(--jt-accent) 30%, transparent);
+  --kitgenix-transition: .18s ease;
+  --kitgenix-focus-ring: 0 0 0 3px color-mix(in srgb, var(--kitgenix-accent) 30%, transparent);
 
-  --jt-danger: #e3342f;
-  --jt-danger-2: #f87171;
-  --jt-danger-strong: #b91c1c;
+  --kitgenix-danger: #e3342f;
+  --kitgenix-danger-2: #f87171;
+  --kitgenix-danger-strong: #b91c1c;
+}
+
+/* ----------------------------------------------------------------
+  New layout: sidebar navigation + content
+  while retaining Kitgenix branding (orange accents)
+----------------------------------------------------------------- */
+.kitgenix-settings-layout {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  gap: 28px;
+  margin-top: 28px;
+}
+@media (max-width: 1100px) {
+  .kitgenix-settings-layout {
+    grid-template-columns: 220px 1fr;
+  }
+}
+@media (max-width: 960px) {
+  .kitgenix-settings-layout {
+    grid-template-columns: 1fr;
+  }
+  .kitgenix-settings-sidebar { position: static; top: auto; }
+}
+
+.kitgenix-settings-sidebar {
+  position: sticky;
+  top: 86px; /* below WP admin bar + header */
+  align-self: start;
+  background: var(--kitgenix-surface);
+  border: 1px solid var(--kitgenix-border-color);
+  border-radius: var(--kitgenix-radius);
+  box-shadow: var(--kitgenix-shadow);
+  padding: 18px 0 14px;
+  max-height: calc(100vh - 120px);
+  overflow: auto;
+  scrollbar-width: thin;
+}
+.kitgenix-settings-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px 10px 14px;
+}
+.kitgenix-settings-filter input[type=search] {
+  flex: 1;
+  font-size: 12.5px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--kitgenix-border-color);
+  background: var(--kitgenix-surface-alt);
+  transition: border-color var(--kitgenix-transition), background var(--kitgenix-transition);
+}
+.kitgenix-settings-filter input[type=search]:focus-visible {
+  outline: none;
+  border-color: var(--kitgenix-accent);
+  background: #fff;
+  box-shadow: var(--kitgenix-focus-ring);
+}
+.kitgenix-settings-filter-clear {
+  background: var(--kitgenix-surface-muted);
+  border: 1px solid var(--kitgenix-border-color);
+  color: var(--kitgenix-text-muted);
+  font-size: 16px;
+  line-height: 1;
+  padding: 4px 10px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background var(--kitgenix-transition), color var(--kitgenix-transition);
+}
+.kitgenix-settings-filter-clear:hover,
+.kitgenix-settings-filter-clear:focus-visible { background: var(--kitgenix-accent); color: var(--kitgenix-accent-contrast); outline: none; }
+.kitgenix-settings-sidebar::-webkit-scrollbar { width: 8px; }
+.kitgenix-settings-sidebar::-webkit-scrollbar-track { background: var(--kitgenix-surface-alt); }
+.kitgenix-settings-sidebar::-webkit-scrollbar-thumb { background: var(--kitgenix-border-color); border-radius: 4px; }
+
+.kitgenix-settings-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.kitgenix-settings-nav li { margin: 0; }
+.kitgenix-settings-nav a.kitgenix-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--kitgenix-text-color);
+  text-decoration: none;
+  padding: 10px 18px 10px 20px;
+  position: relative;
+  transition: background var(--kitgenix-transition), color var(--kitgenix-transition);
+  border-left: 4px solid transparent;
+}
+.kitgenix-settings-nav a.kitgenix-nav-link:hover,
+.kitgenix-settings-nav a.kitgenix-nav-link:focus-visible {
+  background: var(--kitgenix-surface-alt);
+  color: var(--kitgenix-heading);
+  outline: none;
+}
+.kitgenix-settings-nav a.kitgenix-nav-link.active {
+  border-left-color: var(--kitgenix-accent);
+  background: linear-gradient(90deg,var(--kitgenix-surface-alt) 0%,#fff 90%);
+  color: var(--kitgenix-heading);
+}
+
+.kitgenix-settings-version {
+  display: inline-block;
+  background: var(--kitgenix-surface-muted);
+  color: var(--kitgenix-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+  margin-top: 6px;
+}
+
+.kitgenix-settings-content {
+  min-width: 0;
+}
+
+/* Each section/card anchor offset so in-page links are not hidden under admin bar */
+[data-section] { scroll-margin-top: 90px; }
+
+/* Fancy focus highlight on active card when navigating */
+[data-section]:target {
+  animation: kitgenixPulse 1.4s ease;
+}
+@keyframes kitgenixPulse {
+  0% { box-shadow: 0 0 0 0 rgba(244,129,32,0.25); }
+  60% { box-shadow: 0 0 0 8px rgba(244,129,32,0); }
+  100% { box-shadow: var(--kitgenix-shadow); }
+}
+
+/* Convert checkboxes into switches (progressive enhancement) */
+.kitgenix-switch-wrapper { display:inline-flex; align-items:center; gap:8px; }
+.kitgenix-switch {
+  --sw-width: 38px;
+  --sw-height: 20px;
+  appearance: none;
+  width: var(--sw-width);
+  height: var(--sw-height);
+  background: var(--kitgenix-border-color-strong);
+  border-radius: 999px;
+  position: relative;
+  cursor: pointer;
+  outline: none;
+  transition: background var(--kitgenix-transition);
+  vertical-align: middle;
+}
+.kitgenix-switch:before {
+  content: "";
+  position: absolute;
+  top: 2px; left: 2px;
+  width: calc(var(--sw-height) - 4px);
+  height: calc(var(--sw-height) - 4px);
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,.15);
+  transition: transform var(--kitgenix-transition);
+}
+.kitgenix-switch:checked { background: linear-gradient(90deg,var(--kitgenix-accent) 0%, var(--kitgenix-accent-2) 100%); }
+.kitgenix-switch:checked:before { transform: translateX(18px); }
+.kitgenix-switch:focus-visible { box-shadow: var(--kitgenix-focus-ring); }
+
+/* Hide original checkbox when enhanced */
+.kitgenix-switch-hidden { position:absolute !important; opacity:0 !important; width:1px !important; height:1px !important; margin:0 !important; pointer-events:none !important; }
+
+/* Helper text inside cards */
+.kitgenix-card-subtitle {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--kitgenix-text-muted);
 }
 
 /* ----------------------------------------------------------------
@@ -51,7 +225,7 @@
   max-width: 1300px;
   margin: 0;
   padding: 0;
-  color: var(--jt-text-color);
+  color: var(--kitgenix-text-color);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -59,10 +233,10 @@
 
 /* Intro banner */
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-settings-intro {
-  background: linear-gradient(90deg, var(--jt-surface-alt) 75%, #fff7ed 100%);
-  border: 1px solid var(--jt-border-color);
-  border-left: 4px solid var(--jt-accent);
-  border-radius: var(--jt-radius);
+  background: linear-gradient(90deg, var(--kitgenix-surface-alt) 75%, #fff7ed 100%);
+  border: 1px solid var(--kitgenix-border-color);
+  border-left: 4px solid var(--kitgenix-accent);
+  border-radius: var(--kitgenix-radius);
   margin: 22px 0 0 0;
   padding: 18px 22px;
   display: grid;
@@ -72,25 +246,25 @@
   font-size: 22px;
   line-height: 1.25;
   font-weight: 800;
-  color: var(--jt-heading);
+  color: var(--kitgenix-heading);
   margin: 0 0 2px 0;
 }
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-settings-intro p {
   font-size: 14px;
-  color: var(--jt-text-muted);
+  color: var(--kitgenix-text-muted);
   margin: 0;
 }
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-intro-links a {
   display: inline-block;
   font-size: 13px;
   font-weight: 600;
-  color: var(--jt-accent);
+  color: var(--kitgenix-accent);
   text-decoration: none;
   margin-right: 14px;
 }
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-intro-links a:hover,
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-intro-links a:focus-visible {
-  color: var(--jt-accent-2);
+  color: var(--kitgenix-accent-2);
   text-decoration: underline;
   outline: none;
 }
@@ -100,14 +274,14 @@
 ----------------------------------------------------------------- */
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app :is(.kitgenix-captcha-for-cloudflare-turnstile-card, .just-turnstile-wrap) {
   margin: 22px 0;
-  background: var(--jt-surface);
-  border: 1px solid var(--jt-border-color);
-  border-radius: var(--jt-radius);
-  box-shadow: var(--jt-shadow);
-  transition: box-shadow var(--jt-transition), border-color var(--jt-transition), background var(--jt-transition);
+  background: var(--kitgenix-surface);
+  border: 1px solid var(--kitgenix-border-color);
+  border-radius: var(--kitgenix-radius);
+  box-shadow: var(--kitgenix-shadow);
+  transition: box-shadow var(--kitgenix-transition), border-color var(--kitgenix-transition), background var(--kitgenix-transition);
 }
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-card:hover {
-  border-color: var(--jt-border-color-strong);
+  border-color: var(--kitgenix-border-color-strong);
   box-shadow: 0 12px 32px rgba(0,0,0,.07), 0 2px 10px rgba(0,0,0,.05);
 }
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-card h2 {
@@ -115,10 +289,40 @@
   margin: 0 0 6px;
   font-size: 16px;
   font-weight: 800;
-  color: var(--jt-heading);
+  color: var(--kitgenix-heading);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-section-content {
   padding: 8px 18px 18px 18px;
+}
+.kitgenix-secret-key-wrapper { display:flex; gap:8px; align-items:center; }
+.kitgenix-filter-hidden { opacity:.2; }
+.kgx-details-group { margin:22px 0; border:1px solid var(--kitgenix-border-color); border-radius:var(--kitgenix-radius); background:var(--kitgenix-surface); box-shadow:var(--kitgenix-shadow); }
+.kgx-details-group > summary { list-style:none; cursor:pointer; padding:14px 18px; font-weight:700; font-size:15px; outline:none; display:flex; align-items:center; justify-content:space-between; }
+.kgx-details-group[open] > summary { border-bottom:1px solid var(--kitgenix-border-color); }
+.kgx-details-group > summary::-webkit-details-marker { display:none; }
+.kgx-details-group .kgx-details-inner { padding:6px 18px 18px; }
+.kgx-details-toggle-all-wrapper { margin-top:12px; }
+#kgx-toggle-all { margin-top:6px; font-size:12.5px; border:1px solid var(--kitgenix-border-color); background:var(--kitgenix-surface-muted); padding:5px 10px; border-radius:6px; cursor:pointer; }
+#kgx-toggle-all:hover,#kgx-toggle-all:focus-visible { background:var(--kitgenix-accent); color:#fff; outline:none; }
+.kgx-unsaved-bar { position:fixed; bottom:20px; right:20px; background:linear-gradient(90deg,var(--kitgenix-accent) 0%, var(--kitgenix-accent-2) 100%); color:#fff; padding:12px 18px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,.15); display:none; align-items:center; gap:14px; z-index:1000; }
+.kgx-unsaved-bar[aria-hidden="false"] { display:flex; }
+.kgx-unsaved-bar button { background:#fff; color:var(--kitgenix-accent); font-weight:700; padding:6px 14px; border:none; border-radius:8px; cursor:pointer; }
+.kgx-unsaved-bar button:hover,.kgx-unsaved-bar button:focus-visible { background:var(--kitgenix-accent-contrast); filter:brightness(0.92); outline:none; }
+.kgx-copy-shortcode { margin-left:10px; font-size:11.5px; padding:4px 8px; border-radius:6px; border:1px solid var(--kitgenix-border-color); background:var(--kitgenix-surface-muted); cursor:pointer; }
+.kgx-copy-shortcode:hover,.kgx-copy-shortcode:focus-visible { background:var(--kitgenix-accent); color:#fff; outline:none; }
+
+/* Meta badge next to headings (optional) */
+.kitgenix-heading-badge {
+  display:inline-block;
+  background: var(--kitgenix-surface-muted);
+  color: var(--kitgenix-text-muted);
+  font-size:11px;
+  font-weight:600;
+  padding:2px 6px;
+  border-radius:6px;
 }
 
 /* ----------------------------------------------------------------
@@ -133,7 +337,7 @@
   inline-size: 240px;
   padding: 6px 12px 6px 0;
   font-weight: 600;
-  color: var(--jt-heading);
+  color: var(--kitgenix-heading);
   vertical-align: middle;
   line-height: 1.3;
 }
@@ -144,7 +348,7 @@
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app .form-table .description {
   display: block;
   margin-top: 6px;
-  color: var(--jt-text-muted);
+  color: var(--kitgenix-text-muted);
   font-size: 12.5px;
   line-height: 1.45;
 }
@@ -154,17 +358,17 @@
   input[type="text"], input[type="url"], input[type="email"], input[type="password"],
   textarea, select
 ) {
-  font-size: var(--jt-input-font);
+  font-size: var(--kitgenix-input-font);
   line-height: 1.25;
-  padding: var(--jt-input-pad-y) var(--jt-input-pad-x);
-  min-height: var(--jt-input-height);
+  padding: var(--kitgenix-input-pad-y) var(--kitgenix-input-pad-x);
+  min-height: var(--kitgenix-input-height);
   inline-size: 100%;
-  max-inline-size: var(--jt-input-width);
-  border-radius: var(--jt-radius-sm);
-  border: 1px solid var(--jt-border-color);
+  max-inline-size: var(--kitgenix-input-width);
+  border-radius: var(--kitgenix-radius-sm);
+  border: 1px solid var(--kitgenix-border-color);
   background: #fff;
   box-shadow: 0 1px 2px rgba(0,0,0,.03) inset;
-  transition: border-color var(--jt-transition), box-shadow var(--jt-transition), background var(--jt-transition);
+  transition: border-color var(--kitgenix-transition), box-shadow var(--kitgenix-transition), background var(--kitgenix-transition);
   box-sizing: border-box;
 }
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-section-content textarea {
@@ -176,8 +380,8 @@
   textarea, select
 ):focus-visible {
   outline: none;
-  border-color: var(--jt-accent);
-  box-shadow: var(--jt-focus-ring);
+  border-color: var(--kitgenix-accent);
+  box-shadow: var(--kitgenix-focus-ring);
   background: #fff;
 }
 
@@ -185,7 +389,7 @@
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app :is(input[type="checkbox"], input[type="radio"]) {
   inline-size: 16px;
   block-size: 16px;
-  accent-color: var(--jt-accent);
+  accent-color: var(--kitgenix-accent);
   vertical-align: middle;
   transform: translateY(-1px);
   margin-inline-end: 6px;
@@ -193,8 +397,8 @@
 
 /* Inline code */
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app code {
-  background: var(--jt-surface-muted);
-  border: 1px solid var(--jt-border-color);
+  background: var(--kitgenix-surface-muted);
+  border: 1px solid var(--kitgenix-border-color);
   padding: 2px 6px;
   border-radius: 6px;
   font-size: 12.5px;
@@ -236,13 +440,13 @@
 }
 
 /* If you can add a helper class in markup (recommended):
-   <tr class="jt-has-turnstile-test">…</tr> */
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app tr.jt-has-turnstile-test :is(th, td) {
+   <tr class="kitgenix-has-turnstile-test">…</tr> */
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app tr.kitgenix-has-turnstile-test :is(th, td) {
   display: block;
   inline-size: 100%;
   padding-inline-start: 0;
 }
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app tr.jt-has-turnstile-test th label {
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app tr.kitgenix-has-turnstile-test th label {
   display: block;
   margin-bottom: 6px;
 }
@@ -283,13 +487,13 @@
   font-size: 14px;
   padding: 8px 16px;
   border-radius: 9px;
-  background: linear-gradient(90deg, var(--jt-accent) 0%, var(--jt-accent-2) 100%);
+  background: linear-gradient(90deg, var(--kitgenix-accent) 0%, var(--kitgenix-accent-2) 100%);
   border: none;
-  color: var(--jt-accent-contrast);
+  color: var(--kitgenix-accent-contrast);
   font-weight: 800;
   letter-spacing: .2px;
   box-shadow: 0 2px 10px rgba(0,0,0,.08);
-  transition: transform var(--jt-transition), filter var(--jt-transition), box-shadow var(--jt-transition);
+  transition: transform var(--kitgenix-transition), filter var(--kitgenix-transition), box-shadow var(--kitgenix-transition);
 }
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-save-row .button-primary:hover {
   transform: translateY(-1px);
@@ -330,9 +534,9 @@
    Links
 ----------------------------------------------------------------- */
 #kitgenix-captcha-for-cloudflare-turnstile-admin-app a {
-  color: var(--jt-accent);
+  color: var(--kitgenix-accent);
 }
-#kitgenix-captcha-for-cloudflare-turnstile-admin-app a:hover { color: var(--jt-accent-2); }
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app a:hover { color: var(--kitgenix-accent-2); }
 
 /* ----------------------------------------------------------------
    Support / Review CTA
@@ -346,7 +550,7 @@
   padding: 0 2px 10px 2px;
 }
 .kitgenix-captcha-for-cloudflare-turnstile-support-btn {
-  background: linear-gradient(90deg, var(--jt-danger) 0%, var(--jt-danger-2) 100%);
+  background: linear-gradient(90deg, var(--kitgenix-danger) 0%, var(--kitgenix-danger-2) 100%);
   color: #fff !important;
   font-weight: 800;
   font-size: 15px;
@@ -354,7 +558,7 @@
   border-radius: 8px;
   text-decoration: none;
   box-shadow: 0 2px 10px rgba(227,52,47,0.10);
-  transition: background var(--jt-transition), box-shadow var(--jt-transition), transform var(--jt-transition);
+  transition: background var(--kitgenix-transition), box-shadow var(--kitgenix-transition), transform var(--kitgenix-transition);
   border: none;
   outline: none;
   display: inline-block;
@@ -367,21 +571,21 @@
   transform: translateY(-1px) scale(1.03);
 }
 .kitgenix-captcha-for-cloudflare-turnstile-support-or {
-  color: var(--jt-danger-strong);
+  color: var(--kitgenix-danger-strong);
   font-weight: 600;
   font-size: 14px;
   margin: 0 4px;
 }
 .kitgenix-captcha-for-cloudflare-turnstile-review-link {
-  color: var(--jt-danger);
+  color: var(--kitgenix-danger);
   font-weight: 700;
   font-size: 14px;
   text-decoration: underline;
-  transition: color var(--jt-transition);
+  transition: color var(--kitgenix-transition);
 }
 .kitgenix-captcha-for-cloudflare-turnstile-review-link:hover,
 .kitgenix-captcha-for-cloudflare-turnstile-review-link:focus-visible {
-  color: var(--jt-danger-strong);
+  color: var(--kitgenix-danger-strong);
 }
 
 /* ----------------------------------------------------------------
@@ -422,6 +626,21 @@
   }
 }
 
+/* Whitelist preview box override (in case other admin styles clash) */
+.kgx-whitelist-preview { font-family: monospace; font-size:13px; border-radius:6px; }
+
+/* Whitelist preview box override (in case other admin styles clash) */
+.kgx-whitelist-preview { font-family: monospace; font-size:13px; border-radius:6px; }
+
+/* Styling for <details> summary when used as cards */
+details.kitgenix-captcha-for-cloudflare-turnstile-card > summary {
+  padding: 12px 18px;
+  cursor: pointer;
+  display: block;
+}
+details.kitgenix-captcha-for-cloudflare-turnstile-card > summary h2 { margin:0; display:inline-block; }
+details.kitgenix-captcha-for-cloudflare-turnstile-card[open] { border-color: var(--kitgenix-border-color-strong); box-shadow: 0 12px 28px rgba(0,0,0,0.06); }
+
 /* ----------------------------------------------------------------
    Accessibility: motion / forced colors
 ----------------------------------------------------------------- */
@@ -442,24 +661,24 @@
 ----------------------------------------------------------------- */
 @media (prefers-color-scheme: dark) {
   :root {
-    --jt-bg-color: #0b0f14;
-    --jt-surface: #0f151b;
-    --jt-surface-alt: #131a22;
-    --jt-surface-muted: #1a2330;
-    --jt-border-color: #1f2937;
-    --jt-border-color-strong: #293241;
+    --kitgenix-bg-color: #0b0f14;
+    --kitgenix-surface: #0f151b;
+    --kitgenix-surface-alt: #131a22;
+    --kitgenix-surface-muted: #1a2330;
+    --kitgenix-border-color: #1f2937;
+    --kitgenix-border-color-strong: #293241;
 
-    --jt-text-color: #e5e7eb;
-    --jt-text-muted: #9ca3af;
-    --jt-heading: #f3f4f6;
+    --kitgenix-text-color: #e5e7eb;
+    --kitgenix-text-muted: #9ca3af;
+    --kitgenix-heading: #f3f4f6;
 
-    --jt-focus-ring: 0 0 0 3px color-mix(in srgb, var(--jt-accent) 40%, transparent);
+    --kitgenix-focus-ring: 0 0 0 3px color-mix(in srgb, var(--kitgenix-accent) 40%, transparent);
   }
   #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-settings-intro {
-    background: linear-gradient(90deg, var(--jt-surface-alt) 75%, color-mix(in srgb, var(--jt-accent) 10%, transparent) 100%);
+    background: linear-gradient(90deg, var(--kitgenix-surface-alt) 75%, color-mix(in srgb, var(--kitgenix-accent) 10%, transparent) 100%);
   }
   #kitgenix-captcha-for-cloudflare-turnstile-admin-app code {
-    background: var(--jt-surface-muted);
+    background: var(--kitgenix-surface-muted);
   }
   #kitgenix-captcha-for-cloudflare-turnstile-test-success {
     background: #052e2b;

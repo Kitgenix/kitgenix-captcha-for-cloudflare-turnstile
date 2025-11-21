@@ -23,6 +23,16 @@ class ContactForm7 {
             return;
         }
         $settings = get_option('kitgenix_captcha_for_cloudflare_turnstile_settings', []);
+        // Respect per-integration mode: 'auto' (auto-inject) or 'shortcode' (manual placement only).
+        $mode = $settings['mode_cf7'] ?? 'auto';
+        if ( $mode === 'shortcode' ) {
+            // Shortcode-only mode: do not register auto-inject or validation hooks,
+            // but still allow shortcodes placed inside the CF7 form editor to render.
+            if ( function_exists( 'add_filter' ) ) {
+                add_filter( 'wpcf7_form_elements', [ __CLASS__, 'process_shortcodes_in_form' ], 9 );
+            }
+            return;
+        }
         if ( empty($settings['enable_cf7']) ) {
             return;
         }
@@ -42,14 +52,44 @@ class ContactForm7 {
      * @return string
      */
     public static function inject_turnstile($content) {
+        // Respect per-integration mode and avoid rendering the kitgenix shortcode in auto mode.
         $settings = get_option('kitgenix_captcha_for_cloudflare_turnstile_settings', []);
+        $mode = $settings['mode_cf7'] ?? 'auto';
+        if ( function_exists( 'do_shortcode' ) ) {
+            // If auto mode is active, temporarily remove our shortcode so it won't render
+            // when CF7 runs do_shortcode (admins expect auto-inject to control placement).
+            if ( $mode === 'auto' && function_exists( 'shortcode_exists' ) && shortcode_exists( 'kitgenix_turnstile' ) ) {
+                if ( function_exists( 'remove_shortcode' ) ) {
+                    remove_shortcode( 'kitgenix_turnstile' );
+                    $shortcode_removed = true;
+                }
+            }
+            $content = \do_shortcode( $content );
+
+            // Re-register the shortcode immediately if we temporarily removed it so
+            // early returns below don't leave it unregistered.
+            if ( ! empty( $shortcode_removed ) ) {
+                if ( class_exists( '\KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Shortcode' ) ) {
+                    \KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Shortcode::register_shortcode();
+                } elseif ( function_exists( 'add_shortcode' ) ) {
+                    add_shortcode( 'kitgenix_turnstile', [ '\KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Shortcode', 'render_shortcode' ] );
+                }
+            }
+        }
+        
         $site_key = $settings['site_key'] ?? '';
         if ( ! $site_key ) {
             return $content;
         }
 
-        // Don’t inject if there’s already a container in this form.
-        if ( strpos($content, 'class="cf-turnstile"') !== false ) {
+        // Don’t inject if there’s already a rendered container in this form. When running in
+        // auto mode we intentionally ignore literal shortcode tokens so admins can choose
+        // the integration mode and have a clear single-source of placement.
+        $has_container = ( strpos( $content, 'class="cf-turnstile"' ) !== false )
+            || ( strpos( $content, 'data-kitgenix-shortcode' ) !== false )
+            || ( strpos( $content, 'name="cf-turnstile-response"' ) !== false );
+
+        if ( $has_container ) {
             return $content;
         }
 
@@ -90,6 +130,19 @@ class ContactForm7 {
 
         // Fallback: append before closing form tag.
         return str_ireplace('</form>', $injection . '</form>', $content);
+    }
+
+    /**
+     * Ensure shortcodes inside CF7 form editor are processed so shortcode-only mode works.
+     *
+     * @param string $content
+     * @return string
+     */
+    public static function process_shortcodes_in_form( $content ) {
+        if ( function_exists( 'do_shortcode' ) ) {
+            return \do_shortcode( $content );
+        }
+        return $content;
     }
 
     /**

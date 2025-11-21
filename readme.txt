@@ -10,252 +10,407 @@ Donate link: https://buymeacoffee.com/kitgenix
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 1.0.11
+Stable tag: 1.0.12
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Tags: cloudflare, turnstile, captcha, anti-spam, woocommerce
 
-Cloudflare Turnstile for WordPress, WooCommerce, Elementor & top form plugins. Fast, privacy-first anti-spam with server-side validation.
+Cloudflare Turnstile CAPTCHA for WordPress, WooCommerce, Elementor and popular forms. Fast, privacy-first anti-spam with server-side validation.
 
 == Description ==
 
-**Stop spam without punishing real users.** Kitgenix CAPTCHA for Cloudflare Turnstile integrates Cloudflare’s modern, low-friction, **reCAPTCHA-free** challenge with WordPress so you can block bots *and* keep conversions high.
+**Cloudflare Turnstile, done properly for WordPress.**
 
-Protect **WordPress login/registration/password/comments**, **WooCommerce checkout & account (Classic + Blocks / Store API)**, and **popular form builders** using **server-side verification**, **replay protection**, and **proxy-aware IP detection**. Built for performance (async/conditional loading) and privacy (no cookies or tracking added by the plugin; GDPR-friendly).
+Kitgenix CAPTCHA for Cloudflare Turnstile is a lightweight, privacy-first **reCAPTCHA alternative** that adds Cloudflare Turnstile to your **WordPress, WooCommerce and form plugins** with **server-side validation**, **replay protection** and **proxy-aware IP detection**.
 
-**Why Kitgenix**
-- **Ultra-lightweight & fast** — Modern WP Script API (6.3+) with `strategy=async`; loads only where needed.
-- **Privacy-first** — No cookies/tracking added by the plugin; Turnstile minimizes data collection.
-- **Rock-solid server-side validation** — Official `siteverify` endpoint.
-- **Replay protection** — Rejects reused tokens by default (TTL filterable).
-- **Proxy-aware client IP** — Honors CF/Proxy headers only from **trusted** proxies.
-- **Seamless integrations** — WordPress Core, WooCommerce (Classic & Blocks), Elementor Pro, and major form plugins.
-- **Smart UX** — Optional “disable submit until verified”, token freshness timers, inline error hints.
-- **Production-ready admin** — Onboarding, Site Health test, JSON import/export, accessible UI.
-- **Multisite aware** — Clean uninstall removes settings site-wide (and network-wide on Multisite).
+Protect:
 
----
+* **WordPress core forms** – login, registration, lost/reset password, comments
+* **WooCommerce** – checkout, account login/registration, lost password (Classic and Blocks / Store API)
+* **Form plugins** – WPForms, Fluent Forms, Gravity Forms, Formidable Forms, Forminator, Contact Form 7, Jetpack Forms, Kadence Forms
+* **Elementor Pro Forms and Popups**
+* **Forums** – bbPress topic and reply forms
 
-## Supported Forms & Integrations (with descriptions)
+All with **conditional, async loading**, **no extra cookies or tracking** and zero unnecessary front-end bloat.
 
-### WordPress Core
-- **Login, Registration, Lost/Reset Password, Comments**  
-  Adds a Turnstile widget to core auth and discussion forms. Validates tokens on submit (POST-only) and blocks invalid/expired/reused tokens with a clear message.
+= Why Kitgenix? =
 
-### WooCommerce (Classic)
-- **Checkout, Login, Registration, Lost Password**  
-  Renders near the **Place order** area and account/auth forms. Server-side verification runs during checkout validation and account actions. Designed to work with fragment reloads; avoids double-submit and duplicate renders.
+* **Ultra-lightweight and fast**
+	* Uses the modern WordPress Script API (6.3+) with `strategy=async`
+	* Scripts load **only** on protected pages and forms
 
-### WooCommerce (Blocks / Store API)
-- **Checkout (Blocks)**  
-  Injects the widget in Blocks checkout UIs and validates **Store API** requests on the server. Token can be forwarded via header (e.g., `X-Turnstile-Token`) and is handled automatically by the plugin/extension.
+* **Privacy-first**
+	* The plugin itself does not add cookies or tracking
+	* Cloudflare Turnstile is designed to minimise data collection
 
-### Elementor Pro (Forms & Popups)
-- **Elementor Pro Forms (including Popups and dynamically rendered forms)**  
-  Injects before/after the submit area. Listens to Elementor events to re-render on popups, AJAX submissions, and validation errors. Ensures a fresh token on each attempt.
+* **Rock-solid server-side validation**
+	* Uses Cloudflare’s official `siteverify` endpoint
+	* Validates tokens server-side for all supported forms
 
-### Contact Form 7
-- **All CF7 forms**  
-  Auto-injects the widget; resets and re-renders after AJAX errors. No special shortcode needed. Prevents send on failed verification.
+* **Replay protection**
+	* Rejects **reused tokens** by default (TTL is filterable)
 
-### Fluent Forms
-- **All Fluent Forms**  
-  Auto-injects and validates server-side via the plugin’s hooks. Handles AJAX and multi-step flows with automatic re-render.
+* **Proxy-aware client IP**
+	* Correctly resolves IPs behind Cloudflare, reverse proxies and load balancers
+	* Honours proxy headers only from configured trusted proxies
 
-### Formidable Forms
-- **All Formidable forms**  
-  Auto-injects the widget; validates on submit; re-renders after client or server validation errors.
+* **Deep integrations**
+	* WordPress core, WooCommerce (Classic and Blocks), Elementor Pro
+	* WPForms, Fluent Forms, Gravity Forms, Formidable Forms, Forminator, Contact Form 7, Jetpack Forms, Kadence Forms
+	* bbPress forums
 
-### Forminator Forms
-- **All Forminator forms**  
-  Works with regular and AJAX-loaded forms, including multi-step. Automatically resets token on failed submissions.
+* **Smart UX**
+	* Optional “disable submit until verified”
+	* Token freshness timers and auto-resets
+	* Clean inline error hints designed to match Cloudflare’s own UI
 
-### Gravity Forms
-- **All Gravity Forms**  
-  Widget placement before/after submit; validates server-side on the form’s native hooks. Handles AJAX and multi-page with safe re-render.
+* **Production-ready admin**
+	* Onboarding wizard and Site Health integration
+	* JSON export/import (with optional secret key)
+	* Collapsible sections, search/filter box and an “Unsaved changes” bar
 
-### Jetpack Forms
-- **Jetpack Contact Forms**  
-  Adds Turnstile to Jetpack forms and validates on submit. Respects Jetpack’s AJAX behaviors.
+* **Multisite-aware**
+	* Per-site settings
+	* Clean uninstall removes settings site-wide (and network-wide if run via Network Admin)
 
-### Kadence Forms (Kadence Blocks)
-- **Kadence Forms**  
-  Auto-injects on Kadence form blocks; validates server-side; re-renders on client errors.
+= Supported Forms and Integrations =
 
-### WPForms
-- **All WPForms (Lite/Pro)**  
-  Injects before/after the submit area; prevents send until verification passes (optional disable-until-verified UX); resets on AJAX errors.
+**WordPress Core**
 
-### Forums: bbPress
-- **Create Topic & Reply forms (bbPress)**  
-  Adds Turnstile to bbPress posting forms to reduce automated spam topics/replies. Validates before content is saved.
+* Login (`wp-login.php`)
+* Registration
+* Lost and Reset Password
+* Comments
 
-> Enable/disable each integration and location in **Settings → Cloudflare Turnstile**.
+Turnstile is injected into each core form and validated **only on POST submissions**. Invalid, expired or reused tokens block the action with a clear message.
 
----
+**WooCommerce (Classic)**
 
-## How It Works (Technical)
-1. Loads `https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit` with async strategy (WP ≥ 6.3).  
-2. Injects a widget into enabled forms; re-renders for dynamic loads (AJAX, multi-step, popups).  
-3. Validates server-side via **`/v0/siteverify`** with your secret key and request IP (when appropriate).  
-4. On failure (invalid/expired/reused token) submission is blocked with clear, customizable messaging.
+* Checkout
+* Login
+* Registration
+* Lost Password
 
----
+Turnstile appears near the **Place order** button and WooCommerce account forms. Validation runs during checkout and account actions. Designed to work safely with checkout fragments and avoids duplicate rendering.
 
-## Quick Start
-1. **Install & Activate** → **Plugins → Add New** → search “Kitgenix Turnstile”.  
-2. **Add Keys** → **Settings → Cloudflare Turnstile** → paste **Site Key** & **Secret Key** from your Cloudflare dashboard.  
-3. **Choose Integrations** → toggle WordPress/WooCommerce/Form plugins and specific locations.  
-4. **Save & Test** → try login/register/comments/checkout + your form pages.  
-5. **Optional Hardening** → enable **Disable Submit Until Verified** and review **Tools → Site Health** hints.
+**WooCommerce (Blocks / Store API)**
 
----
+* Checkout (Blocks / Store API)
 
-## Performance Playbook
-- **Async by default** with WP Script API (6.3+).  
-- **Conditional loading** — scripts only where protection is active.  
-- **Optimization plugins:**  
-  - Allowlist `https://challenges.cloudflare.com`.  
-  - Do **not** inline or block the Turnstile script.  
-  - Exclude login, account, and checkout pages from full-page caching.  
-- **Resource hints** — preconnect/dns-prefetch for faster first paint.
+The widget renders in the Blocks checkout UI and validates Store API requests server-side. Tokens can be forwarded via `X-Turnstile-Token` or similar headers and are handled automatically by the plugin.
 
-## Security Tips
-- **Replay protection** — enabled by default; tune TTL via `kitgenix_turnstile_replay_ttl`.  
-- **Trusted proxies** — configure **Trusted Proxies** for accurate client IPs behind Cloudflare/NGINX/etc.  
-- **Developer Mode (warn-only)** — on staging, log failures without blocking.  
-- **Whitelisting** — logged-in/IP/UA; use sparingly.
+**Elementor Pro (Forms and Popups)**
 
----
+* Elementor Pro Forms (including popups and dynamically loaded forms)
 
-## Troubleshooting
-**Widget not showing** → Check keys + enabled location; confirm you’re not whitelisted; clear caches; allowlist `challenges.cloudflare.com`; check console for blockers.  
-**“Please verify you are human”** → Token expired/invalid; reduce page-cache TTL on form pages; don’t cache auth/checkout; ensure the server can reach Cloudflare.  
-**Elementor popups/AJAX** → Don’t over-defer Elementor/form plugin JS; the plugin listens for those events.  
-**WooCommerce checkout** → Don’t cache fragments; confirm widget renders before **Place order**; ensure token is forwarded on custom checkouts.
+The widget injects before or after the submit area, listens for Elementor popup and AJAX events and ensures a fresh token for each attempt. Handles multiple forms, popups and delayed popups reliably.
 
----
+**Contact Form 7**
 
-## Frequently Asked Questions
+* All CF7 forms
 
-= Do I need a Cloudflare account? =  
-Yes. A free Cloudflare account is enough to generate a **Turnstile Site Key** and **Secret Key**.
+Auto-injects the widget and re-renders after AJAX errors. A shortcode `[kitgenix_turnstile]` is available for **manual placement**. In Shortcode-only mode, CF7 forms are passed through `do_shortcode()` so manual placement works reliably.
 
-= Does this support Elementor Free? =  
-We officially support **Elementor Pro Forms**. A fallback injector helps on general Elementor forms (including popups), but **Pro Forms** is the target for reliability.
+**Fluent Forms**
 
-= Is this compatible with caching/optimization plugins? =  
-Yes. Scripts are async/conditional and the widget re-renders after dynamic events. If your optimizer inlines/defers third-party scripts, ensure `challenges.cloudflare.com` isn’t blocked.
+* All Fluent Forms
 
-= Can I skip validation for certain users? =  
-Yes - whitelist logged-in users, IPs (exact/wildcard/CIDR), or user agents.
+Auto-injects, validates server-side and handles AJAX and multi-step flows with automatic re-renders.
 
-= How is this different from Google reCAPTCHA? =  
-Cloudflare Turnstile is a **privacy-first**, low-friction alternative that avoids user tracking while blocking bots.
+**Formidable Forms**
 
-= Which form plugins are supported? =  
-WPForms, Fluent Forms, Gravity Forms, Formidable Forms, Contact Form 7, Forminator, Jetpack Forms, Kadence Forms — plus Elementor Pro Forms.
+* All Formidable Forms
 
-= Can I change theme/size/language? =  
-Yes - choose `auto/light/dark`, `small/normal/large`, `always/interaction-only`, and language (`auto` or locale code).
+Injects near the submit area, validates on submit and re-renders after client or server validation errors.
 
-= Can I pin/self-host the Turnstile script? =  
-Yes, via the `kitgenix_captcha_for_cloudflare_turnstile_script_url` filter.
+**Forminator Forms**
 
-= Does it work on Multisite? =  
-Yes. Settings are per-site. Uninstall removes settings site-wide (and network-wide when run network-wide).
+* All Forminator forms
 
-= Is the plugin GDPR compliant? =  
-The plugin itself doesn’t store personal data. Cloudflare Turnstile processes IP and user-agent for verification. Consult legal counsel and Cloudflare’s docs for your use case.
+Works with regular and AJAX forms, including multi-step flows. Tokens are reset on failed submissions.
 
----
+**Gravity Forms**
 
-## Developers
+* All Gravity Forms
 
-**Filters**  
-- `kitgenix_captcha_for_cloudflare_turnstile_script_url( $url, $settings )` - Override the Turnstile script URL or add params.  
-- `kitgenix_turnstile_freshness_ms` - Control token auto-reset interval (ms).  
-- `kitgenix_turnstile_replay_ttl` - Adjust replay-protection cache duration (seconds).  
-- `kitgenix_turnstile_is_whitelisted( $is_whitelisted, $context )` - Modify whitelist decisions programmatically.
+Widget placement before or after submit, with server-side validation on Gravity’s native hooks. Handles AJAX and multi-page forms with safe re-render and no overlapping buttons.
 
-**Server-side endpoint**  
-- Validates via `https://challenges.cloudflare.com/turnstile/v0/siteverify`.
+**Jetpack Forms**
 
-**Text domain**  
-- `kitgenix-captcha-for-cloudflare-turnstile` (POT included).
+* Jetpack Contact Forms
 
----
+Adds Turnstile to Jetpack forms with proper validation and AJAX behaviour.
 
-## Integration Files (for developers)
-(Each integration listed above corresponds to the file(s) below.)
+**Kadence Forms (Kadence Blocks)**
 
-- **WordPress Core:**  
-  `includes/integrations/wordpress/class-wp-core.php`
+* Kadence form blocks
 
-- **WooCommerce (Classic):**  
-  `includes/integrations/ecommerce/class-woocommerce.php`
+Auto-injects on Kadence form blocks, validates server-side and re-renders on validation errors.
 
-- **WooCommerce (Blocks / Store API):**  
-  `includes/integrations/ecommerce/class-woocommerce-blocks.php`
+**WPForms**
 
-- **Elementor Pro:**  
-  `includes/integrations/page-builder/class-elementor.php`
+* WPForms Lite and Pro
 
-- **Form Plugins:**  
-  Contact Form 7 — `includes/integrations/forms/contact-form-7.php`  
-  Fluent Forms — `includes/integrations/forms/fluent-forms.php`  
-  Formidable Forms — `includes/integrations/forms/formidable-forms.php`  
-  Forminator Forms — `includes/integrations/forms/forminator-forms.php`  
-  Gravity Forms — `includes/integrations/forms/gravity-forms.php`  
-  Jetpack Forms — `includes/integrations/forms/jetpack-forms.php`  
-  Kadence Forms — `includes/integrations/forms/kadence-forms.php`  
-  WPForms — `includes/integrations/forms/wpforms.php`
+Injects before or after the submit area. Optional “disable submit until verified” UX, auto-resets on AJAX errors and prevents overlap or layout issues.
 
-- **Forums:**  
-  bbPress — `includes/integrations/forums/bbpress.php`
+**Forums – bbPress**
 
-- **Integration folders:**  
-  `includes/integrations/`  
-  `includes/integrations/ecommerce/`  
-  `includes/integrations/forms/`  
-  `includes/integrations/forums/`  
-  `includes/integrations/page-builder/`  
-  `includes/integrations/wordpress/`
+* Create Topic and Reply forms
 
----
+Adds Turnstile to bbPress posting forms to reduce automated spam topics and replies, validating before content is saved.
+
+You can enable or disable each integration and location under **Settings → Cloudflare Turnstile**.
+
+= How It Works =
+
+1. Loads the Cloudflare Turnstile API  
+   `https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit`  
+   using the WordPress Script API (async for WordPress 6.3+).
+
+2. Injects a widget into enabled forms  
+   Handles AJAX, multi-step forms, popups and other dynamic DOM changes.
+
+3. Verifies tokens server-side  
+   Uses Cloudflare’s `/v0/siteverify` endpoint with your secret key and request IP (when appropriate).
+
+4. Enforces replay protection  
+   Caches recent tokens (hashed) and rejects re-use (TTL is filterable).
+
+5. Blocks on failure  
+   Submissions with invalid, expired or reused tokens are blocked with a clear, user-friendly message.
+
+= Quick Start =
+
+1. Install and activate from **Plugins → Add New** by searching for “Kitgenix Turnstile”.
+2. Go to **Settings → Cloudflare Turnstile**.
+3. Enter your **Site Key** and **Secret Key** from the Cloudflare Turnstile dashboard.
+4. Enable the integrations and specific forms you want to protect.
+5. Save changes, then test login, registration, comments, checkout and form pages.
+
+= Performance and Security =
+
+**Performance playbook**
+
+* Async by default using the WordPress Script API with `strategy=async` on WordPress 6.3+.
+* Conditional loading so Turnstile assets load only where protection is enabled.
+* Works with caching and optimisation plugins:
+	* Allowlist `https://challenges.cloudflare.com` in defer/optimise settings.
+	* Avoid inlining, combining or heavily delaying the Turnstile script.
+	* Exclude login, account and checkout pages from full-page caching where possible.
+* Resource hints (preconnect/dns-prefetch) for `https://challenges.cloudflare.com` to speed up first paint.
+
+**Security tips**
+
+* Replay protection is enabled by default; adjust duration using `kitgenix_turnstile_replay_ttl`.
+* Configure trusted proxies when using Cloudflare/CDN/reverse-proxy so the correct client IP is used.
+* Use Developer Mode (warn-only) on staging to log failures without blocking users.
+* Whitelisting (logged-in users, IPs and user agents) is supported but should be used sparingly.
+
+= Troubleshooting =
+
+**Widget not showing**
+
+* Confirm Site and Secret Keys are correct.
+* Check that the integration and specific form location are enabled.
+* Verify you are not whitelisted (user, IP or user agent).
+* Clear caches (page, object, CDN).
+* Allowlist `challenges.cloudflare.com` in optimisation plugins.
+* Check the browser console for blocked or failed scripts.
+
+**Always seeing “Please verify you are human”**
+
+* Token may be expired or invalid.
+* Reduce page cache TTL on form pages.
+* Do not full-page cache auth or checkout pages.
+* Ensure your server can reach Cloudflare (no firewall blocks).
+
+**Elementor popups or AJAX forms**
+
+* Avoid over-deferring Elementor or form plugin JavaScript.
+* The plugin listens to Elementor events and re-renders containers dynamically.
+
+**WooCommerce checkout issues**
+
+* Avoid caching dynamic fragments.
+* Confirm the widget renders before the **Place order** button.
+* If using custom checkout flows, ensure the token is forwarded correctly.
+
+== Installation ==
+
+1. Install via **Plugins → Add New** and search for “Kitgenix Turnstile”, or upload the ZIP file to `/wp-content/plugins/`.
+2. Activate the plugin from the **Plugins** screen.
+3. Go to **Settings → Cloudflare Turnstile**.
+4. Enter your **Site Key** and **Secret Key** from the Cloudflare Turnstile dashboard.
+5. Enable the integrations and forms you want to protect.
+6. Save and test your login, registration, comments, checkout and form pages.
+
+== Frequently Asked Questions ==
+
+= Do I need a Cloudflare account? =
+
+Yes. A free Cloudflare account is enough to create a **Turnstile Site Key** and **Secret Key**.
+
+= Does this support Elementor Free? =
+
+We officially support **Elementor Pro Forms**. A fallback injector helps with general Elementor forms (including popups), but **Elementor Pro Forms** is the primary target for reliability.
+
+= Is this compatible with caching and optimisation plugins? =
+
+Yes. Scripts are async and conditionally loaded. You may need to allowlist `challenges.cloudflare.com` and avoid over-aggressive script deferral. Avoid full-page caching for login, account and checkout pages.
+
+= Can I skip validation for certain users? =
+
+Yes. You can whitelist logged-in users, IPs (exact, wildcard or CIDR) and user agents. There is also a filter to adjust whitelist decisions programmatically.
+
+= How is this different from Google reCAPTCHA? =
+
+Cloudflare Turnstile is a **privacy-first**, low-friction alternative. It avoids user tracking, aims to minimise data collection and still blocks bots effectively.
+
+= Which form plugins are supported? =
+
+WPForms, Fluent Forms, Gravity Forms, Formidable Forms, Forminator, Contact Form 7, Jetpack Forms, Kadence Forms, plus Elementor Pro Forms and core WordPress and WooCommerce forms.
+
+= Can I change the widget theme, size and language? =
+
+Yes. You can choose `auto`, `light` or `dark`, select `small`, `normal`, `large` or `flexible` sizes, switch interaction mode (`always` or `interaction-only`) and set language (`auto` or a specific locale code).
+
+= Why are there collapsible sections on the Settings page? =
+
+To make the page easier to scan. Groups such as Shortcode, Display, Security and Integrations are collapsible, and their open or closed state is remembered per browser.
+
+= How do I quickly find a setting? =
+
+Use the filter box on the left side of the settings page. Typing text hides non-matching navigation links and cards. Clear it with the “×” button.
+
+= What does the floating “Unsaved changes” bar mean? =
+
+It appears after you modify at least one field and reminds you to save. Click the Save button in the bar or the normal Save Settings button. Once saved, the bar disappears.
+
+= How do I copy the Turnstile shortcode? =
+
+Open the **Shortcode and Manual Placement** section and click the Copy button next to `[kitgenix_turnstile]`.
+
+= Can I disable the collapsible behaviour? =
+
+Yes. A developer can dequeue the admin JavaScript or filter the settings page output to remove `<details>` wrappers. Native `<details>` elements degrade gracefully if scripting is disabled.
+
+= Can I pin or self-host the Turnstile script? =
+
+Yes. Use the `kitgenix_captcha_for_cloudflare_turnstile_script_url` filter to override the script URL or append query arguments.
+
+= Does it work on Multisite? =
+
+Yes. Settings are per-site. Uninstalling via Network Admin removes settings network-wide.
+
+= Is the plugin GDPR compliant? =
+
+The plugin itself does not store personal data. Cloudflare Turnstile processes IP and user agent to verify challenges. Review Cloudflare’s documentation and your legal requirements for your specific use case.
 
 == Screenshots ==
 
 1. WordPress Login protected by Cloudflare Turnstile (success state).
-2. Contact Elementor form protected by Turnstile - widget shown before submit.
-3. WooCommerce “My Account” → Register form with Turnstile verification.
+2. Elementor contact form protected by Turnstile, displayed before the submit button.
+3. WooCommerce “My Account → Register” form with Turnstile verification.
 4. Security settings: whitelist logged-in users, IPs and user agents; per-form WordPress toggles.
-5. Quick setup: enter Cloudflare Turnstile Site & Secret keys; choose theme, widget size and appearance mode.
+5. Quick setup screen: enter Cloudflare Turnstile keys, choose widget theme, size and mode, then test the widget.
 
 == Minimum Requirements ==
 
-- WordPress 5.0+  
-- PHP 7.0+  
-- Cloudflare Turnstile site & secret keys (free)
+* WordPress 5.0 or higher
+* PHP 7.0 or higher
+* Cloudflare Turnstile Site and Secret Keys (free)
 
-== Installation ==
+== Developers ==
 
-1. Install via **Plugins → Add New** (search “Kitgenix Turnstile”) or upload the ZIP.  
-2. Activate the plugin.  
-3. Go to **Settings → Cloudflare Turnstile**.  
-4. Enter your **Site Key** and **Secret Key** from the Cloudflare dashboard.  
-5. Enable the integrations/forms you want to protect and **Save**.
+**Key filters**
+
+* `kitgenix_captcha_for_cloudflare_turnstile_script_url( $url, $settings )`  
+  Override the Turnstile script URL or append query arguments.
+
+* `kitgenix_turnstile_freshness_ms`  
+  Control token auto-reset interval (milliseconds).
+
+* `kitgenix_turnstile_replay_ttl`  
+  Adjust replay protection cache duration (seconds).
+
+* `kitgenix_turnstile_is_whitelisted( $is_whitelisted, $context )`  
+  Modify whitelist decisions programmatically.
+
+**Shortcode**
+
+* `[kitgenix_turnstile]` – Render the Turnstile widget manually. Integrations detect the shortcode or rendered widget container and skip auto-injection to prevent duplicates.
+
+**Server-side endpoint**
+
+* Validates via `https://challenges.cloudflare.com/turnstile/v0/siteverify`.
+
+**Text domain**
+
+* `kitgenix-captcha-for-cloudflare-turnstile` (POT file included).
+
+== Integration Files ==
+
+Each integration maps to a dedicated adapter class for maintainability.
+
+* **WordPress Core:**
+	* `includes/integrations/wordpress/class-wp-core.php`
+
+* **WooCommerce (Classic):**
+	* `includes/integrations/ecommerce/class-woocommerce.php`
+
+* **WooCommerce (Blocks / Store API):**
+	* `includes/integrations/ecommerce/class-woocommerce-blocks.php`
+
+* **Elementor Pro:**
+	* `includes/integrations/page-builder/class-elementor.php`
+
+* **Form plugins:**
+	* Contact Form 7 — `includes/integrations/forms/contact-form-7.php`
+	* Fluent Forms — `includes/integrations/forms/fluent-forms.php`
+	* Formidable Forms — `includes/integrations/forms/formidable-forms.php`
+	* Forminator Forms — `includes/integrations/forms/forminator-forms.php`
+	* Gravity Forms — `includes/integrations/forms/gravity-forms.php`
+	* Jetpack Forms — `includes/integrations/forms/jetpack-forms.php`
+	* Kadence Forms — `includes/integrations/forms/kadence-forms.php`
+	* WPForms — `includes/integrations/forms/wpforms.php`
+
+* **Forums:**
+	* bbPress — `includes/integrations/forums/bbpress.php`
+
+* **Integration folders:**
+	* `includes/integrations/`
+	* `includes/integrations/ecommerce/`
+	* `includes/integrations/forms/`
+	* `includes/integrations/forums/`
+	* `includes/integrations/page-builder/`
+	* `includes/integrations/wordpress/`
 
 == Roadmap ==
 
-- Per-form controls and UI refinements  
-- More granular placement options for additional builders  
-- Expanded compatibility notes for optimization plugins
+* Per-form controls and additional UI refinements
+* More granular placement options for page builders and theme forms
+* Expanded compatibility notes and presets for popular optimisation and caching plugins
+* Additional developer hooks and integration examples
+
 
 == Changelog ==
 
+= 1.0.12 (21 November 2025) =
+
+* New: Global shortcode `[kitgenix_turnstile]` to render the Turnstile widget manually inside custom HTML fields, form content or page templates.
+* Improvement: Auto-inject versus Shortcode behaviour is now mutually exclusive and consistent across integrations.
+* Added: `includes/core/class-turnstile-shortcode.php` with a robust shortcode renderer and recursive detection helper `has_shortcode_in()` that detects literal shortcodes and rendered widget markers (`class="cf-turnstile"`, `data-kitgenix-shortcode` or hidden `name="cf-turnstile-response"`).
+* Updated: Integration adapters to use the new helper and treat literal shortcode text separately from rendered markup so Auto mode is not blocked by leftover shortcode tokens.
+* Updated: When an integration needs to run `do_shortcode()` in Auto mode, it temporarily removes the plugin shortcode, runs `do_shortcode()` and then immediately re-registers the shortcode so it is never left unregistered.
+* Fix: CF7 shortcode rendering in Shortcode-only mode – Contact Form 7 form HTML is now passed through `do_shortcode()` when the integration is set to Shortcode-only.
+* Improvement: Ensured Shortcode-only mode works across all supported form plugins via defensive `do_shortcode()` passthroughs and field-level filters, while Auto mode detection ignores literal shortcode tokens.
+* UI: Only show the global Shortcode guidance card when at least one supported forms integration is present. Removed Auto/Shortcode radio controls from the WordPress Core card; core forms use the Enable checkbox and per-form toggles only.
+* Dev: Reworked temporary shortcode removal logic to guarantee re-registration after `do_shortcode()`. Fixed edge-case uninitialised variable and parse issues.
+* Dev: Standardised detection and injection semantics and added comments and guards for missing site keys, filters and plugin version differences.
+* Note: The stored `mode_wp_core` setting is retained for compatibility but no longer exposed in the UI. It can be removed in a future release if needed.
+
 = 1.0.11 (19 October 2025) =
-* Fix: Elementor AJAX regression — prevented a brief layout “bump” where interaction-only lost `.kt-ts-collapsed` during the AJAX send; the container now stays collapsed unless a visible challenge is explicitly required.
+* Fix: Elementor AJAX regression — prevented a brief layout “bump” where interaction-only lost `.kitgenix-ts-collapsed` during the AJAX send; the container now stays collapsed unless a visible challenge is explicitly required.
 
 = 1.0.10 (16 October 2025) =
 * Fix: Elementor Popups — reliably initializes the Turnstile challenge when a popup opens (even if the widget was inserted while hidden). Clears stale render flags, resets hidden iframes, and triggers a fresh render on show.
@@ -286,7 +441,7 @@ The plugin itself doesn’t store personal data. Cloudflare Turnstile processes 
 * New: Interaction Only UX refinement – collapses initial blank gap (no more 50+px empty space) until the user interacts or the widget needs to expand. (Thank You: @kammsw)
 * Improvement: Unified size handling in JS (`flexible` passes straight through; existing custom sizes still map to Cloudflare equivalents).
 * Improvement: Consistent collapsed/expand logic across Elementor, Gravity Forms, Formidable, Forminator, Jetpack, Fluent Forms, Kadence, WPForms, and core render paths.
-* Improvement: CSS enhancements for flexible width + reduced gap state (`.kt-ts-collapsed`).
+* Improvement: CSS enhancements for flexible width + reduced gap state (`.kitgenix-ts-collapsed`).
 * Prep: Foundation laid for upcoming modal/delayed form robustness (MutationObserver structure ready for attribute watching & visibility checks in a future release).
 * Dev: Sanitization now allows `flexible`; admin settings UI updated with help text.
 
@@ -405,20 +560,22 @@ The plugin itself doesn’t store personal data. Cloudflare Turnstile processes 
 
 == Upgrade Notice ==
 
-= 1.0.11 =
-No Major Changes.
+= 1.0.12 =
+Adds a global `[kitgenix_turnstile]` shortcode and improves shortcode versus auto-inject behaviour across integrations. Safe to update on most sites.
+
 
 == External Services ==
 
-This plugin connects to Cloudflare Turnstile for spam prevention. It sends:
-- Site key
-- Response token
-- User IP and user-agent (used by Cloudflare for verification)
+This plugin connects to **Cloudflare Turnstile** to perform spam and abuse prevention checks. It sends:
 
-No data is stored or processed by Kitgenix.
+* Turnstile site key
+* Turnstile response token
+* User IP address and user agent (used by Cloudflare for verification)
+
+No personal data is stored or processed by Kitgenix.
 
 Cloudflare Turnstile Terms: https://developers.cloudflare.com/turnstile/  
-Privacy Policy: https://www.cloudflare.com/privacypolicy/
+Cloudflare Privacy Policy: https://www.cloudflare.com/privacypolicy/
 
 == Trademark Notice ==
 
@@ -430,9 +587,11 @@ Kitgenix CAPTCHA for Cloudflare Turnstile is built with ❤️ by Kitgenix.
 
 == Credits ==
 
-Cloudflare Turnstile — https://www.cloudflare.com/products/turnstile/  
+Cloudflare Turnstile – https://www.cloudflare.com/products/turnstile/  
 Built with ❤️ by https://kitgenix.com
 
 == Support Development ==
 
-Donate link: https://buymeacoffee.com/kitgenix
+If this plugin helps you stop spam and keep your forms fast and user-friendly, you can support ongoing development here:
+
+https://buymeacoffee.com/kitgenix

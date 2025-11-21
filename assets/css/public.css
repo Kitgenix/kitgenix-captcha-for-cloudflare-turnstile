@@ -16,29 +16,29 @@
    Design tokens (tweakable; keep conservative defaults)
 ----------------------------------------------------------- */
 :root {
-  --kt-accent:        #2563eb; /* blue-600 */
-  --kt-accent-weak:   #93c5fd; /* blue-300 */
-  --kt-danger:        #ef4444; /* red-500 */
-  --kt-danger-bg:     #fef2f2; /* red-50 */
-  --kt-warn:          #f59e0b; /* amber-500 */
-  --kt-warn-bg:       #fff7ed; /* amber-50 */
-  --kt-muted:         #6b7280; /* gray-500 */
-  --kt-muted-bg:      #f3f4f6; /* gray-100 */
-  --kt-border:        #e5e7eb; /* gray-200 */
-  --kt-shadow:        0 1px 2px rgba(0,0,0,.06), 0 1px 6px rgba(0,0,0,.04);
+  --kitgenix-accent:        #2563eb; /* blue-600 */
+  --kitgenix-accent-weak:   #93c5fd; /* blue-300 */
+  --kitgenix-danger:        #ef4444; /* red-500 */
+  --kitgenix-danger-bg:     #fef2f2; /* red-50 */
+  --kitgenix-warn:          #f59e0b; /* amber-500 */
+  --kitgenix-warn-bg:       #fff7ed; /* amber-50 */
+  --kitgenix-muted:         #6b7280; /* gray-500 */
+  --kitgenix-muted-bg:      #f3f4f6; /* gray-100 */
+  --kitgenix-border:        #e5e7eb; /* gray-200 */
+  --kitgenix-shadow:        0 1px 2px rgba(0,0,0,.06), 0 1px 6px rgba(0,0,0,.04);
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --kt-accent:      #60a5fa; /* blue-400 */
-    --kt-accent-weak: #3b82f6; /* blue-500 */
-    --kt-danger:      #f87171;
-    --kt-danger-bg:   #1e293b; /* slate-800 */
-    --kt-warn:        #f59e0b;
-    --kt-warn-bg:     #1f2937; /* gray-800 */
-    --kt-muted:       #9ca3af;
-    --kt-muted-bg:    #111827; /* gray-900 */
-    --kt-border:      #334155; /* slate-700 */
-    --kt-shadow:      0 1px 2px rgba(0,0,0,.35), 0 1px 6px rgba(0,0,0,.25);
+    --kitgenix-accent:      #60a5fa; /* blue-400 */
+    --kitgenix-accent-weak: #3b82f6; /* blue-500 */
+    --kitgenix-danger:      #f87171;
+    --kitgenix-danger-bg:   #1e293b; /* slate-800 */
+    --kitgenix-warn:        #f59e0b;
+    --kitgenix-warn-bg:     #1f2937; /* gray-800 */
+    --kitgenix-muted:       #9ca3af;
+    --kitgenix-muted-bg:    #111827; /* gray-900 */
+    --kitgenix-border:      #334155; /* slate-700 */
+    --kitgenix-shadow:      0 1px 2px rgba(0,0,0,.35), 0 1px 6px rgba(0,0,0,.25);
   }
 }
 
@@ -67,7 +67,7 @@
 }
 
 /* Collapse gap when appearance=interaction-only before user interaction */
-.cf-turnstile.kt-ts-collapsed[data-appearance="interaction-only"],
+.cf-turnstile.kitgenix-ts-collapsed[data-appearance="interaction-only"],
 /* Safety: also collapse any interaction-only placeholder until it has data-rendered */
 .cf-turnstile[data-appearance="interaction-only"]:not([data-rendered]) {
   min-height: 0 !important; /* remove reserved space */
@@ -84,7 +84,7 @@
 }
 
 /* In collapsed state, never show the loading spinner */
-.cf-turnstile.kt-ts-collapsed .kitgenix-captcha-for-cloudflare-turnstile-spinner {
+.cf-turnstile.kitgenix-ts-collapsed .kitgenix-captcha-for-cloudflare-turnstile-spinner {
   display: none !important;
 }
 
@@ -104,7 +104,7 @@
   width: 34px;
   height: 34px;
   border: 3px solid #e0e7ef;
-  border-top: 3px solid var(--kt-accent);
+  border-top: 3px solid var(--kitgenix-accent);
   border-radius: 50%;
   animation: kitgenix-captcha-for-cloudflare-turnstile-spin 1s linear infinite;
   margin: 6px auto;
@@ -112,7 +112,7 @@
 }
 
 /* Utility: fully hide and collapse the widget (used after successful submits) */
-.cf-turnstile.kt-ts-hide { display: none !important; height: 0 !important; margin: 0 !important; padding: 0 !important; }
+.cf-turnstile.kitgenix-ts-hide { display: none !important; height: 0 !important; margin: 0 !important; padding: 0 !important; }
 @keyframes kitgenix-captcha-for-cloudflare-turnstile-spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
@@ -142,8 +142,8 @@
   filter: grayscale(20%);
   cursor: not-allowed;
   pointer-events: none;
-  background: var(--kt-muted-bg);
-  color: var(--kt-muted);
+  background: var(--kitgenix-muted-bg);
+  color: var(--kitgenix-muted);
   transition: opacity .18s ease;
 }
 
@@ -153,12 +153,12 @@
 ----------------------------------------------------------- */
 .kitgenix-captcha-for-cloudflare-turnstile-disabled:focus,
 .cf-turnstile:focus {
-  outline: 3px solid var(--kt-accent);
+  outline: 3px solid var(--kitgenix-accent);
   outline-offset: 2px;
 }
 button:focus-visible,
 input[type=submit]:focus-visible {
-  outline: 3px solid var(--kt-accent);
+  outline: 3px solid var(--kitgenix-accent);
   outline-offset: 3px;
 }
 
@@ -183,26 +183,26 @@ input[type=submit]:focus-visible {
 .kitgenix-captcha-for-cloudflare-turnstile-ts-inline-msg {
   margin: 8px 0 0;
   color: #111827;
-  background: var(--kt-warn-bg);
+  background: var(--kitgenix-warn-bg);
   padding: 10px 12px;
-  border-left: 4px solid var(--kt-warn);
+  border-left: 4px solid var(--kitgenix-warn);
   border-radius: 6px;
   font-size: 14px;
   line-height: 1.5;
 }
 .kitgenix-captcha-for-cloudflare-turnstile-ts-inline-msg.kitgenix-captcha-for-cloudflare-turnstile-type-expired {
-  border-left-color: var(--kt-warn);
-  background: var(--kt-warn-bg);
+  border-left-color: var(--kitgenix-warn);
+  background: var(--kitgenix-warn-bg);
   color: #92400e;
 }
 .kitgenix-captcha-for-cloudflare-turnstile-ts-inline-msg.kitgenix-captcha-for-cloudflare-turnstile-type-error {
-  border-left-color: var(--kt-danger);
-  background: var(--kt-danger-bg);
+  border-left-color: var(--kitgenix-danger);
+  background: var(--kitgenix-danger-bg);
   color: #7f1d1d;
 }
 @media (prefers-color-scheme: dark) {
   .kitgenix-captcha-for-cloudflare-turnstile-ts-inline-msg {
-    background: var(--kt-warn-bg);
+    background: var(--kitgenix-warn-bg);
     color: #e5e7eb;
   }
 }
@@ -212,14 +212,14 @@ input[type=submit]:focus-visible {
   margin-top: 6px;
   font-size: 12px;
   color: #92400e;
-  background: var(--kt-warn-bg);
-  border-left: 3px solid var(--kt-warn);
+  background: var(--kitgenix-warn-bg);
+  border-left: 3px solid var(--kitgenix-warn);
   padding: 6px 10px;
   border-radius: 4px;
 }
 @media (prefers-color-scheme: dark) {
   .kitgenix-captcha-for-cloudflare-turnstile-dev-note {
-    color: var(--kt-warn);
+    color: var(--kitgenix-warn);
   }
 }
 
@@ -228,14 +228,14 @@ input[type=submit]:focus-visible {
   margin-top: 6px;
   font-size: 13px;
   color: #b45309;
-  background: var(--kt-warn-bg);
-  border-left: 4px solid var(--kt-warn);
+  background: var(--kitgenix-warn-bg);
+  border-left: 4px solid var(--kitgenix-warn);
   padding: 8px 10px;
   border-radius: 4px;
 }
 @media (prefers-color-scheme: dark) {
   .kitgenix-captcha-for-cloudflare-turnstile-inline-msg.kitgenix-captcha-for-cloudflare-turnstile-replay {
-    color: var(--kt-warn);
+    color: var(--kitgenix-warn);
   }
 }
 
@@ -245,9 +245,9 @@ input[type=submit]:focus-visible {
 ----------------------------------------------------------- */
 .kitgenix-captcha-for-cloudflare-turnstile-warning {
   color: #b91c1c;
-  background-color: var(--kt-danger-bg);
+  background-color: var(--kitgenix-danger-bg);
   padding: 12px 18px;
-  border-left: 5px solid var(--kt-danger);
+  border-left: 5px solid var(--kitgenix-danger);
   margin: 12px 0;
   font-weight: 600;
   font-size: 15px;
@@ -287,6 +287,9 @@ form .cf-turnstile:last-child { margin-bottom: 24px; }
 
 /* Product reviews: prefer left-align above the submit button */
 .single-product .comment-form .cf-turnstile { display: flex; justify-content: flex-start; margin: 8px 0 12px; }
+
+/* BuddyPress activity: left-align when placed before the Post Update button */
+.cf-turnstile[data-placement="buddypress-post-update"] { display: flex; justify-content: flex-start; margin: 8px 0 12px; }
 
 /* Jetpack / Forminator / Formidable / Gravity */
 .contact-form .cf-turnstile,

@@ -47,6 +47,24 @@ class GravityForms {
             return $button;
         }
 
+        // Respect per-integration mode: when shortcode-only is selected, allow other
+        // shortcodes in form HTML to be processed (so [kitgenix_turnstile] placed in
+        // GF HTML fields will render). We do not enable auto-injection here.
+        $mode = $settings['mode_gravityforms'] ?? 'auto';
+        if ( $mode === 'shortcode' ) {
+            if ( function_exists( 'do_shortcode' ) ) {
+                return \do_shortcode( (string) $button );
+            }
+            return $button;
+        }
+
+        // If form/button already contains a rendered widget container, don't inject.
+        // Ignore literal shortcode tokens so auto-mode isn't blocked by leftover shortcode text.
+        if ( \KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Shortcode::has_shortcode_in( $button, false )
+            || \KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Shortcode::has_shortcode_in( $form, false ) ) {
+            return $button;
+        }
+
         // Guard against duplicate injection per form ID
         $form_id = isset($form['id']) ? (int) $form['id'] : 0;
         static $rendered_for = [];

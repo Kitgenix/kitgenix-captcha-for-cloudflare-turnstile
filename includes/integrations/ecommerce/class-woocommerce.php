@@ -89,6 +89,12 @@ class WooCommerce {
         $settings = get_option('kitgenix_captcha_for_cloudflare_turnstile_settings', []);
         $site_key = $settings['site_key'] ?? '';
 
+        // Respect per-integration mode: allow admins to disable auto-inject and use shortcode-only placement.
+        $mode = $settings['mode_woocommerce'] ?? 'auto';
+        if ( $mode === 'shortcode' ) {
+            return;
+        }
+
         if ( ! $site_key ) {
             echo '<p class="kitgenix-captcha-for-cloudflare-turnstile-warning">'
                . esc_html__( 'Cloudflare Turnstile site key is missing. Please configure it in plugin settings.', 'kitgenix-captcha-for-cloudflare-turnstile' )
@@ -205,8 +211,16 @@ class WooCommerce {
             return $content;
         }
 
-        // Avoid duplicates if already present.
-        if ( strpos($content, 'class="cf-turnstile"') !== false ) {
+        // Respect per-integration mode for Blocks: if admin chose shortcode-only, skip auto-inject here.
+        $mode_blocks = $settings['mode_woocommerce_blocks'] ?? 'auto';
+        if ( $mode_blocks === 'shortcode' ) {
+            return $content;
+        }
+
+        // Avoid duplicates if already present or a rendered widget/container is present in the block content.
+        // Ignore literal shortcode tokens so auto-mode isn't blocked by leftover shortcode text.
+        if ( strpos($content, 'class="cf-turnstile"') !== false
+            || \KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Shortcode::has_shortcode_in( $content, false ) ) {
             return $content;
         }
 
@@ -257,9 +271,11 @@ class WooCommerce {
             $token = (string) $params['extensions']['kitgenix_captcha_for_cloudflare_turnstile_turnstile']['token'];
         } elseif ( $request->get_header('X-Turnstile-Token') ) {
             $token = (string) $request->get_header('X-Turnstile-Token');
-        } elseif ( isset($_POST['cf-turnstile-response']) ) {
-            // Very rare with Blocks, but keep as last resort.
-            $token = sanitize_text_field( wp_unslash( $_POST['cf-turnstile-response'] ) );
+        } elseif ( $request->get_param('cf-turnstile-response') ) {
+            // Very rare with Blocks, but keep as last resort: read from REST request
+            // body params instead of accessing raw $_POST. This is a Store API
+            // flow so a plugin nonce is not applicable. Sanitize the value.
+            $token = sanitize_text_field( (string) $request->get_param('cf-turnstile-response') );
         }
 
         if ( ! $token || ! Turnstile_Validator::validate_token($token) ) {

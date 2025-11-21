@@ -46,8 +46,16 @@ class WooCommerce_Blocks {
             return $block_content;
         }
 
-        // Avoid duplicates.
-        if ( is_string( $block_content ) && strpos( $block_content, 'class="cf-turnstile' ) !== false ) {
+        // Respect per-integration mode: allow shortcode-only placement for blocks if configured.
+        $mode_blocks = $settings['mode_woocommerce_blocks'] ?? 'auto';
+        if ( $mode_blocks === 'shortcode' ) {
+            return $block_content;
+        }
+
+    // Avoid duplicates or if a rendered widget/container is already present in the block HTML.
+    // Ignore literal shortcode tokens so auto-mode isn't blocked by leftover shortcode text.
+    if ( is_string( $block_content ) && ( strpos( $block_content, 'class="cf-turnstile' ) !== false
+        || \KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Shortcode::has_shortcode_in( $block_content, false ) ) ) {
             return $block_content;
         }
 
@@ -74,6 +82,7 @@ class WooCommerce_Blocks {
         }
 
         // Only POST
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- this is a REST/Store API endpoint, nonce not applicable
         $method = isset( $_SERVER['REQUEST_METHOD'] )
             ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) )
             : 'GET';
@@ -83,9 +92,15 @@ class WooCommerce_Blocks {
 
         // Detect Store API checkout route (supports both pretty and ?rest_route=)
         $route = '';
+        // Determine the current REST route/URI. This runs very early in the
+        // request lifecycle (authentication stage) where a nonce is not
+        // applicable. Silence PHPCS with a short rationale.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- REST/Store API early auth; nonce not applicable here
         if ( isset( $_GET['rest_route'] ) ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- REST/Store API early auth; nonce not applicable here
             $route = sanitize_text_field( wp_unslash( $_GET['rest_route'] ) );
         } elseif ( isset( $_SERVER['REQUEST_URI'] ) ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- REST/Store API early auth; nonce not applicable here
             $route = sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) );
         }
 

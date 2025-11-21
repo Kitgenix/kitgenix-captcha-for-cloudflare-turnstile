@@ -48,6 +48,22 @@ class KadenceForms {
             return $button_html;
         }
 
+        // Respect per-integration mode: when shortcode-only is selected, allow shortcodes
+        // inside the button/form HTML to be processed so manual shortcode placement works.
+        $mode = $settings['mode_kadenceforms'] ?? 'auto';
+        if ( $mode === 'shortcode' ) {
+            if ( function_exists( 'do_shortcode' ) ) {
+                return \do_shortcode( (string) $button_html );
+            }
+            return $button_html;
+        }
+
+        // If a rendered widget/container already exists in the button HTML, skip injecting.
+        // We ignore literal shortcode tokens so auto-mode isn't blocked by leftover shortcode text.
+        if ( \KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Shortcode::has_shortcode_in( $button_html, false ) ) {
+            return $button_html;
+        }
+
         // Guard: avoid duplicate injection per form
         static $done = [];
         if ( isset( $done[ $form_id ] ) ) {

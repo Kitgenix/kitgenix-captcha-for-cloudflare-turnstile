@@ -119,7 +119,14 @@ class Script_Handler {
         <div class="notice notice-warning is-dismissible">
             <p><strong><?php echo \esc_html__( 'Cloudflare Turnstile is being loaded more than once.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></strong></p>
             <p><?php echo \esc_html__( 'Another plugin or theme also enqueues the Turnstile API. Double-loading can break rendering or callbacks. Consider disabling the other loader and let this plugin load the API once.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></p>
-            <ul style="margin-left:18px;list-style:disc;"><?php echo $list; ?></ul>
+            <ul style="margin-left:18px;list-style:disc;"><?php
+                $allowed = [
+                    'li'   => [],
+                    'code' => [],
+                    'span' => [ 'style' => true ],
+                ];
+                echo wp_kses( $list, $allowed );
+            ?></ul>
             <p><a class="button button-secondary" href="<?php echo \esc_url( $dismiss_url ); ?>">
                 <?php echo \esc_html__( 'Dismiss notice', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?>
             </a></p>
@@ -298,6 +305,17 @@ class Script_Handler {
             $js_ver,
             true
         );
+        // Localize admin-only config: AJAX URL and validation nonce.
+        if ( function_exists( '\wp_create_nonce' ) ) {
+            \wp_localize_script(
+                'kitgenix-captcha-for-cloudflare-turnstile-admin',
+                'KitgenixTurnstileAdmin',
+                [
+                    'ajax_url' => \admin_url( 'admin-ajax.php' ),
+                    'validate_nonce' => \wp_create_nonce( 'kitgenix_turnstile_validate_keys' ),
+                ]
+            );
+        }
     }
 
     /**

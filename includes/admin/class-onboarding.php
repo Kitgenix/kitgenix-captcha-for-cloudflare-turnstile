@@ -35,6 +35,7 @@ class Onboarding {
         if ( \defined('REST_REQUEST') && REST_REQUEST ) { return; }
         if ( \defined('WP_CLI') && WP_CLI ) { return; }
         if ( \is_network_admin() ) { return; }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- this flag indicates bulk activation; no nonce available here
         if ( isset($_GET['activate-multi']) ) { return; } // bulk or multisite activations
         if ( ! \current_user_can('manage_options') ) { return; }
 

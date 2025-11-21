@@ -58,6 +58,12 @@ class Elementor {
         $settings = get_option( 'kitgenix_captcha_for_cloudflare_turnstile_settings', [] );
         $site_key = $settings['site_key'] ?? '';
 
+        // Respect per-integration mode: allow admins to disable auto-inject and use shortcode-only placement.
+        $mode = $settings['mode_elementor'] ?? 'auto';
+        if ( $mode === 'shortcode' ) {
+            return;
+        }
+
         if ( ! $site_key ) {
             echo '<p class="kitgenix-captcha-for-cloudflare-turnstile-warning">'
                . esc_html__( 'Cloudflare Turnstile site key is missing. Please configure it in plugin settings.', 'kitgenix-captcha-for-cloudflare-turnstile' )
@@ -93,6 +99,12 @@ class Elementor {
         $theme      = $settings['theme'] ?? 'auto';
         $size       = $settings['widget_size'] ?? 'normal';
         $appearance = $settings['appearance'] ?? 'always';
+
+        // Respect per-integration mode: if shortcode-only is selected for Elementor, skip the fallback injection.
+        $mode = $settings['mode_elementor'] ?? 'auto';
+        if ( $mode === 'shortcode' ) {
+            return;
+        }
 
         if ( ! $site_key ) {
             return;
@@ -152,10 +164,44 @@ class Elementor {
             return;
         }
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Elementor posts its own nonce; we only validate Turnstile token here.
-        $token = isset( $_POST['cf-turnstile-response'] )
-            ? sanitize_text_field( wp_unslash( $_POST['cf-turnstile-response'] ) )
-            : '';
+        // Prefer the Elementor $record payload (safe, structured data) instead
+        // of reading raw $_POST. This removes the need for a plugin nonce
+        // check here because Elementor handles its own security for form AJAX.
+        $token = '';
+        if ( is_object( $record ) ) {
+            if ( method_exists( $record, 'get_formatted_data' ) ) {
+                $data = $record->get_formatted_data();
+                if ( is_array( $data ) && ! empty( $data['fields'] ) && is_array( $data['fields'] ) ) {
+                    foreach ( $data['fields'] as $field ) {
+                        // fields may be arrays with keys like 'id'/'name' and 'value'
+                        $name = $field['id'] ?? $field['name'] ?? '';
+                        $value = $field['value'] ?? '';
+                        if ( $name === 'cf-turnstile-response' ) {
+                            $token = sanitize_text_field( (string) $value );
+                            break;
+                        }
+                    }
+                }
+            } elseif ( method_exists( $record, 'get' ) ) {
+                // Older/newer variants expose fields via get('fields')
+                $fields = $record->get( 'fields' );
+                if ( is_array( $fields ) ) {
+                    foreach ( $fields as $field ) {
+                        $name = $field['id'] ?? $field['name'] ?? '';
+                        $value = $field['value'] ?? '';
+                        if ( $name === 'cf-turnstile-response' ) {
+                            $token = sanitize_text_field( (string) $value );
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Fallback: header token (fetch/Blocks flows)
+        if ( $token === '' && isset( $_SERVER['HTTP_X_TURNSTILE_TOKEN'] ) ) {
+            $token = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_TURNSTILE_TOKEN'] ) );
+        }
 
         $ok = ( $token !== '' ) && Turnstile_Validator::validate_token( $token );
 

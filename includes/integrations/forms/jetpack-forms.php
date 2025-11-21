@@ -45,9 +45,40 @@ class JetpackForms {
         if ( ! $site_key ) {
             return $html;
         }
+        // Respect per-integration mode: skip auto-inject if shortcode-only is selected.
+        $mode = $settings['mode_jetpackforms'] ?? 'auto';
+        // If shortcode-only, process other shortcodes but leave our shortcode alone.
+        if ( $mode === 'shortcode' ) {
+            if ( function_exists( 'do_shortcode' ) ) {
+                $html = \do_shortcode( (string) $html );
+            }
+            return $html;
+        }
 
-        // Avoid injecting twice
-        if ( strpos( (string) $html, 'class="cf-turnstile"' ) !== false ) {
+        // When in auto mode, temporarily remove our shortcode before running do_shortcode
+        // so the literal shortcode won't render and won't block injection.
+        $shortcode_removed = false;
+    if ( function_exists( 'do_shortcode' ) && function_exists( 'shortcode_exists' ) && shortcode_exists( 'kitgenix_turnstile' ) ) {
+            if ( function_exists( 'remove_shortcode' ) ) {
+                remove_shortcode( 'kitgenix_turnstile' );
+                $shortcode_removed = true;
+            }
+        }
+        if ( function_exists( 'do_shortcode' ) ) {
+            $html = \do_shortcode( (string) $html );
+        }
+
+        // Avoid injecting twice or if a rendered shortcode/widget exists. Ignore literal shortcode tokens.
+        if ( strpos( (string) $html, 'class="cf-turnstile"' ) !== false
+            || \KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Shortcode::has_shortcode_in( $html, false ) ) {
+            // Re-register shortcode if we removed it temporarily.
+            if ( ! empty( $shortcode_removed ) ) {
+                if ( class_exists( '\KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Shortcode' ) ) {
+                    \KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Shortcode::register_shortcode();
+                } elseif ( function_exists( 'add_shortcode' ) ) {
+                    add_shortcode( 'kitgenix_turnstile', [ '\KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Shortcode', 'render_shortcode' ] );
+                }
+            }
             return $html;
         }
 

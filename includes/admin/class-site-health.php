@@ -67,16 +67,16 @@ class Site_Health {
             $codes  = isset($diag['codes']) && \is_array($diag['codes']) ? implode(', ', array_map('sanitize_text_field', $diag['codes'])) : '';
             if (!$ok) {
                 if ($status !== 'critical') { $status = 'recommended'; }
-                /* translators: 1: date/time, 2: error codes list */
                 $issues[] = '<li>' . \sprintf(
+                    /* translators: 1: date/time, 2: error codes list */
                     \esc_html__('Last Turnstile verification failed (%1$s). Error codes: %2$s', 'kitgenix-captcha-for-cloudflare-turnstile'),
                     \esc_html($when ?: \__('unknown time', 'kitgenix-captcha-for-cloudflare-turnstile')),
                     \esc_html($codes ?: \__('none reported', 'kitgenix-captcha-for-cloudflare-turnstile'))
                 ) . '</li>';
             } else {
                 if ($status === 'good') {
-                    /* translators: %s: date/time of last successful verification */
                     $issues[] = '<li>' . \sprintf(
+                        /* translators: %s: date/time of last successful verification */
                         \esc_html__('Last Turnstile verification succeeded (%s).', 'kitgenix-captcha-for-cloudflare-turnstile'),
                         \esc_html($when ?: \__('recently', 'kitgenix-captcha-for-cloudflare-turnstile'))
                     ) . '</li>';
@@ -124,7 +124,7 @@ class Site_Health {
      * Heuristic: is any popular caching/optimization plugin active?
      */
     private static function maybe_js_delayed(): bool {
-        $active = (array) \apply_filters('active_plugins', \get_option('active_plugins', []));
+        $active = (array) \get_option('active_plugins', []);
         if (\is_multisite()) {
             $network = (array) \get_site_option('active_sitewide_plugins', []);
             $active  = array_merge($active, array_keys($network));

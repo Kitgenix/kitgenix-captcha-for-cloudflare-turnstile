@@ -111,8 +111,8 @@
         if ($input.length) $input.val('');
         // Collapse and hide containers to eliminate any layout gap after success
         $form.find('.cf-turnstile').each(function(){
-          this.classList.add('kt-ts-collapsed');
-          this.classList.add('kt-ts-hide');
+          this.classList.add('kitgenix-ts-collapsed');
+          this.classList.add('kitgenix-ts-hide');
         });
       });
     }

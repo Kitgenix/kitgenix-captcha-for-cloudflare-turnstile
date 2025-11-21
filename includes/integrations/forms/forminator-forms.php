@@ -47,9 +47,52 @@ class ForminatorForms {
      */
     public static function inject_turnstile_markup( $html, $form_id, $post_id, $nonce ) {
         $settings = get_option( 'kitgenix_captcha_for_cloudflare_turnstile_settings', [] );
+        // Respect per-integration mode: skip auto-inject if shortcode-only is selected.
+        $mode = $settings['mode_forminator'] ?? 'auto';
+        if ( $mode === 'shortcode' ) {
+            // Still allow other shortcodes in the markup.
+            if ( function_exists( 'do_shortcode' ) ) {
+                $html = \do_shortcode( (string) $html );
+            }
+            return $html;
+        }
+
+        // When in auto mode, we want to allow other shortcodes but ensure our shortcode
+        // does not render (admins asked for auto placement). Temporarily remove it.
+        $shortcode_removed = false;
+    if ( function_exists( 'do_shortcode' ) && function_exists( 'shortcode_exists' ) && shortcode_exists( 'kitgenix_turnstile' ) ) {
+            if ( function_exists( 'remove_shortcode' ) ) {
+                remove_shortcode( 'kitgenix_turnstile' );
+                $shortcode_removed = true;
+            }
+        }
+
+        if ( function_exists( 'do_shortcode' ) ) {
+            $html = \do_shortcode( (string) $html );
+        }
+        // Re-register shortcode if we temporarily removed it so we don't leave it missing
+        // in cases where we return early (e.g. no site key).
+        if ( ! empty( $shortcode_removed ) ) {
+            if ( class_exists( '\KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Shortcode' ) ) {
+                \KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Shortcode::register_shortcode();
+            } elseif ( function_exists( 'add_shortcode' ) ) {
+                add_shortcode( 'kitgenix_turnstile', [ '\KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Shortcode', 'render_shortcode' ] );
+            }
+        }
         $site_key = $settings['site_key'] ?? '';
         if ( ! $site_key ) {
             // Do not sanitize/alter original markup here—let Forminator output as-is.
+            return $html;
+        }
+
+        // Respect per-integration mode: skip auto-inject if shortcode-only is selected.
+        $mode = $settings['mode_forminator'] ?? 'auto';
+        if ( $mode === 'shortcode' ) {
+            return $html;
+        }
+
+        // Guard: avoid duplicate injection per form, or if a rendered shortcode/widget exists.
+        if ( \KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Shortcode::has_shortcode_in( $html, false ) ) {
             return $html;
         }
 
@@ -84,8 +127,8 @@ class ForminatorForms {
             . ' data-appearance="' . esc_attr( $settings['appearance']  ?? 'always' ) . '"'
             . ' data-kitgenix-captcha-for-cloudflare-turnstile-owner="forminator"></div>';
 
-        // Keep the original submit button markup verbatim.
-        echo $html;
+        // Keep the original submit button markup verbatim (sanitize using wp_kses_post()).
+        echo wp_kses_post( $html );
         echo '</div>';
 
         $widget = ob_get_clean();
@@ -98,6 +141,15 @@ class ForminatorForms {
                 . 'document.addEventListener("forminator:render:after",function(){document.dispatchEvent(new CustomEvent("kitgenixcaptchaforcloudflareturnstile:turnstile-containers-added",{detail:{source:"forminator",id:"' . esc_js( $widget_id ) . '"}}));});',
                 'after'
             );
+        }
+
+        // Re-register shortcode if we removed it temporarily.
+        if ( ! empty( $shortcode_removed ) ) {
+            if ( class_exists( '\KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Shortcode' ) ) {
+                \KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Shortcode::register_shortcode();
+            } elseif ( function_exists( 'add_shortcode' ) ) {
+                add_shortcode( 'kitgenix_turnstile', [ '\KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Shortcode', 'render_shortcode' ] );
+            }
         }
 
         // Return widget + submit markup (no wp_kses_post — Forminator controls sanitization).

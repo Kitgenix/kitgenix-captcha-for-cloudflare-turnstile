@@ -15,8 +15,7 @@ function kitgenix_captcha_for_cloudflare_turnstile_remove_plugin_data() {
     delete_option('kitgenix_captcha_for_cloudflare_turnstile_settings');
     
     // Remove any transients or user meta if used
-    // delete_transient('kitgenix_captcha_for_cloudflare_turnstile_some_transient');
-    // delete_user_meta(0, 'kitgenix_captcha_for_cloudflare_turnstile_some_user_meta');
+    
 
     // Multisite support: remove settings from all sites
     if (is_multisite()) {
@@ -26,8 +25,7 @@ function kitgenix_captcha_for_cloudflare_turnstile_remove_plugin_data() {
         foreach ($site_ids as $site_id) {
             switch_to_blog($site_id);
             delete_option('kitgenix_captcha_for_cloudflare_turnstile_settings');
-            // delete_transient('kitgenix_captcha_for_cloudflare_turnstile_some_transient');
-            // delete_user_meta(0, 'kitgenix_captcha_for_cloudflare_turnstile_some_user_meta');
+            
             restore_current_blog();
         }
     }

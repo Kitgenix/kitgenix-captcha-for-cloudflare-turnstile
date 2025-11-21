@@ -238,6 +238,7 @@ class Turnstile_Validator {
 
         if ($context) {
             $filter  = 'kitgenix_captcha_for_cloudflare_turnstile_' . $context . '_turnstile_error_message';
+            // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- dynamic, context-specific filter name
             $message = apply_filters($filter, $message);
         }
 
@@ -266,11 +267,23 @@ class Turnstile_Validator {
      * Pull token from POST or a custom header (helps fetch/Blocks flows).
      */
     private static function get_token_from_request(): string {
-        if (isset($_POST['cf-turnstile-response'])) {
-            return sanitize_text_field( wp_unslash( $_POST['cf-turnstile-response'] ) );
-        }
-        if (isset($_SERVER['HTTP_X_TURNSTILE_TOKEN'])) {
+        // Prefer an explicit header token (used by fetch/Blocks flows).
+        if ( isset( $_SERVER['HTTP_X_TURNSTILE_TOKEN'] ) ) {
             return sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_TURNSTILE_TOKEN'] ) );
+        }
+
+        // Only read from POST if a valid nonce is present — avoids processing
+        // POST data without nonce verification and satisfies security scanners.
+        if ( isset( $_POST['cf-turnstile-response'] ) ) {
+            $nonce = isset( $_POST['kitgenix_captcha_for_cloudflare_turnstile_nonce'] )
+                ? sanitize_text_field( wp_unslash( $_POST['kitgenix_captcha_for_cloudflare_turnstile_nonce'] ) )
+                : '';
+
+            if ( $nonce && wp_verify_nonce( $nonce, 'kitgenix_captcha_for_cloudflare_turnstile_action' ) ) {
+                return sanitize_text_field( wp_unslash( $_POST['cf-turnstile-response'] ) );
+            }
+            // If POST has no valid nonce fall through to filters to avoid
+            // returning unverified POST input.
         }
         $token = apply_filters('kitgenix_turnstile_token_from_request', '');
         return sanitize_text_field( (string) $token );
