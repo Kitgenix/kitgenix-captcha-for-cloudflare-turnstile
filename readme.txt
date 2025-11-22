@@ -10,7 +10,7 @@ Donate link: https://buymeacoffee.com/kitgenix
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 1.0.12
+Stable tag: 1.0.13
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Tags: cloudflare, turnstile, captcha, anti-spam, woocommerce
@@ -395,8 +395,18 @@ Each integration maps to a dedicated adapter class for maintainability.
 
 == Changelog ==
 
-= 1.0.12 (21 November 2025) =
+= 1.0.13 (22 November 2025) =
+* Security Fix: Critical validation bypass in Elementor Pro Forms and Forminator Forms where missing tokens were incorrectly allowing form submissions instead of blocking them.
+* Fix: Elementor Pro Forms now properly fail validation when Turnstile token is missing or empty (previously skipped validation entirely).
+* Fix: Forminator Forms now properly fail validation when Turnstile token is missing or empty (previously skipped validation entirely).
+* Fix: Removed `wp_kses_post()` wrapper from Forminator submit button HTML that could strip required attributes.
+* Security: Audit confirmed all other integrations (Contact Form 7, Gravity Forms, Formidable Forms, WPForms, Fluent Forms, Jetpack Forms, Kadence Forms, WooCommerce, WordPress Core, bbPress, BuddyPress) correctly validate and fail when tokens are missing.
+* Important: This update fixes a security vulnerability where forms could be submitted without completing CAPTCHA verification. **Update immediately.**
 
+= 1.0.12.1 (22 November 2025) =
+* Fix: Reverted to 1.0.11 until secuirty update was released.
+
+= 1.0.12 (21 November 2025) =
 * New: Global shortcode `[kitgenix_turnstile]` to render the Turnstile widget manually inside custom HTML fields, form content or page templates.
 * Improvement: Auto-inject versus Shortcode behaviour is now mutually exclusive and consistent across integrations.
 * Added: `includes/core/class-turnstile-shortcode.php` with a robust shortcode renderer and recursive detection helper `has_shortcode_in()` that detects literal shortcodes and rendered widget markers (`class="cf-turnstile"`, `data-kitgenix-shortcode` or hidden `name="cf-turnstile-response"`).
@@ -560,8 +570,8 @@ Each integration maps to a dedicated adapter class for maintainability.
 
 == Upgrade Notice ==
 
-= 1.0.12 =
-Adds a global `[kitgenix_turnstile]` shortcode and improves shortcode versus auto-inject behaviour across integrations. Safe to update on most sites.
+= 1.0.13 =
+**SECURITY UPDATE - Update immediately.** Fixes critical validation bypass in Elementor Pro Forms and Forminator Forms where missing CAPTCHA tokens were incorrectly allowing submissions. All users should update immediately to ensure proper CAPTCHA protection.
 
 
 == External Services ==

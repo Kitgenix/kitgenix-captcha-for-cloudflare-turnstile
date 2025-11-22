@@ -129,7 +129,8 @@ class Turnstile_Validator {
             }
         }
 
-        // Token
+        // Token - get directly from POST since nonce was already verified above
+        // FIXED: Use direct POST access after nonce verification to avoid double-check issues
         $response = self::get_token_from_request();
         if ( $response === '' ) {
             self::$last_error_codes[] = 'token_missing';
@@ -272,19 +273,12 @@ class Turnstile_Validator {
             return sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_TURNSTILE_TOKEN'] ) );
         }
 
-        // Only read from POST if a valid nonce is present — avoids processing
-        // POST data without nonce verification and satisfies security scanners.
+        // Read from POST - nonce verification happens in is_valid_submission() caller
+        // FIXED: Removed duplicate nonce check that was causing forms to fail silently
         if ( isset( $_POST['cf-turnstile-response'] ) ) {
-            $nonce = isset( $_POST['kitgenix_captcha_for_cloudflare_turnstile_nonce'] )
-                ? sanitize_text_field( wp_unslash( $_POST['kitgenix_captcha_for_cloudflare_turnstile_nonce'] ) )
-                : '';
-
-            if ( $nonce && wp_verify_nonce( $nonce, 'kitgenix_captcha_for_cloudflare_turnstile_action' ) ) {
-                return sanitize_text_field( wp_unslash( $_POST['cf-turnstile-response'] ) );
-            }
-            // If POST has no valid nonce fall through to filters to avoid
-            // returning unverified POST input.
+            return sanitize_text_field( wp_unslash( $_POST['cf-turnstile-response'] ) );
         }
+        
         $token = apply_filters('kitgenix_turnstile_token_from_request', '');
         return sanitize_text_field( (string) $token );
     }

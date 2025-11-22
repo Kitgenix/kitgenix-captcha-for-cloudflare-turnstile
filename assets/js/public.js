@@ -521,10 +521,14 @@
      */
     renderForminatorWidgets: function () {
       if (typeof turnstile === 'undefined') return;
-      $('.forminator-custom-form .cf-turnstile').each((_, el) => {
+      $('.forminator-custom-form .cf-turnstile, .forminator-ui .cf-turnstile, form[id*="forminator_form"] .cf-turnstile').each((_, el) => {
         if (el.dataset.rendered || el.dataset.kgxRendering === '1') return;
         $(el).find('.kitgenix-captcha-for-cloudflare-turnstile-spinner').remove();
         el.dataset.kgxRendering = '1';
+        
+        // FIXED: Ensure hidden input exists before rendering
+        this.ensureHiddenInput(el);
+        
         const params = {
           sitekey: el.getAttribute('data-sitekey'),
           theme: el.getAttribute('data-theme') || this.config.theme || 'auto',
@@ -535,21 +539,40 @@
             this.setResponseInput(el, token);
             this.enableSubmit(el);
             this._scheduleTokenAgeReset(el);
-            // Keep collapsed; watcher handles visibility
           },
           'expired-callback': () => { this.resetWidget(el, 'expired'); },
-          'error-callback': () => { this.resetWidget(el, 'error'); if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kitgenix-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } }
+          'error-callback': () => { this.resetWidget(el, 'error'); if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kitgenix-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } },
+          'unsupported-callback': () => { if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kitgenix-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } },
+          'timeout-callback': () => { if (el.getAttribute('data-appearance') === 'interaction-only') { el.classList.remove('kitgenix-ts-collapsed'); if (this.config.disable_submit) this.disableSubmit(el); } }
         };
-  if (params.appearance === 'interaction-only') { el.classList.add('kitgenix-ts-collapsed'); }
+        
+        if (params.appearance === 'interaction-only') { el.classList.add('kitgenix-ts-collapsed'); }
+        
+        const renderWhenVisible = () => {
+          const style = window.getComputedStyle(el);
+          const visible = style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
+          if (!visible) { setTimeout(renderWhenVisible, 120); return; }
+          
           try { el.innerHTML = ''; } catch (e) {}
-          turnstile.render(el, params);
-        el.dataset.rendered = 'true';
-  if (this.config.disable_submit && (params.appearance !== 'interaction-only')) this.disableSubmit(el);
-        this._scheduleIdleReset(el);
+          try {
+            turnstile.render(el, params);
+          } catch (err) {
+            if (window.console && window.console.error) {
+              console.error('[KitgenixTurnstile] Forminator render error', err);
+            }
+          }
+          el.dataset.rendered = 'true';
+          try { el.setAttribute('data-rendered', 'true'); } catch (e) {}
+          
+          if (this.config.disable_submit && (params.appearance !== 'interaction-only')) this.disableSubmit(el);
+          this._scheduleIdleReset(el);
           delete el.dataset.kgxRendering;
+          
           if (params.appearance === 'interaction-only') {
             KitgenixCaptchaForCloudflareTurnstile._scheduleRevealIfNoToken(el);
           }
+        };
+        renderWhenVisible();
       });
     },
 
@@ -690,13 +713,58 @@
      * GUIDE: Elementor-specific integrations (attach token to AJAX body, reset on errors, support dynamic popups).
      */
     elementorIntegration: function () {
+      // FIXED: Listen on document level with proper event delegation for Elementor forms
+      $(document).on('submit_success', '.elementor-form', function(e) {
+        // Form submitted successfully, reset for next submission
+        const $form = $(this);
+        setTimeout(function() {
+          $form.find('.cf-turnstile').each(function () {
+            try {
+              if (typeof turnstile !== 'undefined' && this.dataset.rendered) {
+                turnstile.reset(this);
+              }
+            } catch (err) {}
+          });
+        }, 100);
+      });
+
       $(document).on('elementor-pro/forms/ajax:beforeSend', (e, jqXHR, data) => {
-        const $form = $(e.target).closest('form');
+        // e.target might be the form or an element within it
+        let $form = $(e.target);
+        if (!$form.hasClass('elementor-form')) {
+          $form = $form.closest('.elementor-form');
+        }
+        if (!$form.length) {
+          $form = $(e.target).closest('form');
+        }
+        
         const token = $form.find('input[name="cf-turnstile-response"]').val() || '';
+        const nonce = $form.find('input[name="kitgenix_captcha_for_cloudflare_turnstile_nonce"]').val() || '';
+        
+        // FIXED: Attach both token and nonce to Elementor AJAX data
+        // Elementor might use different data structures, handle both
+        if (!data.data) {
+          data.data = {};
+        }
         if (token) {
           data.data['cf-turnstile-response'] = token;
-        } else {
-          // No token yet. If Interaction Only, surface the UI now and cancel this submit.
+        }
+        if (nonce) {
+          data.data['kitgenix_captcha_for_cloudflare_turnstile_nonce'] = nonce;
+        }
+        
+        // Also add to form_data if that's what Elementor uses
+        if (data.form_data) {
+          if (token) {
+            data.form_data += '&cf-turnstile-response=' + encodeURIComponent(token);
+          }
+          if (nonce) {
+            data.form_data += '&kitgenix_captcha_for_cloudflare_turnstile_nonce=' + encodeURIComponent(nonce);
+          }
+        }
+        
+        // If no token yet and interaction-only mode, surface UI
+        if (!token) {
           const $inter = $form.find('.cf-turnstile[data-appearance="interaction-only"]');
           if ($inter.length) {
             const el = $inter.get(0);
@@ -781,7 +849,7 @@
           // Rely on Cloudflare's own UI; do not show our inline prompt here.
           try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (err) {}
           e.preventDefault();
-          e.stopImmediatePropagation();
+          // FIXED: Removed stopImmediatePropagation() to allow other form handlers to run
           return false;
         } catch (err) { /* ignore guard errors */ }
       });
@@ -975,6 +1043,11 @@
     KitgenixCaptchaForCloudflareTurnstile.renderForminatorWidgets();
     KitgenixCaptchaForCloudflareTurnstile.renderJetpackFormsWidgets();
     if (KitgenixCaptchaForCloudflareTurnstile.renderKadenceFormsWidgets) KitgenixCaptchaForCloudflareTurnstile.renderKadenceFormsWidgets();
+    
+    // FIXED: Ensure Forminator widgets render after a short delay for AJAX-loaded forms
+    setTimeout(() => {
+      try { KitgenixCaptchaForCloudflareTurnstile.renderForminatorWidgets(); } catch (e) { if (window.console) console.error(e); }
+    }, 500);
 
     // GUIDE: WordPress core forms (login/register/lostpassword/comment) — if a widget exists, ensure render pass
     ['login', 'register', 'lostpassword', 'comment'].forEach(function (context) {
@@ -1010,8 +1083,12 @@
   });
 
   // Render when external scripts announce new containers
+  // FIXED: Listen for both event name variants
   try {
     document.addEventListener('kgx:turnstile-containers-added', function () {
+      try { KitgenixCaptchaForCloudflareTurnstile.init(); } catch (e) { if (window.console) console.error(e); }
+    });
+    document.addEventListener('kitgenixcaptchaforcloudflareturnstile:turnstile-containers-added', function () {
       try { KitgenixCaptchaForCloudflareTurnstile.init(); } catch (e) { if (window.console) console.error(e); }
     });
   } catch (e) {}

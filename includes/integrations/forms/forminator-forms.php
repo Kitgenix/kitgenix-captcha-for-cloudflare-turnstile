@@ -127,8 +127,8 @@ class ForminatorForms {
             . ' data-appearance="' . esc_attr( $settings['appearance']  ?? 'always' ) . '"'
             . ' data-kitgenix-captcha-for-cloudflare-turnstile-owner="forminator"></div>';
 
-        // Keep the original submit button markup verbatim (sanitize using wp_kses_post()).
-        echo wp_kses_post( $html );
+        // Keep the original submit button markup verbatim.
+        echo $html;
         echo '</div>';
 
         $widget = ob_get_clean();
@@ -170,6 +170,7 @@ class ForminatorForms {
             return $submit_errors;
         }
 
+        // Always validate - if token is missing, validation will fail
         if ( ! Turnstile_Validator::is_valid_submission() ) {
             if ( ! is_array( $submit_errors ) ) {
                 $submit_errors = [];

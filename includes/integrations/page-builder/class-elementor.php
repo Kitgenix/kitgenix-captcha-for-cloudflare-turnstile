@@ -71,13 +71,16 @@ class Elementor {
             return;
         }
 
+        // FIXED: Wrap in field group so Elementor includes hidden fields
+        echo '<div class="elementor-field-group elementor-column elementor-col-100">';
+        
         // CSRF nonce (Elementor Pro posts all fields via AJAX)
         if ( function_exists( 'wp_nonce_field' ) ) {
             wp_nonce_field( 'kitgenix_captcha_for_cloudflare_turnstile_action', 'kitgenix_captcha_for_cloudflare_turnstile_nonce' );
         }
 
-        // Hidden input for token (filled by the global renderer’s callback)
-        echo '<input type="hidden" name="cf-turnstile-response" value="" />';
+        // Hidden input for token (add elementor-field class for serialization)
+        echo '<input type="hidden" name="cf-turnstile-response" value="" class="elementor-field" />';
 
         // Placeholder Turnstile container (NO rendering done here)
         echo '<div class="cf-turnstile"'
@@ -87,6 +90,8 @@ class Elementor {
            . ' data-appearance="'. esc_attr( $settings['appearance']  ?? 'always' ) . '"'
            . ' data-kgx-owner="elementor"'
            . '></div>';
+        
+        echo '</div>';
     }
 
     /**
@@ -164,26 +169,35 @@ class Elementor {
             return;
         }
 
-        // Prefer the Elementor $record payload (safe, structured data) instead
-        // of reading raw $_POST. This removes the need for a plugin nonce
-        // check here because Elementor handles its own security for form AJAX.
+        // FIXED: Try multiple methods to get the token - POST first (most reliable), then Elementor record, then header
         $token = '';
-        if ( is_object( $record ) ) {
+        $nonce = '';
+        
+        // Method 1: Try $_POST first (most direct and reliable for Elementor AJAX)
+        if ( isset( $_POST['cf-turnstile-response'] ) ) {
+            $token = sanitize_text_field( wp_unslash( $_POST['cf-turnstile-response'] ) );
+        }
+        if ( isset( $_POST['kitgenix_captcha_for_cloudflare_turnstile_nonce'] ) ) {
+            $nonce = sanitize_text_field( wp_unslash( $_POST['kitgenix_captcha_for_cloudflare_turnstile_nonce'] ) );
+        }
+
+        // Method 2: Try to get from Elementor $record payload (backup method)
+        if ( $token === '' && is_object( $record ) ) {
             if ( method_exists( $record, 'get_formatted_data' ) ) {
                 $data = $record->get_formatted_data();
                 if ( is_array( $data ) && ! empty( $data['fields'] ) && is_array( $data['fields'] ) ) {
                     foreach ( $data['fields'] as $field ) {
-                        // fields may be arrays with keys like 'id'/'name' and 'value'
                         $name = $field['id'] ?? $field['name'] ?? '';
                         $value = $field['value'] ?? '';
                         if ( $name === 'cf-turnstile-response' ) {
                             $token = sanitize_text_field( (string) $value );
-                            break;
+                        }
+                        if ( $name === 'kitgenix_captcha_for_cloudflare_turnstile_nonce' ) {
+                            $nonce = sanitize_text_field( (string) $value );
                         }
                     }
                 }
             } elseif ( method_exists( $record, 'get' ) ) {
-                // Older/newer variants expose fields via get('fields')
                 $fields = $record->get( 'fields' );
                 if ( is_array( $fields ) ) {
                     foreach ( $fields as $field ) {
@@ -191,19 +205,23 @@ class Elementor {
                         $value = $field['value'] ?? '';
                         if ( $name === 'cf-turnstile-response' ) {
                             $token = sanitize_text_field( (string) $value );
-                            break;
+                        }
+                        if ( $name === 'kitgenix_captcha_for_cloudflare_turnstile_nonce' ) {
+                            $nonce = sanitize_text_field( (string) $value );
                         }
                     }
                 }
             }
         }
 
-        // Fallback: header token (fetch/Blocks flows)
+        // Method 3: Fallback to header token (fetch/Blocks flows)
         if ( $token === '' && isset( $_SERVER['HTTP_X_TURNSTILE_TOKEN'] ) ) {
             $token = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_TURNSTILE_TOKEN'] ) );
         }
 
-        $ok = ( $token !== '' ) && Turnstile_Validator::validate_token( $token );
+        // Validate the token (will fail if empty)
+        // For Elementor, we don't require nonce check as Elementor handles its own security
+        $ok = Turnstile_Validator::validate_token( $token );
 
         if ( ! $ok ) {
             $ajax_handler->add_error_message( Turnstile_Validator::get_error_message( 'elementor' ) );
