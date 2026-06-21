@@ -1,0 +1,2061 @@
+# Copyright (C) 2026 Kitgenix
+# This file is distributed under the GPLv3 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Kitgenix CAPTCHA for Cloudflare Turnstile 1.1.3\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/kitgenix-captcha-for-cloudflare-turnstile\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-05-26T19:44:46+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: kitgenix-captcha-for-cloudflare-turnstile\n"
+
+#. Plugin Name of the plugin
+#: kitgenix-captcha-for-cloudflare-turnstile.php
+#: includes/admin/class-settings-ui.php:291
+#: includes/admin/class-settings-ui.php:571
+msgid "Kitgenix CAPTCHA for Cloudflare Turnstile"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: kitgenix-captcha-for-cloudflare-turnstile.php
+msgid "https://wordpress.org/plugins/kitgenix-captcha-for-cloudflare-turnstile/"
+msgstr ""
+
+#. Description of the plugin
+#: kitgenix-captcha-for-cloudflare-turnstile.php
+msgid "Add Cloudflare Turnstile CAPTCHA to WordPress, WooCommerce, Elementor, and popular form plugins with privacy-first server-side verification."
+msgstr ""
+
+#. Author of the plugin
+#: kitgenix-captcha-for-cloudflare-turnstile.php
+#: includes/admin/class-settings-ui.php:570
+#: kitgenix-captcha-for-cloudflare-turnstile.php:75
+#: kitgenix-captcha-for-cloudflare-turnstile.php:76
+#: kitgenix-captcha-for-cloudflare-turnstile.php:437
+msgid "Kitgenix"
+msgstr ""
+
+#. Author URI of the plugin
+#: kitgenix-captcha-for-cloudflare-turnstile.php
+msgid "https://kitgenix.com/"
+msgstr ""
+
+#: includes/admin/class-admin-options.php:31
+msgid "Kitgenix CAPTCHA for Cloudflare Turnstile Settings"
+msgstr ""
+
+#: includes/admin/class-settings-transfer.php:25
+msgid "You do not have permission to export settings."
+msgstr ""
+
+#: includes/admin/class-settings-transfer.php:66
+msgid "You do not have permission to import settings."
+msgstr ""
+
+#: includes/admin/class-settings-transfer.php:167
+msgid "Settings imported successfully using merge mode."
+msgstr ""
+
+#: includes/admin/class-settings-transfer.php:168
+msgid "Settings imported successfully using replace mode."
+msgstr ""
+
+#: includes/admin/class-settings-transfer.php:171
+msgid "Import completed, but no stored settings changed."
+msgstr ""
+
+#: includes/admin/class-settings-transfer.php:180
+msgid "Import failed."
+msgstr ""
+
+#: includes/admin/class-settings-transfer.php:184
+msgid "Import failed: No JSON file was uploaded."
+msgstr ""
+
+#: includes/admin/class-settings-transfer.php:187
+msgid "Import failed: The upload could not be processed."
+msgstr ""
+
+#: includes/admin/class-settings-transfer.php:190
+msgid "Import failed: The JSON file is too large."
+msgstr ""
+
+#: includes/admin/class-settings-transfer.php:193
+msgid "Import failed: The uploaded file was empty."
+msgstr ""
+
+#: includes/admin/class-settings-transfer.php:196
+msgid "Import failed: The file does not contain valid JSON settings."
+msgstr ""
+
+#: includes/admin/class-settings-transfer.php:199
+msgid "Import failed: The file is not a Kitgenix Turnstile settings export."
+msgstr ""
+
+#: includes/admin/class-settings-transfer.php:202
+msgid "Export failed: The settings payload could not be generated."
+msgstr ""
+
+#. translators: %s: wp-config.php constant name
+#: includes/admin/class-settings-ui.php:78
+#, php-format
+msgid "Managed by wp-config.php constant %s."
+msgstr ""
+
+#. translators: %s: environment variable name
+#: includes/admin/class-settings-ui.php:85
+#, php-format
+msgid "Managed by environment variable %s."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:103
+msgid "Open Support diagnostics"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:114
+msgid "Duplicate Turnstile loader detected"
+msgstr ""
+
+#. translators: %s: number of duplicate loader matches
+#: includes/admin/class-settings-ui.php:117
+#, php-format
+msgid "Turnstile API was also enqueued by %s other script in a recent frontend request. Double-loading can break widget rendering or callbacks."
+msgid_plural "Turnstile API was also enqueued by %s other scripts in a recent frontend request. Double-loading can break widget rendering or callbacks."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/admin/class-settings-ui.php:128
+msgid "Dismiss loader notice"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:195
+msgid "Developer Mode (warn-only) is enabled."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:197
+msgid "Turnstile failures will be logged but will not block form submissions."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:207
+#: includes/admin/class-settings-ui.php:238
+#: includes/core/class-setup-verification.php:127
+msgid "Forbidden"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:212
+msgid "The active secret key is managed outside WordPress and cannot be revealed here."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:221
+#: includes/admin/class-settings-ui.php:224
+#: includes/core/class-setup-verification.php:132
+msgid "Invalid nonce"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:230
+msgid "No saved secret key"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:292
+msgid "Cloudflare Turnstile"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:524
+msgid "Shortcode: "
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:526
+msgid "Copy shortcode"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:573
+msgid "Seamlessly integrate Cloudflare’s free Turnstile CAPTCHA into your WordPress forms to enhance security and reduce spam – without compromising user experience."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:581
+#: includes/admin/class-settings-ui.php:1983
+msgid "Documentation"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:582
+msgid "Review Plugin"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:583
+msgid "Support Request"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:584
+#: includes/admin/class-settings-ui.php:1550
+msgid "Support Kitgenix"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:605
+msgid "Site Keys"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:606
+msgid "Display"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:607
+msgid "Integrations"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:608
+#: includes/admin/class-settings-ui.php:838
+#: includes/admin/class-site-health.php:135
+msgid "Security"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:609
+msgid "Advanced"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:610
+msgid "Portability"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:611
+msgid "Support"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:635
+msgid "Cloudflare Turnstile Site Key & Secret Key"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:638
+msgid "You can obtain your Site Key and Secret Key by visiting:"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:644
+msgid "One or more Turnstile keys are managed outside WordPress. Database values stay in place but are ignored while these overrides are active."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:650
+msgid "Site Key"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:654
+msgid "Update the host-level value to change the active site key."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:659
+msgid "Secret Key"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:662
+msgid "Managed outside WordPress"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:662
+msgid "Saved (hidden)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:668
+msgid "Clear saved secret"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:675
+#: includes/admin/class-settings-ui.php:680
+msgid "Reveal secret key"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:676
+msgid "Hide secret key"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:677
+#: includes/admin/class-settings-ui.php:681
+msgid "Show"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:678
+msgid "Hide"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:686
+msgid "Copy secret key to clipboard"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:694
+msgid "The active secret key cannot be revealed, copied, cleared, or edited from this screen. Update the host-level value to change it."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:696
+msgid "Your Secret Key is sensitive. For safety this screen does not expose the stored secret. Enter a new secret to replace the stored value, or check \"Clear saved secret\" to remove it."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:706
+msgid "Test Cloudflare Turnstile Response"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:708
+msgid "Turnstile test widget"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:709
+msgid "Widget challenge completed. Verifying setup with Cloudflare now..."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:711
+#: includes/core/class-turnstile-validator.php:664
+msgid "Setup verification"
+msgstr ""
+
+#. translators: %s: localized date and time of the last successful or failed setup verification check.
+#: includes/admin/class-settings-ui.php:714
+#, php-format
+msgid "Last checked: %s"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:717
+msgid "This test must pass before login-sensitive flows such as WordPress auth, WooCommerce account auth, EDD account forms, and membership integrations become active on the frontend."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:719
+msgid "Enter your Site Key above to test Turnstile."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:728
+msgid "Managed Key Overrides"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:732
+msgid "You can also manage keys outside WordPress using wp-config.php constants or environment variables."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:738
+msgid "The same names are supported as environment variables, and any active override locks the matching admin field."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:746
+msgid "Display Settings"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:750
+msgid "Theme"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:753
+msgid "Auto"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:754
+msgid "Light"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:755
+msgid "Dark"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:757
+msgid "Select the visual style for the widget."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:761
+msgid "Widget Size"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:764
+msgid "Normal"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:765
+msgid "Compact"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:766
+msgid "Flexible (100% width)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:768
+msgid "Select the size used when rendering the widget."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:772
+msgid "Appearance"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:775
+msgid "Always"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:776
+msgid "Interaction Only"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:778
+msgid "Control how the widget is displayed."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:782
+msgid "Language"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:785
+msgid "Enter a language code (e.g. \"en\", \"fr\", \"zh-CN\") or use \"auto\" to detect. Common codes: en, es, fr, de, it, pt, ru, ja, ko, zh-CN, zh-TW."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:789
+msgid "Disable Submit Button"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:793
+msgid "Keep the submit button inactive until Turnstile is solved."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:798
+msgid "Custom Error Message"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:801
+msgid "Override the default inline error shown to users when verification fails."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:805
+msgid "Extra Failure Message"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:808
+msgid "Optional extra text appended to error messages (e.g., support instructions)."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:817
+msgid "Developer Mode"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:821
+msgid "Development Mode (Warn-only)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:825
+msgid "Enable warn-only mode (do not block submissions)."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:828
+msgid "Do not block submissions if Turnstile fails. Instead, log the failure and show an inline warning (admins only). Ideal for staging."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:842
+msgid "Enable Replay Protection"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:848
+msgid "Rejects reused Turnstile tokens for a short period (default 10 minutes). Prevents replays and accidental double-submits."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:859
+msgid "Whitelist Settings"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:863
+msgid "Skip for Logged-in Users"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:867
+msgid "Useful for membership sites or intranets. Applies to all integrations."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:872
+msgid "IP Address Whitelist"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:875
+msgid "One per line. Supports exact IPs, wildcards (e.g. 203.0.113.*) and CIDR (e.g. 203.0.113.0/24, 2001:db8::/32)."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:879
+msgid "User Agent Whitelist"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:882
+msgid "One per line. Supports * wildcards. Use cautiously—UAs can be spoofed."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:891
+msgid "Reverse Proxy / Cloudflare"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:895
+msgid "Trust Cloudflare/Proxy Headers"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:900
+msgid "When enabled, the plugin will trust CF-Connecting-IP / X-Forwarded-For (etc.) only if the request comes from a trusted proxy below. Otherwise, REMOTE_ADDR is used."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:906
+msgid "Trusted Proxy IPs (one per line)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:910
+msgid "Accepts IPv4/IPv6 or CIDR ranges, e.g. 203.0.113.10 or 2001:db8::/32. Only when REMOTE_ADDR matches one of these will proxy headers be used."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:920
+msgid "WordPress Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:922
+msgid "Renders Turnstile on core WordPress forms:"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:923
+msgid "Login, Register, Lost Password, Reset Password, and Comments."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:927
+msgid "Enable for WordPress Core Forms"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:931
+msgid "Adds a Turnstile widget to the forms listed below and validates on POST only."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:938
+msgid "Injection Mode — WordPress Core"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:940
+#: includes/admin/class-settings-ui.php:1090
+#: includes/admin/class-settings-ui.php:1153
+#: includes/admin/class-settings-ui.php:1162
+#: includes/admin/class-settings-ui.php:1185
+#: includes/admin/class-settings-ui.php:1206
+#: includes/admin/class-settings-ui.php:1227
+#: includes/admin/class-settings-ui.php:1248
+#: includes/admin/class-settings-ui.php:1269
+#: includes/admin/class-settings-ui.php:1290
+#: includes/admin/class-settings-ui.php:1311
+#: includes/admin/class-settings-ui.php:1332
+#: includes/admin/class-settings-ui.php:1353
+#: includes/admin/class-settings-ui.php:1375
+msgid "Auto-inject (default)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:941
+#: includes/admin/class-settings-ui.php:1091
+#: includes/admin/class-settings-ui.php:1154
+#: includes/admin/class-settings-ui.php:1163
+#: includes/admin/class-settings-ui.php:1186
+#: includes/admin/class-settings-ui.php:1207
+#: includes/admin/class-settings-ui.php:1228
+#: includes/admin/class-settings-ui.php:1249
+#: includes/admin/class-settings-ui.php:1270
+#: includes/admin/class-settings-ui.php:1291
+#: includes/admin/class-settings-ui.php:1312
+#: includes/admin/class-settings-ui.php:1333
+#: includes/admin/class-settings-ui.php:1354
+#: includes/admin/class-settings-ui.php:1376
+msgid "Shortcode only"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:943
+msgid "When set to “Shortcode only”, automatic injection is disabled for WordPress core forms. Use the [kitgenix_turnstile] shortcode in any custom templates/forms that support shortcodes."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:949
+#: includes/admin/class-settings-ui.php:1029
+#: includes/admin/class-settings-ui.php:1074
+#: includes/admin/class-settings-ui.php:1137
+msgid "Login Form"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:950
+msgid "wp-login.php and wp_login_form()-powered custom login screens – below the password field."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:953
+#: includes/admin/class-settings-ui.php:1078
+#: includes/admin/class-settings-ui.php:1141
+msgid "Registration Form"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:954
+msgid "wp-login.php?action=register – above the submit button."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:957
+#: includes/admin/class-settings-ui.php:1145
+msgid "Password Reset Form"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:958
+msgid "Lost/Reset password screens – beneath email/new password fields."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:961
+msgid "Comments Form"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:962
+msgid "Below standard WordPress comment fields (for guests and logged-in users). WooCommerce product reviews have a separate setting below."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:974
+msgid "BuddyPress Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:976
+msgid "Adds Turnstile to BuddyPress registration and validates submissions server-side."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:979
+msgid "Enable for BuddyPress"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:997
+msgid "bbPress Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:999
+msgid "Adds Turnstile to bbPress topic and reply forms and validates submissions server-side."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1002
+msgid "Enable for bbPress"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1018
+msgid "Kitgenix Plugin Score Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1020
+msgid "Protects the Plugin Score Login, Register, and Forgot Password forms with Cloudflare Turnstile. Widgets are injected automatically — no changes to Plugin Score files are required."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1023
+msgid "Enable for Plugin Score"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1030
+msgid "Plugin Score custom login page (/login/)."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1033
+msgid "Register Form"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1034
+msgid "Plugin Score custom register page (/register/)."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1037
+msgid "Forgot Password Form"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1038
+msgid "Plugin Score custom forgot-password page (/forgot-password/)."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1051
+msgid "Easy Digital Downloads Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1054
+msgid "Protects Easy Digital Downloads checkout and account-related forms (Login, Registration, Profile Editor) with Cloudflare Turnstile."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1058
+msgid "Enable for Easy Digital Downloads"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1063
+msgid "Checkout & Account Forms"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1064
+msgid "EDD Purchase form (checkout), Login / Register areas, and Profile Editor."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1067
+msgid "Checkout Form"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1070
+msgid "Purchase form (Complete Purchase button) on EDD checkout."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1075
+msgid "EDD login form (including the checkout login area)."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1079
+msgid "EDD registration form (standalone and at checkout)."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1082
+msgid "Profile / Account Form"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1083
+msgid "EDD Profile Editor (account details form)."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1088
+msgid "Injection Mode — Easy Digital Downloads"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1093
+msgid "When set to \"Shortcode only\", automatic widget injection is skipped on EDD forms. Use the [kitgenix_turnstile] shortcode where your form allows custom HTML or shortcodes."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1106
+msgid "WooCommerce Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1109
+msgid "Manage protection for WooCommerce checkout, product reviews, and account flows. Use separate controls for Classic vs Blocks checkout."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1113
+msgid "Enable for WooCommerce Forms"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1118
+msgid "WooCommerce Classic"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1119
+msgid "Classic Checkout, product review forms, and My Account screens (Login, Registration, Lost/Reset Password)."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1122
+msgid "Checkout Form (Classic)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1126
+msgid "Classic checkout only: places the widget before the “Place order” button. This toggle does not control Blocks checkout."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1128
+msgid "For Blocks checkout, use the “Blocks Checkout” injection options below."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1133
+msgid "Product Reviews"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1134
+msgid "Single product review form, including themes or extensions that submit through the standard WooCommerce review/comment flow."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1138
+msgid "My Account → Login."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1142
+msgid "My Account → Register."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1146
+msgid "My Account → Lost/Reset password."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1151
+msgid "Injection Mode — Classic"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1157
+msgid "WooCommerce Blocks (Store API)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1158
+msgid "Blocks Checkout is supported via a JS bridge that attaches the token to Store API requests, with validation via REST pre-dispatch."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1160
+msgid "Injection Mode — Blocks Checkout"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1165
+msgid "Unchecking “Checkout Form (Classic)” does not affect Blocks Checkout. Switch Blocks to “Shortcode only” to disable auto-injection."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1174
+msgid "Elementor Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1176
+msgid "Elementor Pro Forms: container renders after fields; server-side validation via Elementor hooks. Elementor (free): auto-injection above the submit button."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1179
+msgid "Enable for Elementor Forms"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1188
+msgid "Use the shortcode in custom HTML to manually place the widget when Shortcode only is selected."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1196
+msgid "WPForms Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1198
+msgid "Widget renders near the submit area; server-side validation uses WPForms process hook (works with AJAX)."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1201
+msgid "Enable for WPForms"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1209
+msgid "Place the shortcode in a custom HTML field or form content. When Shortcode only is selected, the plugin will not auto-inject for this integration."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1217
+msgid "Fluent Forms Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1219
+msgid "Widget is inserted before the submit button; AJAX-friendly validation via Fluent’s submit filter."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1222
+msgid "Enable for Fluent Forms"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1230
+msgid "Add the shortcode to a custom HTML field or HTML block in your form. When Shortcode only is selected, the plugin will not auto-inject for this integration."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1238
+msgid "Gravity Forms Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1240
+msgid "Widget renders immediately before the submit button; server-side validation sets the top-level error container."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1243
+msgid "Enable for Gravity Forms"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1251
+msgid "Place the shortcode inside an HTML block or custom HTML field in Gravity Forms when supported. When Shortcode only is selected, the plugin will not auto-inject for this integration."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1259
+msgid "Formidable Forms Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1261
+msgid "Widget renders before the submit button; validation runs during entry validation."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1264
+msgid "Enable for Formidable Forms"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1272
+msgid "Insert the shortcode into a HTML field or custom content area in Formidable Forms. When Shortcode only is selected, the plugin will not auto-inject for this integration."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1280
+msgid "Contact Form 7 Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1282
+msgid "Widget is injected before the first submit control; validation uses the CF7 validation filter (AJAX and non-AJAX)."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1285
+msgid "Enable for Contact Form 7"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1293
+msgid "While CF7 auto-inject remains the default, you can place the shortcode in a HTML field or form content to control widget placement. When Shortcode only is selected, the plugin will not auto-inject for this integration."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1301
+msgid "Forminator Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1303
+msgid "Widget is added alongside the submit markup; validation uses Forminator’s submit errors filter (AJAX-safe)."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1306
+msgid "Enable for Forminator Forms"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1314
+msgid "Paste the shortcode into a custom HTML block or field in Forminator; when present the plugin will not auto-inject a second widget. When Shortcode only is selected, auto-inject is disabled for this integration."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1322
+msgid "Jetpack Forms Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1324
+msgid "Widget is injected into Jetpack contact forms; validation occurs via the spam check hook and blocks submission with a surfaced error."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1327
+msgid "Enable for Jetpack Forms"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1335
+msgid "Add the shortcode to a custom HTML area if Jetpack supports it. When Shortcode only is selected, the plugin will not auto-inject for this integration."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1343
+msgid "Kadence Forms Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1345
+msgid "Widget is prepended before the submit button in Kadence Blocks Form; validation returns a form-level error without killing AJAX."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1348
+msgid "Enable for Kadence Forms (Kadence Blocks)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1356
+msgid "Use the shortcode inside a custom HTML field or block in Kadence Forms. When Shortcode only is selected, the plugin will not auto-inject for this integration."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1364
+msgid "JetFormBuilder Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1366
+msgid "Widget renders near the submit button; server-side validation runs during JetFormBuilder submit handling (AJAX compatible)."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1367
+msgid "Note: JetFormBuilder can also enable its own CAPTCHA/Turnstile. If you enable both, you may see a “Turnstile is being loaded more than once” notice after saving. That notice is just a compatibility warning (two different components are enqueueing Cloudflare’s api.js). It’s safe to dismiss, but for best reliability you should use one Turnstile provider per form and disable the other loader to avoid occasional rendering/callback issues."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1370
+msgid "Enable for JetFormBuilder"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1378
+msgid "Place the shortcode in a custom HTML field or block in your form. When Shortcode only is selected, the plugin will not auto-inject for this integration."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1386
+msgid "MailPoet Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1388
+msgid "Injects Turnstile above the MailPoet submit button and validates newsletter subscriptions server-side before the subscriber is created."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1391
+msgid "Enable for MailPoet Forms"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1402
+msgid "Ultimate Member Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1404
+msgid "Adds Turnstile to Ultimate Member login, registration, and password reset flows using Ultimate Member’s own validation hooks."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1407
+msgid "Enable for Ultimate Member"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1418
+msgid "MemberPress Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1420
+msgid "Protects MemberPress signup and checkout forms by rendering Turnstile before submission and validating the signup request server-side."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1421
+msgid "If you also use MemberPress login forms that rely on WordPress authentication, keep the WordPress Login integration enabled as well."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1424
+msgid "Enable for MemberPress"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1435
+msgid "Paid Memberships Pro Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1437
+msgid "Adds Turnstile to Paid Memberships Pro checkout and registration screens and blocks checkout when verification fails."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1440
+msgid "Enable for Paid Memberships Pro"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1451
+msgid "wpDiscuz Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1453
+msgid "Protects wpDiscuz comment and reply forms with Turnstile using wpDiscuz-specific hooks, without relying on the standard WordPress comment form placement."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1456
+msgid "Enable for wpDiscuz"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1472
+msgid "Copy plugin link:"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1474
+msgid "Kitgenix Supporter (£4/month)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1475
+msgid "Kitgenix Plus (£8/month)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1476
+msgid "Kitgenix Pro Supporter (£19/month)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1477
+msgid "Kitgenix Agency (£37/month)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1478
+msgid "Kitgenix Partner (£75/month)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1479
+msgid "Kitgenix YouTube Sponsor (£730/month)"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1503
+msgid "Turnstile checks"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1505
+msgid "Verification attempts already processed on your site."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1508
+msgid "Verified users"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1510
+msgid "Legitimate visitors who cleared protection successfully."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1513
+msgid "Blocked attempts"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1515
+msgid "Suspicious or failed submissions stopped before they landed."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1518
+msgid "Retry events"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1520
+msgid "Recoverable challenge failures that forced the visitor to try again."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1523
+msgid "Challenge friction"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1525
+msgid "Retry events as a share of total checks, useful for spotting conversion drag."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1529
+msgid "Your site is already using Turnstile to protect real forms and submissions."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1530
+msgid "Successful verifications show legitimate users are still flowing through without extra friction."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1531
+msgid "Blocked checks show the plugin is actively filtering suspicious or failed attempts."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1532
+msgid "Per-integration retry and friction data helps isolate the exact forms that may be harming conversions."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1535
+msgid "Compatibility updates for new WordPress / WooCommerce releases"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1536
+msgid "Bug fixes, edge-case testing, and better integration coverage"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1537
+msgid "Security hardening and ongoing performance improvements"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1538
+msgid "Documentation upgrades and faster, clearer support responses"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1541
+msgid "No paid features locked behind donations"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1542
+msgid "No tracking or invasive upsells"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1543
+msgid "Support is always optional, and genuinely appreciated."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1549
+msgid "Help keep Kitgenix independent"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1551
+msgid "We try to keep Kitgenix plugins lightweight, privacy-friendly, and free for everyone. If CAPTCHA for Cloudflare Turnstile saves you admin time or helps prevent spam, please consider supporting Kitgenix. Your support directly funds ongoing development, testing, and maintenance so we can keep features open and updates frequent."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1554
+msgid "Support this plugin"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1556
+msgid "Buy Me a Coffee"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1557
+msgid "Become a member"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1559
+msgid "Via Buy Me a Coffee. Cancel anytime."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1565
+msgid "Active protection alerts"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1566
+msgid "Automatic alerts flag sudden verification failures, blocked siteverify calls, and duplicate Turnstile loaders before they turn into silent form outages."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1569
+msgid "No active Turnstile alert thresholds are currently breached. Recent verification activity looks healthy based on the stored diagnostic window."
+msgstr ""
+
+#. translators: %s: local date and time when the alert was detected.
+#: includes/admin/class-settings-ui.php:1577
+#, php-format
+msgid "Detected: %s"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1596
+msgid "Your site impact"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1597
+msgid "These stats show how CAPTCHA for Cloudflare Turnstile is currently working on your site:"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1612
+msgid "Per-integration analytics"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1613
+msgid "Compare passes, failures, retry-driven friction, and the latest outcome for each protected flow so you can spot broken rollouts quickly."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1616
+msgid "Export analytics CSV"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1617
+msgid "Retries count recoverable Turnstile failures such as expired, missing, duplicate, or replayed challenges. Friction is retries divided by total checks."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1620
+msgid "No integration analytics recorded yet. Submit a protected form to start building comparison data."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1626
+msgid "Integration"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1627
+msgid "Checks"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1628
+msgid "Passes"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1629
+msgid "Failures"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1630
+msgid "Retries"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1631
+msgid "Friction"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1632
+msgid "Latest outcome"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1654
+msgid "Success"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1654
+msgid "Failure"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1672
+msgid "Recent diagnostic log"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1673
+msgid "A privacy-safe record of recent Turnstile checks. Each line shows: timestamp | integration | outcome | category | error codes | plain-English note. IP addresses, request URIs, and submitted values are never stored."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1679
+msgid "Category"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1680
+msgid "What it means"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1681
+msgid "Action needed?"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1687
+msgid "Cloudflare verified the challenge — legitimate submission."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1688
+msgid "None."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1692
+msgid "The WP security (nonce) token was stale. Most common on cached pages or after a login/session change."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1693
+msgid "Usually a false positive — NOT necessarily a bot. If frequent, exclude My Account and login pages from your page cache."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1697
+msgid "No Turnstile token reached the server. The widget may not have finished loading before the form was submitted, or JS was blocked."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1698
+msgid "If happening for real users, check for JS errors or a slow CDN. Could also be a bot posting the form directly."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1702
+msgid "A token was submitted but Cloudflare rejected it as invalid or malformed."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1703
+msgid "Likely a bot-crafted submission. No action needed — the block is working correctly."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1707
+#: includes/core/class-turnstile-validator.php:1004
+msgid "Token expired before server verification, or was already used in a previous request."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1708
+msgid "Normal for users who leave the page open for a long time. The user can refresh and try again."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1712
+msgid "The same Turnstile token was submitted more than once."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1713
+msgid "Likely a replay attack. The block is working correctly."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1717
+msgid "Plugin secret key or site key is missing or incorrect."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1718
+msgid "Go to Settings → Cloudflare Turnstile and verify both keys match your Cloudflare dashboard."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1722
+msgid "Plugin could not reach Cloudflare's verify endpoint (timeout or DNS issue)."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1723
+msgid "Check your server's outbound connectivity to challenges.cloudflare.com. Usually transient."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1727
+msgid "Cloudflare's verification service returned a temporary error."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1728
+msgid "Usually resolves on its own. Monitor if it persists."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1733
+msgid "Copy recent log"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1734
+msgid "Export recent log CSV"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1735
+msgid "Stored recent events:"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1741
+msgid "Support options"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1742
+msgid "Buy Me a Coffee: A quick way to say thanks and help fund the next round of improvements."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1743
+msgid "A membership helps keep development consistent if CAPTCHA for Cloudflare Turnstile is part of your day-to-day anti-spam setup."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1766
+msgid "What this means"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1775
+msgid "What your support helps with"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1784
+msgid "Not in a position to donate?"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1785
+msgid "No worries - you can still massively help:"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1786
+msgid "Reviews help others discover the plugin and keep the project sustainable. Sharing the plugin with site owners who want a lighter anti-spam stack, and sending clear bug reports, both help improve coverage faster."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1788
+msgid "Leave a WordPress.org review"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1789
+msgid "Copy plugin link"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1790
+msgid "Open support / feature request"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1795
+msgid "A small note on trust & privacy"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1801
+msgid "Thank you for supporting Kitgenix."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1809
+msgid "Save Settings"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1814
+msgid "Export Settings"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1816
+msgid "Download your current database-backed plugin settings as JSON so you can reuse the same configuration on staging, client sites, or multisite rollouts."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1823
+msgid "Include Site Key and Secret Key in the export file"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1826
+msgid "Keep this unchecked unless you explicitly need to move keys too. Host-managed key overrides are not exported from the environment."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1827
+msgid "Download JSON Export"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1833
+msgid "Import Settings"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1835
+msgid "Import a JSON export from this plugin to copy the same setup to another site. Unknown keys are ignored and active host-managed key overrides still take precedence."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1841
+msgid "Settings JSON File"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1845
+msgid "Import Mode"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1848
+msgid "Replace current settings"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1849
+msgid "Merge into current settings"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1851
+msgid "Replace is best when you want a site to match a known-good template exactly. Merge keeps existing settings for anything not present in the import file."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1855
+msgid "Import JSON Settings"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1862
+msgid "Unsaved changes"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1863
+msgid "Save now"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1932
+msgid "Could not open export stream."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1978
+msgid "Help and links"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1980
+msgid "Need Help?"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1981
+msgid "Open the documentation for setup guidance or send us a support request if you need help configuring the plugin."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1984
+msgid "Request Support"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1989
+msgid "Visit Our Official Facebook Group"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1990
+msgid "Join the Kitgenix community to ask questions, share feedback, and keep up with product updates."
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1992
+msgid "Join Group"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1997
+msgid "Follow Us"
+msgstr ""
+
+#: includes/admin/class-settings-ui.php:1998
+msgid "Keep up with new releases, tutorials, and product news across our channels."
+msgstr ""
+
+#: includes/admin/class-site-health.php:17
+#: includes/admin/class-site-health.php:131
+msgid "Cloudflare Turnstile readiness"
+msgstr ""
+
+#: includes/admin/class-site-health.php:38
+msgid "Missing Site Key and/or Secret Key."
+msgstr ""
+
+#: includes/admin/class-site-health.php:51
+msgid "Duplicate Turnstile API detected (another plugin/theme also loads api.js)."
+msgstr ""
+
+#: includes/admin/class-site-health.php:66
+msgid "Turnstile alert"
+msgstr ""
+
+#. translators: 1: date/time, 2: error codes list
+#: includes/admin/class-site-health.php:91
+#, php-format
+msgid "Last Turnstile verification failed (%1$s). Error codes: %2$s"
+msgstr ""
+
+#: includes/admin/class-site-health.php:92
+msgid "unknown time"
+msgstr ""
+
+#: includes/admin/class-site-health.php:93
+msgid "none reported"
+msgstr ""
+
+#. translators: %s: date/time of last successful verification
+#: includes/admin/class-site-health.php:99
+#, php-format
+msgid "Last Turnstile verification succeeded (%s)."
+msgstr ""
+
+#: includes/admin/class-site-health.php:100
+msgid "recently"
+msgstr ""
+
+#: includes/admin/class-site-health.php:106
+msgid "No verification data yet (no recent submissions)."
+msgstr ""
+
+#: includes/admin/class-site-health.php:113
+msgid "A caching/optimization plugin is active and may be delaying or deferring the Turnstile API, which can break rendering."
+msgstr ""
+
+#: includes/admin/class-site-health.php:115
+msgid "Ensure the following URL is excluded from “Delay JS” / “Defer JS” / “Combine JS” rules:"
+msgstr ""
+
+#: includes/admin/class-site-health.php:121
+msgid "Checks your Turnstile configuration and common pitfalls."
+msgstr ""
+
+#: includes/admin/class-site-health.php:126
+msgid "Open Turnstile Settings"
+msgstr ""
+
+#: includes/core/class-script-handler.php:188
+msgid "Cloudflare Turnstile is being loaded more than once."
+msgstr ""
+
+#: includes/core/class-script-handler.php:189
+msgid "Another plugin or theme also enqueues the Turnstile API. Double-loading can break rendering or callbacks. Consider disabling the other loader and let this plugin load the API once."
+msgstr ""
+
+#: includes/core/class-script-handler.php:199
+msgid "Dismiss notice"
+msgstr ""
+
+#: includes/core/class-script-handler.php:300
+msgid "Your verification expired. Please complete the Turnstile challenge again."
+msgstr ""
+
+#: includes/core/class-setup-verification.php:51
+msgid "Add both the Site Key and Secret Key, then complete the setup verification test."
+msgstr ""
+
+#: includes/core/class-setup-verification.php:71
+msgid "Login-sensitive protections stay gated until this key pair passes a full server-side verification test."
+msgstr ""
+
+#: includes/core/class-setup-verification.php:163
+msgid "Turnstile setup verification is still required."
+msgstr ""
+
+#: includes/core/class-setup-verification.php:165
+msgid "Login-sensitive protections remain inactive until the current Site Key and Secret Key pass the end-to-end server-side verification test."
+msgstr ""
+
+#: includes/core/class-setup-verification.php:166
+msgid "Open the settings page to verify setup."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:255
+#: includes/core/class-turnstile-validator.php:264
+#: includes/core/class-turnstile-validator.php:1092
+#: includes/core/class-turnstile-validator.php:1097
+msgid "Security check failed. Please refresh and try again."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:278
+#: includes/core/class-turnstile-validator.php:344
+#: includes/core/class-turnstile-validator.php:527
+#: includes/core/class-turnstile-validator.php:1210
+#: includes/core/class-turnstile-validator.php:1221
+msgid "Please complete the Turnstile challenge."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:308
+#: includes/core/class-turnstile-validator.php:364
+#: includes/core/class-turnstile-validator.php:1212
+#: includes/core/class-turnstile-validator.php:1222
+msgid "Verification expired. Please try again."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:425
+msgid "Complete the Turnstile challenge to verify your setup."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:463
+msgid "Server-side verification succeeded. Login-sensitive protections can now load with the current key pair."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:521
+msgid "Your verification expired. Please complete the Turnstile challenge."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:663
+msgid "General"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:665
+msgid "bbPress"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:666
+msgid "BuddyPress"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:667
+msgid "Contact Form 7"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:668
+msgid "Easy Digital Downloads"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:669
+msgid "EDD account"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:670
+msgid "EDD checkout"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:671
+msgid "Elementor Forms"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:672
+msgid "Fluent Forms"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:673
+msgid "Formidable Forms"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:674
+msgid "Forminator"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:675
+msgid "Gravity Forms"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:676
+msgid "JetFormBuilder"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:677
+msgid "Jetpack Forms"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:678
+msgid "Kadence Forms"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:679
+msgid "MailPoet"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:680
+msgid "MemberPress"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:681
+msgid "MemberPress signup"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:682
+msgid "Paid Memberships Pro"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:683
+msgid "Paid Memberships Pro checkout"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:684
+msgid "Ultimate Member"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:685
+msgid "WooCommerce"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:686
+msgid "WooCommerce My Account"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:687
+msgid "WooCommerce checkout"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:688
+msgid "WooCommerce login"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:689
+msgid "WooCommerce reviews"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:690
+msgid "WordPress comments"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:691
+msgid "WordPress login"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:692
+msgid "WordPress lost password"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:693
+msgid "WordPress registration"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:694
+msgid "WordPress reset password"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:695
+msgid "WordPress core"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:696
+msgid "wpDiscuz"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:697
+msgid "WPForms"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:744
+msgid "Verification failure spike detected"
+msgstr ""
+
+#. translators: 1: failed checks count, 2: sample size, 3: failure rate percentage, 4: rolling time window, 5: integration label
+#: includes/core/class-turnstile-validator.php:747
+#, php-format
+msgid "%1$s of the last %2$s Turnstile checks failed in the last %4$s (%3$s%% failure rate). %5$s is currently the most affected flow."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:792
+msgid "Blocked verification requests detected"
+msgstr ""
+
+#. translators: 1: failed siteverify request count, 2: rolling time window, 3: integration label
+#: includes/core/class-turnstile-validator.php:795
+#, php-format
+msgid "Cloudflare siteverify requests failed %1$s times in the last %2$s. %3$s is the most affected flow, which usually means outbound HTTPS requests are being blocked, filtered, or timing out."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:947
+msgid "Challenge verified by Cloudflare — legitimate submission."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:956
+msgid "Plugin secret key is not configured. Go to Settings → Cloudflare Turnstile to fix."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:960
+msgid "Secret key is invalid. Check it in Settings → Cloudflare Turnstile."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:964
+msgid "Site key and secret key belong to different Turnstile widgets. Verify both in your Cloudflare dashboard."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:970
+msgid "Plugin could not reach Cloudflare to verify the token (timeout or connectivity issue). No user action blocked by this alone."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:974
+msgid "Temporary error from Cloudflare's verification service. Should resolve on its own."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:978
+msgid "Cloudflare rejected the verification request as malformed. May indicate a plugin conflict or proxy stripping POST fields."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:984
+msgid "Stale WP security token. Most common on cached pages or after a session/login change. Usually a false positive — NOT necessarily a bot or attack."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:990
+msgid "No Turnstile token was in the form. Widget may not have loaded before submit (slow JS), JS may be blocked, or the form was posted directly (bot)."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:994
+msgid "Cloudflare received no response token. Widget may not have rendered before submit, or JS was disabled/blocked."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:1000
+msgid "Token present but rejected as invalid or malformed by Cloudflare. Likely a bot-crafted or tampered submission."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:1008
+msgid "Identical Turnstile token submitted more than once. Potential replay attack blocked."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:1020
+msgid "Blocked — reason not mapped to a known category."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:1027
+msgid "No recent Turnstile diagnostic events recorded yet."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:1045
+msgid "none"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:1054
+msgid "Unknown time"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:1122
+msgid "Secret key missing."
+msgstr ""
+
+#. translators: %s: HTTP error detail returned when contacting Cloudflare's Turnstile verify endpoint
+#: includes/core/class-turnstile-validator.php:1158
+#, php-format
+msgid "Verification request failed: %s"
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:1205
+msgid "Configuration error: secret key missing."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:1206
+msgid "Configuration error: invalid secret key."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:1207
+msgid "Configuration error: site key and secret mismatch."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:1211
+msgid "Verification failed. Please try again."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:1215
+msgid "Verification request invalid. Please try again."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:1216
+msgid "Verification temporarily unavailable. Please try again."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:1219
+msgid "Verification request failed. Please try again."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:1220
+msgid "Security check failed. Please try again."
+msgstr ""
+
+#: includes/core/class-turnstile-validator.php:1236
+msgid "Turnstile verification failed. Please try again."
+msgstr ""
+
+#: includes/integrations/community/class-wpdiscuz.php:29
+#: includes/integrations/ecommerce/class-easy-digital-downloads.php:80
+#: includes/integrations/ecommerce/class-woocommerce.php:111
+#: includes/integrations/forms/jetformbuilder.php:63
+#: includes/integrations/forms/wpforms.php:96
+#: includes/integrations/forums/bbpress.php:133
+#: includes/integrations/forums/buddypress.php:41
+#: includes/integrations/membership/class-memberpress.php:29
+#: includes/integrations/membership/class-paid-memberships-pro.php:31
+#: includes/integrations/membership/class-ultimate-member.php:67
+#: includes/integrations/page-builder/class-elementor.php:70
+#: includes/integrations/wordpress/class-wp-core.php:154
+msgid "Cloudflare Turnstile site key is missing. Please configure it in plugin settings."
+msgstr ""
+
+#: includes/integrations/community/class-wpdiscuz.php:59
+#: includes/integrations/wordpress/class-wp-core.php:314
+msgid "Comment submission blocked"
+msgstr ""
+
+#: includes/integrations/ecommerce/class-woocommerce.php:251
+msgid "Error:"
+msgstr ""
+
+#: includes/integrations/forums/bbpress.php:187
+msgid "Submission blocked"
+msgstr ""
+
+#: includes/integrations/wordpress/class-wp-core.php:313
+msgid "Review submission blocked"
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:346
+msgid "Sorry, you are not allowed to access this page."
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:358
+msgid "CAPTCHA for Cloudflare Turnstile"
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:362
+msgid "Add Cloudflare Turnstile CAPTCHA to WordPress, WooCommerce, Elementor, and popular form plugins."
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:366
+msgid "Custom Tabs for WooCommerce"
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:370
+msgid "Add custom WooCommerce product tabs with per-product content, global tabs, and lightweight controls."
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:374
+msgid "Document Manager"
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:378
+msgid "Manage document downloads with stable links, version history, and private file access."
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:382
+msgid "Order Tracking for WooCommerce"
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:386
+msgid "Add WooCommerce order tracking, multi-shipment support, email tracking links, and a public customer tracking page."
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:390
+msgid "PDF Invoicing for WooCommerce"
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:394
+msgid "Generate WooCommerce PDF invoices, receipts, packing slips, and credit notes with secure downloads and configurable email attachments."
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:398
+msgid "Stock Sync for WooCommerce"
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:402
+msgid "Sync WooCommerce stock between stores with secure master-child inventory updates and signed REST requests."
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:406
+msgid "MultiStore Sync"
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:410
+msgid "Sync WooCommerce products, prices, media, and metadata between multiple stores with a secure master-child architecture."
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:414
+msgid "Affiliate Link Manager"
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:418
+msgid "Manage affiliate short links, branded redirects, and click tracking from one WordPress dashboard."
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:439
+msgid "Discover and manage every Kitgenix plugin from one screen."
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:440
+msgid "Install, activate, open, and review Kitgenix plugins."
+msgstr ""
+
+#. translators: %s is the number of active installs and may include a thousands separator, e.g. "1,234". The "+" suffix is literal.
+#: kitgenix-captcha-for-cloudflare-turnstile.php:477
+#, php-format
+msgid "%s+ installs"
+msgstr ""
+
+#. translators: %s is the average rating out of 5 with one decimal place, e.g. "4.5". The star symbol (★) precedes the number.
+#: kitgenix-captcha-for-cloudflare-turnstile.php:486
+#, php-format
+msgid "★ %s/5"
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:491
+msgid "Not installed"
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:493
+msgid "Active"
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:495
+msgid "Installed (Inactive)"
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:515
+msgid "Install"
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:522
+msgid "Activate"
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:524
+msgid "You do not have permission to activate plugins."
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:529
+msgid "Open"
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:534
+msgid "Details"
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:538
+msgid "Review"
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:539
+msgid "Support Forum"
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:682
+msgid "Kitgenix Turnstile: core loader not found. Please reinstall the plugin."
+msgstr ""
+
+#. translators: 1: PHP version, 2: WordPress version
+#: kitgenix-captcha-for-cloudflare-turnstile.php:700
+#, php-format
+msgid "Kitgenix Turnstile requires PHP %1$s+ and WordPress %2$s+."
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:706
+msgid "Plugin Activation Error"
+msgstr ""
+
+#: kitgenix-captcha-for-cloudflare-turnstile.php:762
+msgid "Settings"
+msgstr ""

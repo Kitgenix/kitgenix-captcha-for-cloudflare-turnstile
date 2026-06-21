@@ -1,0 +1,604 @@
+/* ==========================================================================
+   Kitgenix CAPTCHA for Cloudflare Turnstile/kitgenix-captcha-for-cloudflare-turnstile
+   ========================================================================== */
+/* ----------------------------------------------------------------
+  Page app wrapper
+----------------------------------------------------------------- */
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app {
+  width: 100%;
+  max-width: 1240px;
+  color: var(--kitgenix-text-color);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ----------------------------------------------------------------
+  Scoped cards / section panels
+----------------------------------------------------------------- */
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-card {
+  margin: 0 0 var(--kitgenix-gap);
+  padding: var(--kitgenix-pad-y) var(--kitgenix-pad-x);
+  background: var(--kitgenix-surface);
+  border: 1px solid var(--kitgenix-border-color);
+  border-radius: var(--kitgenix-radius);
+  box-shadow: var(--kitgenix-shadow);
+  transition: box-shadow var(--kitgenix-transition), border-color var(--kitgenix-transition);
+}
+
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-card.kitgenix-support-page {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  transition: none;
+}
+
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-card:hover {
+  border-color: var(--kitgenix-border-color-strong);
+  box-shadow: var(--kitgenix-shadow-md);
+}
+
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-card.kitgenix-support-page:hover {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-card > h2 {
+  padding: 0 0 14px;
+  margin: 0 0 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--kitgenix-heading);
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--kitgenix-border-color);
+}
+
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-section-content {
+  padding: 0;
+}
+
+/* ----------------------------------------------------------------
+  Form-table layout
+----------------------------------------------------------------- */
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app .form-table {
+  border-collapse: separate;
+  border-spacing: 0 10px;
+  inline-size: 100%;
+}
+
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app .form-table th {
+  inline-size: 240px;
+  padding: 6px 12px 6px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--kitgenix-heading);
+  vertical-align: middle;
+  line-height: 1.3;
+}
+
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app .form-table td {
+  padding: 6px 0;
+  vertical-align: middle;
+}
+
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app .form-table .description {
+  display: block;
+  margin-top: 6px;
+  color: var(--kitgenix-text-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+/* Inputs */
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-section-content :is(
+  input[type="text"], input[type="url"], input[type="email"], input[type="password"],
+  textarea, select
+) {
+  font-size: 13px;
+  padding: 8px 12px;
+  min-height: 36px;
+  inline-size: 100%;
+  max-inline-size: 420px;
+  border-radius: var(--kitgenix-radius-xs);
+  border: 1px solid var(--kitgenix-border-color-strong);
+  background: var(--kitgenix-surface);
+  color: var(--kitgenix-text-color);
+  box-shadow: 0 1px 2px rgba(0,0,0,.04) inset;
+  transition: border-color var(--kitgenix-transition), box-shadow var(--kitgenix-transition);
+  box-sizing: border-box;
+}
+
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-section-content textarea {
+  min-block-size: 84px;
+  resize: vertical;
+}
+
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-section-content :is(
+  input[type="text"], input[type="url"], input[type="email"], input[type="password"],
+  textarea, select
+):focus-visible {
+  outline: none;
+  border-color: var(--kitgenix-brand);
+  box-shadow: var(--kitgenix-focus-ring);
+}
+
+/* Checkboxes / radios */
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app :is(input[type="checkbox"], input[type="radio"]) {
+  inline-size: 16px;
+  block-size: 16px;
+  accent-color: var(--kitgenix-brand);
+  vertical-align: middle;
+  transform: translateY(-1px);
+  margin-inline-end: 6px;
+}
+
+/* Inline code */
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app code {
+  background: var(--kitgenix-surface-alt);
+  border: 1px solid var(--kitgenix-border-color);
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 12.5px;
+  color: var(--kitgenix-brand);
+}
+
+/* ----------------------------------------------------------------
+  Overview grid (6-column status summary at the top)
+----------------------------------------------------------------- */
+.kitgenix-captcha-for-cloudflare-turnstile-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 6px;
+}
+
+@media (max-width: 1100px) {
+  .kitgenix-captcha-for-cloudflare-turnstile-overview-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 782px) {
+  .kitgenix-captcha-for-cloudflare-turnstile-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-overview-item {
+  background: var(--kitgenix-surface-alt);
+  border: 1px solid var(--kitgenix-border-color);
+  border-radius: var(--kitgenix-radius-sm);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 72px;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-overview-label {
+  font-size: 11px;
+  color: var(--kitgenix-text-muted);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-overview-value {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--kitgenix-heading);
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-overview-badge {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: var(--kitgenix-radius-pill);
+  border: 1px solid transparent;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-overview-badge.ok {
+  background: var(--kitgenix-success-bg);
+  color: var(--kitgenix-success);
+  border-color: var(--kitgenix-success-border);
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-overview-badge.warn {
+  background: var(--kitgenix-warning-bg);
+  color: var(--kitgenix-warning);
+  border-color: var(--kitgenix-warning-border);
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-overview-badge.off {
+  background: var(--kitgenix-surface-muted);
+  color: var(--kitgenix-text-muted);
+  border-color: var(--kitgenix-border-color);
+}
+
+/* ----------------------------------------------------------------
+  Collapsible details groups (integration sections)
+----------------------------------------------------------------- */
+.kitgenix-captcha-for-cloudflare-turnstile-details-group {
+  margin: 16px 0;
+  border: 1px solid var(--kitgenix-border-color);
+  border-radius: var(--kitgenix-radius);
+  background: var(--kitgenix-surface);
+  box-shadow: var(--kitgenix-shadow-sm);
+  overflow: hidden;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-details-group > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 14px 20px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--kitgenix-heading);
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--kitgenix-surface-alt);
+  transition: background var(--kitgenix-transition);
+  user-select: none;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-details-group > summary:hover {
+  background: color-mix(in srgb, var(--kitgenix-brand) 5%, var(--kitgenix-surface-alt));
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-details-group[open] > summary {
+  border-bottom: 1px solid var(--kitgenix-border-color);
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-details-group > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Chevron indicator */
+.kitgenix-captcha-for-cloudflare-turnstile-details-group > summary::after {
+  content: '›';
+  font-size: 18px;
+  line-height: 1;
+  color: var(--kitgenix-text-muted);
+  transform: rotate(90deg);
+  display: inline-block;
+  transition: transform var(--kitgenix-transition);
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-details-group[open] > summary::after {
+  transform: rotate(-90deg);
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-details-group .kitgenix-captcha-for-cloudflare-turnstile-details-inner {
+  padding: 8px 20px 20px;
+}
+
+/* ----------------------------------------------------------------
+  Unsaved-changes floating bar
+----------------------------------------------------------------- */
+.kitgenix-captcha-for-cloudflare-turnstile-unsaved-bar {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: var(--kitgenix-brand);
+  color: #fff;
+  padding: 12px 18px;
+  border-radius: var(--kitgenix-radius-sm);
+  box-shadow: var(--kitgenix-shadow-lg);
+  display: none;
+  align-items: center;
+  gap: 14px;
+  z-index: 9999;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-unsaved-bar[aria-hidden="false"] {
+  display: flex;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-unsaved-bar button {
+  background: rgba(255,255,255,.15);
+  color: #fff;
+  font-weight: 700;
+  padding: 6px 14px;
+  border: 1px solid rgba(255,255,255,.3);
+  border-radius: var(--kitgenix-radius-xs);
+  cursor: pointer;
+  font-size: 12px;
+  transition: background var(--kitgenix-transition);
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-unsaved-bar button:hover,
+.kitgenix-captcha-for-cloudflare-turnstile-unsaved-bar button:focus-visible {
+  background: rgba(255,255,255,.25);
+  outline: none;
+}
+
+/* ----------------------------------------------------------------
+  Copy-shortcode button
+----------------------------------------------------------------- */
+.kitgenix-captcha-for-cloudflare-turnstile-copy-shortcode {
+  font-size: 11.5px;
+  padding: 4px 10px;
+  border-radius: var(--kitgenix-radius-xs);
+  border: 1px solid var(--kitgenix-border-color);
+  background: var(--kitgenix-surface-alt);
+  cursor: pointer;
+  transition: background var(--kitgenix-transition), color var(--kitgenix-transition), border-color var(--kitgenix-transition);
+  color: var(--kitgenix-text-muted);
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-copy-shortcode:hover,
+.kitgenix-captcha-for-cloudflare-turnstile-copy-shortcode:focus-visible {
+  background: var(--kitgenix-brand);
+  color: #fff;
+  border-color: var(--kitgenix-brand);
+  outline: none;
+}
+
+/* ----------------------------------------------------------------
+  Secret-key reveal wrapper
+----------------------------------------------------------------- */
+.kitgenix-secret-key-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.kitgenix-secret-key-wrapper > input {
+  width: 100%;
+  max-width: 420px;
+}
+
+.kitgenix-secret-key-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-shortcode-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.kitgenix-captcha-for-cloudflare-turnstile-shortcode-row .button {
+  margin-left: 0;
+}
+
+.kitgenix-filter-hidden {
+  opacity: .2;
+}
+
+/* ----------------------------------------------------------------
+  Save row
+----------------------------------------------------------------- */
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-save-row {
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+/* ----------------------------------------------------------------
+  Test widget (Turnstile inline test)
+----------------------------------------------------------------- */
+#kitgenix-captcha-for-cloudflare-turnstile-test-widget {
+  margin-inline-start: 0 !important;
+  text-align: start !important;
+  display: inline-block;
+  vertical-align: middle;
+  margin-top: 6px;
+}
+
+#kitgenix-captcha-for-cloudflare-turnstile-test-widget > div,
+#kitgenix-captcha-for-cloudflare-turnstile-test-widget iframe {
+  margin-inline-start: 0 !important;
+  margin-inline-end: auto !important;
+  float: none !important;
+}
+
+#kitgenix-captcha-for-cloudflare-turnstile-test-success {
+  display: none;
+  margin: 0;
+  padding: 8px 12px;
+  background: var(--kitgenix-success-bg);
+  color: var(--kitgenix-success);
+  border-inline-start: 3px solid var(--kitgenix-success-border);
+  border-radius: var(--kitgenix-radius-xs);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+@supports selector(tr:has(#kitgenix-captcha-for-cloudflare-turnstile-test-widget)) {
+  #kitgenix-captcha-for-cloudflare-turnstile-admin-app tr:has(#kitgenix-captcha-for-cloudflare-turnstile-test-widget) :is(th, td) {
+    display: block;
+    inline-size: 100%;
+    padding-inline-start: 0;
+  }
+  #kitgenix-captcha-for-cloudflare-turnstile-admin-app tr:has(#kitgenix-captcha-for-cloudflare-turnstile-test-widget) th label {
+    display: block;
+    margin-bottom: 6px;
+  }
+  #kitgenix-captcha-for-cloudflare-turnstile-admin-app td:has(#kitgenix-captcha-for-cloudflare-turnstile-test-widget) {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    text-align: start;
+  }
+}
+
+/* ----------------------------------------------------------------
+  Utility classes
+----------------------------------------------------------------- */
+.kitgenix-captcha-for-cloudflare-turnstile-inline-block { display: inline-block; }
+.kitgenix-captcha-for-cloudflare-turnstile-inline-flex { display: inline-flex; gap: 8px; align-items: center; }
+.kitgenix-captcha-for-cloudflare-turnstile-ml-12 { margin-left: 12px; }
+.kitgenix-captcha-for-cloudflare-turnstile-mt-6 { margin-top: 6px; }
+.kitgenix-captcha-for-cloudflare-turnstile-mt-18 { margin-top: 18px; }
+.kitgenix-captcha-for-cloudflare-turnstile-mt-20 { margin-top: 20px; }
+.kitgenix-captcha-for-cloudflare-turnstile-max-720 { max-width: 720px; }
+.kitgenix-captcha-for-cloudflare-turnstile-actions-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.kitgenix-captcha-for-cloudflare-turnstile-radio-inline { margin-right: 12px; display: inline-block; }
+.kitgenix-captcha-for-cloudflare-turnstile-radio-inline-sm { margin-right: 10px; display: inline-block; }
+.kitgenix-captcha-for-cloudflare-turnstile-divider { margin: 16px 0; opacity: .15; }
+.kitgenix-captcha-for-cloudflare-turnstile-divider--lg { margin: 20px 0; }
+.kitgenix-heading-badge {
+  display: inline-block;
+  background: var(--kitgenix-surface-muted);
+  color: var(--kitgenix-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--kitgenix-radius-xs);
+}
+
+/* Links colour */
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-settings-content a:not(.button):not(.kitgenix-support-chip) {
+  color: var(--kitgenix-brand);
+}
+#kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-settings-content a:not(.button):not(.kitgenix-support-chip):hover {
+  color: var(--kitgenix-brand-strong);
+}
+
+/* ----------------------------------------------------------------
+  Responsive
+----------------------------------------------------------------- */
+@media (max-width: 960px) {
+  #kitgenix-captcha-for-cloudflare-turnstile-admin-app .form-table th {
+    inline-size: 180px;
+  }
+}
+
+@media (max-width: 782px) {
+  #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-card > h2 {
+    padding: 12px 14px 0;
+  }
+  #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-section-content {
+    padding: 8px 14px 14px;
+  }
+  #kitgenix-captcha-for-cloudflare-turnstile-admin-app .form-table {
+    border-spacing: 0 8px;
+  }
+  #kitgenix-captcha-for-cloudflare-turnstile-admin-app .form-table th {
+    inline-size: auto;
+    display: block;
+    padding-bottom: 2px;
+  }
+  #kitgenix-captcha-for-cloudflare-turnstile-admin-app .form-table td {
+    display: block;
+    padding-top: 0;
+  }
+  #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-section-content :is(
+    input[type="text"], input[type="url"], input[type="email"], input[type="password"],
+    textarea, select
+  ) {
+    max-inline-size: 100%;
+  }
+  #kitgenix-captcha-for-cloudflare-turnstile-admin-app .kitgenix-captcha-for-cloudflare-turnstile-save-row {
+    padding: 10px 14px 16px;
+  }
+}
+
+/* ----------------------------------------------------------------
+  Accessibility
+----------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  #kitgenix-captcha-for-cloudflare-turnstile-admin-app * {
+    transition: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  #kitgenix-captcha-for-cloudflare-turnstile-admin-app .button-primary {
+    border: 1px solid ButtonText;
+  }
+  #kitgenix-captcha-for-cloudflare-turnstile-test-success {
+    border-inline-start-color: SelectedItem;
+  }
+}
+
+
+/* ----------------------------------------------------------------
+  WORDPRESS 7.0 ADMIN EXTENSIONS
+  Preserve plugin layouts while aligning controls with WP admin styles.
+----------------------------------------------------------------- */
+
+:root {
+  --kitgenix-brand: #4f2a9a;
+  --kitgenix-brand-hover: #42237f;
+  --kitgenix-brand-active: #351b66;
+  --kitgenix-focus-ring: 0 0 0 1px #4f2a9a;
+}
+
+.kitgenix-admin-app :is(input[type="text"], input[type="search"], input[type="number"], input[type="url"], input[type="email"], input[type="password"], input[type="date"], select, textarea),
+.kitgenix-analytics-wrap :is(input[type="text"], input[type="search"], input[type="number"], input[type="url"], input[type="email"], input[type="password"], input[type="date"], select, textarea),
+.wrap.kitgenix-pdf-invoicing-for-woocommerce-pdf-settings :is(input[type="text"], input[type="search"], input[type="number"], input[type="url"], input[type="email"], input[type="password"], input[type="date"], select, textarea) {
+  border-color: #8c8f94;
+  border-radius: 4px;
+  color: #2c3338;
+  background: #ffffff;
+}
+
+.kitgenix-admin-app :is(input[type="text"], input[type="search"], input[type="number"], input[type="url"], input[type="email"], input[type="password"], input[type="date"], select, textarea):focus,
+.kitgenix-admin-app :is(input[type="text"], input[type="search"], input[type="number"], input[type="url"], input[type="email"], input[type="password"], input[type="date"], select, textarea):focus-visible,
+.kitgenix-analytics-wrap :is(input[type="text"], input[type="search"], input[type="number"], input[type="url"], input[type="email"], input[type="password"], input[type="date"], select, textarea):focus,
+.kitgenix-analytics-wrap :is(input[type="text"], input[type="search"], input[type="number"], input[type="url"], input[type="email"], input[type="password"], input[type="date"], select, textarea):focus-visible,
+.wrap.kitgenix-pdf-invoicing-for-woocommerce-pdf-settings :is(input[type="text"], input[type="search"], input[type="number"], input[type="url"], input[type="email"], input[type="password"], input[type="date"], select, textarea):focus,
+.wrap.kitgenix-pdf-invoicing-for-woocommerce-pdf-settings :is(input[type="text"], input[type="search"], input[type="number"], input[type="url"], input[type="email"], input[type="password"], input[type="date"], select, textarea):focus-visible {
+  border-color: #4f2a9a;
+  box-shadow: 0 0 0 1px #4f2a9a;
+  outline: 2px solid transparent;
+}
+
+.kitgenix-admin-app :is(.button.button-primary, button.button-primary, a.button.button-primary, input.button.button-primary),
+.kitgenix-analytics-wrap :is(.button.button-primary, button.button-primary, a.button.button-primary, input.button.button-primary),
+.wrap.kitgenix-pdf-invoicing-for-woocommerce-pdf-settings :is(.button.button-primary, button.button-primary, a.button.button-primary, input.button.button-primary) {
+  border-color: #4f2a9a;
+  background: #4f2a9a;
+  color: #ffffff;
+  text-shadow: none;
+}
+
+.kitgenix-admin-app :is(.button.button-primary, button.button-primary, a.button.button-primary, input.button.button-primary):hover,
+.kitgenix-admin-app :is(.button.button-primary, button.button-primary, a.button.button-primary, input.button.button-primary):focus-visible,
+.kitgenix-analytics-wrap :is(.button.button-primary, button.button-primary, a.button.button-primary, input.button.button-primary):hover,
+.kitgenix-analytics-wrap :is(.button.button-primary, button.button-primary, a.button.button-primary, input.button.button-primary):focus-visible,
+.wrap.kitgenix-pdf-invoicing-for-woocommerce-pdf-settings :is(.button.button-primary, button.button-primary, a.button.button-primary, input.button.button-primary):hover,
+.wrap.kitgenix-pdf-invoicing-for-woocommerce-pdf-settings :is(.button.button-primary, button.button-primary, a.button.button-primary, input.button.button-primary):focus-visible {
+  border-color: #42237f;
+  background: #42237f;
+  color: #ffffff;
+}
+
+.kitgenix-admin-app :is(.button.button-secondary, button.button-secondary, a.button.button-secondary),
+.kitgenix-analytics-wrap :is(.button.button-secondary, button.button-secondary, a.button.button-secondary),
+.wrap.kitgenix-pdf-invoicing-for-woocommerce-pdf-settings :is(.button.button-secondary, button.button-secondary, a.button.button-secondary) {
+  border-color: #4f2a9a;
+  color: #4f2a9a;
+  background: #f6f7f7;
+}
+
+.kitgenix-admin-app :is(.button.button-secondary, button.button-secondary, a.button.button-secondary):hover,
+.kitgenix-admin-app :is(.button.button-secondary, button.button-secondary, a.button.button-secondary):focus-visible,
+.kitgenix-analytics-wrap :is(.button.button-secondary, button.button-secondary, a.button.button-secondary):hover,
+.kitgenix-analytics-wrap :is(.button.button-secondary, button.button-secondary, a.button.button-secondary):focus-visible,
+.wrap.kitgenix-pdf-invoicing-for-woocommerce-pdf-settings :is(.button.button-secondary, button.button-secondary, a.button.button-secondary):hover,
+.wrap.kitgenix-pdf-invoicing-for-woocommerce-pdf-settings :is(.button.button-secondary, button.button-secondary, a.button.button-secondary):focus-visible {
+  border-color: #42237f;
+  color: #42237f;
+  background: #f0f0f1;
+}
