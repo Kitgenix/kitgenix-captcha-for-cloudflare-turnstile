@@ -40,7 +40,16 @@ class FluentForms {
         add_action('fluentform/render_item_submit_button', [__CLASS__, 'render_turnstile_above_submit'], 5, 2);
 
         // Validation (AJAX-friendly).
-        add_filter('fluentform_submit_validation', [__CLASS__, 'validate_turnstile_filter'], 10, 3);
+        // `fluentform_submit_validation` does not exist anywhere in Fluent Forms' current
+        // source – add_filter() on it silently never fires, so Turnstile was never actually
+        // checked for Fluent Forms submissions. The real, current extension point is
+        // `fluentform/validation_errors` (FormValidationService::validateSubmission()): its
+        // return value is checked immediately, and a non-empty result throws a
+        // ValidationException that FluentForm's own submit handler catches and returns as a
+        // JSON error BEFORE the submission is inserted or any notification is sent – this is
+        // the same hook Fluent Forms' own first-party reCAPTCHA/hCaptcha/Turnstile field
+        // types are validated through.
+        add_filter('fluentform/validation_errors', [__CLASS__, 'validate_turnstile_filter'], 10, 2);
     }
 
     /**
@@ -77,7 +86,8 @@ class FluentForms {
             'element'  => 'custom_html',
             'settings' => [
                 'label' => '',
-                'html'  => '<input type="hidden" name="cf-turnstile-response" value="" />',
+                'html'  => '<input type="hidden" name="cf-turnstile-response" value="" />'
+                    . \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::render_honeypot_field(),
             ],
         ];
 
@@ -86,10 +96,7 @@ class FluentForms {
             'settings' => [
                 'label' => '',
                 'html'  => '<div class="cf-turnstile"'
-                    . ' data-sitekey="'    . esc_attr($site_key) . '"'
-                    . ' data-theme="'      . esc_attr($settings['theme']       ?? 'auto') . '"'
-                    . ' data-size="'       . esc_attr( \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::normalize_widget_size( (string)( $settings['widget_size'] ?? 'normal' ) ) ) . '"'
-                    . ' data-appearance="' . esc_attr($settings['appearance']  ?? 'always') . '"'
+                    . \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::get_widget_data_attributes( 'fluentforms', $site_key )
                     . ' data-kitgenix-captcha-for-cloudflare-turnstile-owner="fluentforms"></div>',
             ],
         ];
@@ -145,11 +152,9 @@ class FluentForms {
 
         // Hidden token + container (global public JS will render and populate).
         echo '<input type="hidden" name="cf-turnstile-response" value="" />';
+        echo \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::render_honeypot_field(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
         echo '<div class="cf-turnstile"'
-           . ' data-sitekey="'    . esc_attr($site_key) . '"'
-           . ' data-theme="'      . esc_attr($settings['theme']       ?? 'auto') . '"'
-           . ' data-size="'       . esc_attr( \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::normalize_widget_size( (string)( $settings['widget_size'] ?? 'normal' ) ) ) . '"'
-           . ' data-appearance="' . esc_attr($settings['appearance']  ?? 'always') . '"'
+           . \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::get_widget_data_attributes( 'fluentforms', $site_key ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
            . ' data-kitgenix-captcha-for-cloudflare-turnstile-owner="fluentforms"></div>';
     }
 
@@ -177,20 +182,22 @@ class FluentForms {
     }
 
     /**
-     * AJAX-friendly validation hook. Returns errors array; no wp_die.
+     * Validation hook: fluentform/validation_errors. A non-empty return value causes
+     * FormValidationService::validateSubmission() to throw a ValidationException, which
+     * FluentForm's own submit handler catches and returns as a JSON error – genuinely
+     * halting the submission before it's inserted or any notification/webhook runs.
      *
      * @param array $errors
      * @param array $formData
-     * @param array $form
      * @return array
      */
-    public static function validate_turnstile_filter($errors, $formData, $form) {
+    public static function validate_turnstile_filter($errors, $formData) {
         if ( self::request_method() !== 'POST' ) {
             return $errors;
         }
 
         // Prefer Fluent Forms' provided $formData array instead of direct
-        // $_POST access — this avoids PHPCS nonce warnings for POST reads
+        // $_POST access – this avoids PHPCS nonce warnings for POST reads
         // while still allowing Fluent's AJAX validation path to provide the token.
         $token = '';
         if ( is_array( $formData ) && isset( $formData['cf-turnstile-response'] ) ) {

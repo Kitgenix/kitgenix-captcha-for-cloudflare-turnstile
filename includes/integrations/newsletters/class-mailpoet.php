@@ -41,11 +41,8 @@ final class MailPoet {
         ?>
         <input type="hidden" name="cf-turnstile-response" value="" />
         <input type="hidden" name="data[cf-turnstile-response]" value="" />
-        <div class="cf-turnstile"
-             data-sitekey="<?php echo \esc_attr( $site_key ); ?>"
-             data-theme="<?php echo \esc_attr( $settings['theme'] ?? 'auto' ); ?>"
-             data-size="<?php echo \esc_attr( \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::normalize_widget_size( (string)( $settings['widget_size'] ?? 'normal' ) ) ); ?>"
-             data-appearance="<?php echo \esc_attr( $settings['appearance'] ?? 'always' ); ?>"
+        <?php echo \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::render_honeypot_field(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler. ?>
+        <div class="cf-turnstile"<?php echo \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::get_widget_data_attributes( 'mailpoet', $site_key ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler. ?>
              data-kitgenix-captcha-for-cloudflare-turnstile-owner="mailpoet"></div>
         <?php
         $injection = trim( (string) ob_get_clean() );

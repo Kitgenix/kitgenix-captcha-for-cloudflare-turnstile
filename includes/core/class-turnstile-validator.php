@@ -21,9 +21,10 @@ class Turnstile_Validator {
     /** Store a small diagnostic snapshot of the last siteverify outcome. */
     private static function record_last_verify(bool $ok, array $codes = []): void {
         $payload = [
-            'time'    => time(), // stored as epoch for consistency; display with gmdate() when needed
-            'success' => $ok ? 1 : 0,
-            'codes'   => array_values(array_map('strval', $codes)),
+            'time'       => time(), // stored as epoch for consistency; display with gmdate() when needed
+            'success'    => $ok ? 1 : 0,
+            'codes'      => array_values(array_map('strval', $codes)),
+            'latency_ms' => self::$last_latency_ms,
         ];
         \update_option('kitgenix_turnstile_last_verify', $payload, false);
     }
@@ -120,10 +121,19 @@ class Turnstile_Validator {
         }
         self::$counted_tokens[$cache_key] = true;
 
+        // Retry-classified codes (stale nonce, widget not loaded yet, replayed
+        // token) are recoverable friction, not a security signal – they count
+        // toward checks_retries only, never checks_failed, so "Blocked
+        // attempts" / the failure-spike alert reflect genuine blocks rather
+        // than routine cache/session hiccups. See is_retry_codes().
+        $is_retry = ! $ok && self::is_retry_codes($codes);
+
         $metrics = self::get_metrics_store();
         $metrics['checks_total'] = max(0, (int) $metrics['checks_total'] + 1);
         if ($ok) {
             $metrics['checks_passed'] = max(0, (int) $metrics['checks_passed'] + 1);
+        } elseif ($is_retry) {
+            $metrics['checks_retries'] = max(0, (int) $metrics['checks_retries'] + 1);
         } else {
             $metrics['checks_failed'] = max(0, (int) $metrics['checks_failed'] + 1);
         }
@@ -135,13 +145,10 @@ class Turnstile_Validator {
         $integration_metrics['checks_total'] = max(0, (int) $integration_metrics['checks_total'] + 1);
         if ($ok) {
             $integration_metrics['checks_passed'] = max(0, (int) $integration_metrics['checks_passed'] + 1);
+        } elseif ($is_retry) {
+            $integration_metrics['checks_retries'] = max(0, (int) $integration_metrics['checks_retries'] + 1);
         } else {
             $integration_metrics['checks_failed'] = max(0, (int) $integration_metrics['checks_failed'] + 1);
-        }
-
-        if ( ! $ok && self::is_retry_codes($codes) ) {
-            $metrics['checks_retries'] = max(0, (int) $metrics['checks_retries'] + 1);
-            $integration_metrics['checks_retries'] = max(0, (int) $integration_metrics['checks_retries'] + 1);
         }
 
         $integration_metrics['last_checked'] = time();
@@ -165,13 +172,43 @@ class Turnstile_Validator {
     /** @var string Last error message (if any) */
     private static $last_error_msg = '';
 
+    /**
+     * @var int Round-trip latency (ms) of the most recent siteverify HTTP call.
+     * Reset to 0 at the start of each public validation call and only set when
+     * verify_with_site() actually reaches out to Cloudflare, so 0 reliably means
+     * "no siteverify call was made this request" (e.g. honeypot/nonce/token-missing
+     * short-circuits), not "Cloudflare responded instantly".
+     */
+    private static $last_latency_ms = 0;
+
     /* =========================
      * Dev mode (warn-only)
      * ========================= */
 
-    private static function dev_mode_enabled(): bool {
+    /**
+     * Whether a failed check should be treated as warn-only (allow the action through
+     * while still logging/recording the failure) rather than a hard block.
+     *
+     * True when the site-wide "Development Mode (Warn-only)" setting is on, OR when the
+     * given integration is individually listed in Settings → test_mode_integrations (Test
+     * Mode per Integration) – letting an admin test one integration without putting the
+     * whole site's Turnstile protection into warn-only mode.
+     */
+    private static function dev_mode_enabled(string $integration = ''): bool {
         $settings = get_option('kitgenix_captcha_for_cloudflare_turnstile_settings', []);
-        return !empty($settings['dev_mode_warn_only']);
+        if ( ! empty( $settings['dev_mode_warn_only'] ) ) {
+            return true;
+        }
+
+        if ( '' === $integration ) {
+            return false;
+        }
+
+        $test_mode_integrations = isset( $settings['test_mode_integrations'] ) && is_array( $settings['test_mode_integrations'] )
+            ? array_map( 'strval', $settings['test_mode_integrations'] )
+            : [];
+
+        return in_array( self::normalize_integration( $integration ), $test_mode_integrations, true );
     }
 
     private static function log_dev(string $what, array $data = []): void {
@@ -229,6 +266,38 @@ class Turnstile_Validator {
     }
 
     /* =========================
+     * Honeypot (zero-JS fallback)
+     * ========================= */
+
+    /**
+     * The field name rendered by Script_Handler::render_honeypot_field(). Real visitors
+     * never see or fill it (CSS-hidden, tabindex="-1"); a filled value means whatever
+     * submitted the form skipped rendering/JS entirely and blindly filled every field.
+     */
+    public static function honeypot_field_name(): string {
+        return 'kitgenix_captcha_for_cloudflare_turnstile_hp_field';
+    }
+
+    private static function honeypot_enabled(): bool {
+        $settings = get_option('kitgenix_captcha_for_cloudflare_turnstile_settings', []);
+        return !empty($settings['honeypot_enabled']);
+    }
+
+    private static function is_honeypot_tripped(): bool {
+        if ( ! self::honeypot_enabled() ) {
+            return false;
+        }
+
+        $field = self::honeypot_field_name();
+        if ( ! isset( $_POST[ $field ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- honeypot is a pre-nonce bot filter, not a security boundary by itself.
+            return false;
+        }
+
+        $value = sanitize_text_field( wp_unslash( $_POST[ $field ] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        return $value !== '';
+    }
+
+    /* =========================
      * Public API
      * ========================= */
 
@@ -244,6 +313,19 @@ class Turnstile_Validator {
         self::$last_error_codes = [];
         self::$last_error_msg   = '';
         self::$last_response    = [];
+        self::$last_latency_ms  = 0;
+
+        // Honeypot (zero-JS fallback) – check first so a tripped trap skips the
+        // Cloudflare API call entirely, not just the rest of this method's checks.
+        if ( self::is_honeypot_tripped() ) {
+            self::$last_error_codes[] = 'honeypot_tripped';
+            self::$last_error_msg     = __('Submission blocked.', 'kitgenix-captcha-for-cloudflare-turnstile');
+            self::log_dev('honeypot_tripped');
+            self::record_last_verify(false, self::$last_error_codes);
+            self::record_metrics('', false, $integration, self::$last_error_codes);
+            self::record_recent_event($integration, false, self::$last_error_codes);
+            return self::dev_mode_enabled($integration);
+        }
 
         // Nonce
         if ( $require_nonce ) {
@@ -257,7 +339,7 @@ class Turnstile_Validator {
                 self::record_last_verify(false, self::$last_error_codes);
                 self::record_metrics('', false, $integration, self::$last_error_codes);
                 self::record_recent_event($integration, false, self::$last_error_codes);
-                return self::dev_mode_enabled();
+                return self::dev_mode_enabled($integration);
             }
             if ( ! wp_verify_nonce( $nonce, 'kitgenix_captcha_for_cloudflare_turnstile_action' ) ) {
                 self::$last_error_codes[] = 'nonce_invalid';
@@ -266,7 +348,7 @@ class Turnstile_Validator {
                 self::record_last_verify(false, self::$last_error_codes);
                 self::record_metrics('', false, $integration, self::$last_error_codes);
                 self::record_recent_event($integration, false, self::$last_error_codes);
-                return self::dev_mode_enabled();
+                return self::dev_mode_enabled($integration);
             }
         }
 
@@ -280,7 +362,7 @@ class Turnstile_Validator {
             self::record_last_verify(false, self::$last_error_codes);
             self::record_metrics('', false, $integration, self::$last_error_codes);
             self::record_recent_event($integration, false, self::$last_error_codes);
-            return self::dev_mode_enabled();
+            return self::dev_mode_enabled($integration);
         }
 
         // Cloudflare verify (memoized)
@@ -299,7 +381,7 @@ class Turnstile_Validator {
             self::record_last_verify(false, self::$last_error_codes);
             self::record_metrics($response, false, $integration, self::$last_error_codes);
             self::record_recent_event($integration, false, self::$last_error_codes, $response);
-            return self::dev_mode_enabled();
+            return self::dev_mode_enabled($integration);
         }
 
         // SUCCESS → replay check (skip for checkout forms to allow retries)
@@ -311,7 +393,7 @@ class Turnstile_Validator {
             self::record_last_verify(false, self::$last_error_codes);
             self::record_metrics($response, false, $integration, self::$last_error_codes);
             self::record_recent_event($integration, false, self::$last_error_codes, $response);
-            return self::dev_mode_enabled();
+            return self::dev_mode_enabled($integration);
         }
 
         // Only mark token as used if we're checking replay protection
@@ -328,6 +410,12 @@ class Turnstile_Validator {
 
     /**
      * Validate a token directly (for integrations that only have the token).
+     *
+     * On failure, returns dev_mode_enabled() – matching is_valid_submission() – so the
+     * site-wide Developer/Warn-only Mode setting applies uniformly no matter which entry
+     * point an integration uses. In normal enforcement mode (the default) this is
+     * unchanged: a `false` return is authoritative and the caller MUST block.
+     *
      * @param string $token
      * @param string $integration Integration context
      * @param bool $check_replay Whether to check for replayed tokens
@@ -337,6 +425,17 @@ class Turnstile_Validator {
         self::$last_error_codes = [];
         self::$last_error_msg   = '';
         self::$last_response    = [];
+        self::$last_latency_ms  = 0;
+
+        if ( self::is_honeypot_tripped() ) {
+            self::$last_error_codes = ['honeypot_tripped'];
+            self::$last_error_msg   = __('Submission blocked.', 'kitgenix-captcha-for-cloudflare-turnstile');
+            self::log_dev('honeypot_tripped');
+            self::record_last_verify(false, self::$last_error_codes);
+            self::record_metrics('', false, $integration, self::$last_error_codes);
+            self::record_recent_event($integration, false, self::$last_error_codes);
+            return self::dev_mode_enabled($integration);
+        }
 
         $token = sanitize_text_field( (string) $token );
         if ($token === '') {
@@ -345,7 +444,7 @@ class Turnstile_Validator {
             self::record_last_verify(false, self::$last_error_codes);
             self::record_metrics('', false, $integration, self::$last_error_codes);
             self::record_recent_event($integration, false, self::$last_error_codes);
-            return false;
+            return self::dev_mode_enabled($integration);
         }
 
         $ok = self::verify_with_site($token);
@@ -356,7 +455,7 @@ class Turnstile_Validator {
             self::record_last_verify(false, self::$last_error_codes);
             self::record_metrics($token, false, $integration, self::$last_error_codes);
             self::record_recent_event($integration, false, self::$last_error_codes, $token);
-            return false;
+            return self::dev_mode_enabled($integration);
         }
 
         if ( $check_replay && self::is_replay( $token ) ) {
@@ -367,7 +466,7 @@ class Turnstile_Validator {
             self::record_last_verify(false, self::$last_error_codes);
             self::record_metrics($token, false, $integration, self::$last_error_codes);
             self::record_recent_event($integration, false, self::$last_error_codes, $token);
-            return false;
+            return self::dev_mode_enabled($integration);
         }
 
         // Only mark token as used if we're checking replay protection
@@ -418,6 +517,7 @@ class Turnstile_Validator {
         self::$last_error_codes = [];
         self::$last_error_msg   = '';
         self::$last_response    = [];
+        self::$last_latency_ms  = 0;
 
         $token = sanitize_text_field( (string) $token );
         if ($token === '') {
@@ -557,6 +657,14 @@ class Turnstile_Validator {
     }
 
     /**
+     * Round-trip latency (ms) of the most recent siteverify call, or 0 when no
+     * call was made this request (e.g. honeypot/nonce/token-missing short-circuit).
+     */
+    public static function get_last_latency_ms(): int {
+        return self::$last_latency_ms;
+    }
+
+    /**
      * Return normalized metrics for totals and per-integration analytics.
      *
      * @return array<string,mixed>
@@ -654,48 +762,73 @@ class Turnstile_Validator {
     }
 
     /**
+     * Canonical map of integration key => human-readable label. Shared by
+     * get_integration_label() (display) and get_all_integration_keys() (settings
+     * validation for e.g. per-integration Test Mode) so the two can never drift apart.
+     *
+     * @return array<string,string>
+     */
+    private static function get_integration_labels_map(): array {
+        return [
+            'general'                       => __('General', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'setup-check'                   => __('Setup verification', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'bbpress'                       => __('bbPress', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'buddypress'                    => __('BuddyPress', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'cf7'                           => __('Contact Form 7', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'edd'                           => __('Easy Digital Downloads', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'edd-account'                   => __('EDD account', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'edd-checkout'                  => __('EDD checkout', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'elementor'                     => __('Elementor Forms', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'fluentforms'                   => __('Fluent Forms', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'formidableforms'               => __('Formidable Forms', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'forminator'                    => __('Forminator', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'gravityforms'                  => __('Gravity Forms', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'jetformbuilder'                => __('JetFormBuilder', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'jetpackforms'                  => __('Jetpack Forms', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'kadenceforms'                  => __('Kadence Forms', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'kgps-login'                    => __('Kitgenix Plugin Score login', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'kgps-register'                 => __('Kitgenix Plugin Score registration', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'kgps-lostpassword'             => __('Kitgenix Plugin Score lost password', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'mailpoet'                      => __('MailPoet', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'ninjaforms'                    => __('Ninja Forms', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'memberpress'                   => __('MemberPress', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'memberpress-signup'            => __('MemberPress signup', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'paid-memberships-pro'          => __('Paid Memberships Pro', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'paid-memberships-pro-checkout' => __('Paid Memberships Pro checkout', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'ultimate-member'               => __('Ultimate Member', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'woocommerce'                   => __('WooCommerce', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'woocommerce-account'           => __('WooCommerce My Account', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'woocommerce-checkout'          => __('WooCommerce checkout', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'woocommerce-login'             => __('WooCommerce login', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'woocommerce-review'            => __('WooCommerce reviews', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'woocommerce-blocks-checkout'   => __('WooCommerce Blocks checkout', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'wordpress-comment'             => __('WordPress comments', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'wordpress-login'               => __('WordPress login', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'wordpress-lostpassword'        => __('WordPress lost password', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'wordpress-register'            => __('WordPress registration', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'wordpress-resetpassword'       => __('WordPress reset password', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'wp-core'                       => __('WordPress core', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'wpdiscuz'                      => __('wpDiscuz', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'wpforms'                       => __('WPForms', 'kitgenix-captcha-for-cloudflare-turnstile'),
+        ];
+    }
+
+    /**
+     * Return every canonical integration key eligible for per-integration Test Mode
+     * (excludes 'general' and 'setup-check', which are not real protected actions).
+     *
+     * @return string[]
+     */
+    public static function get_all_integration_keys(): array {
+        return array_values( array_diff( array_keys( self::get_integration_labels_map() ), [ 'general', 'setup-check' ] ) );
+    }
+
+    /**
      * Return a human-friendly integration label for analytics and exports.
      */
     public static function get_integration_label(string $integration): string {
         $integration = self::normalize_integration($integration);
-
-        $labels = [
-            'general'                      => __('General', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'setup-check'                  => __('Setup verification', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'bbpress'                      => __('bbPress', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'buddypress'                   => __('BuddyPress', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'cf7'                          => __('Contact Form 7', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'edd'                          => __('Easy Digital Downloads', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'edd-account'                  => __('EDD account', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'edd-checkout'                 => __('EDD checkout', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'elementor'                    => __('Elementor Forms', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'fluentforms'                  => __('Fluent Forms', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'formidableforms'              => __('Formidable Forms', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'forminator'                   => __('Forminator', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'gravityforms'                 => __('Gravity Forms', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'jetformbuilder'               => __('JetFormBuilder', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'jetpackforms'                 => __('Jetpack Forms', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'kadenceforms'                 => __('Kadence Forms', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'mailpoet'                     => __('MailPoet', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'memberpress'                  => __('MemberPress', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'memberpress-signup'           => __('MemberPress signup', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'paid-memberships-pro'         => __('Paid Memberships Pro', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'paid-memberships-pro-checkout'=> __('Paid Memberships Pro checkout', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'ultimate-member'              => __('Ultimate Member', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'woocommerce'                  => __('WooCommerce', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'woocommerce-account'          => __('WooCommerce My Account', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'woocommerce-checkout'         => __('WooCommerce checkout', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'woocommerce-login'            => __('WooCommerce login', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'woocommerce-review'           => __('WooCommerce reviews', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'wordpress-comment'            => __('WordPress comments', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'wordpress-login'              => __('WordPress login', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'wordpress-lostpassword'       => __('WordPress lost password', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'wordpress-register'           => __('WordPress registration', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'wordpress-resetpassword'      => __('WordPress reset password', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'wp-core'                      => __('WordPress core', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'wpdiscuz'                     => __('wpDiscuz', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'wpforms'                      => __('WPForms', 'kitgenix-captcha-for-cloudflare-turnstile'),
-        ];
+        $labels      = self::get_integration_labels_map();
 
         if (isset($labels[ $integration ])) {
             return (string) $labels[ $integration ];
@@ -714,11 +847,20 @@ class Turnstile_Validator {
             return null;
         }
 
+        // Retry-classified events (stale nonce, widget not loaded yet, replayed
+        // token) are excluded here too – a site with heavy page caching can
+        // rack up dozens of routine nonce hiccups with zero actual attack
+        // activity, and that shouldn't page an admin with a false "failure
+        // spike" warning. See is_retry_codes() / record_metrics().
         $failed_events = array_values(
             array_filter(
                 $events,
                 static function ( array $event ): bool {
-                    return (string) ( $event['outcome'] ?? 'failure' ) === 'failure';
+                    if ( (string) ( $event['outcome'] ?? 'failure' ) !== 'failure' ) {
+                        return false;
+                    }
+                    $codes = isset( $event['codes'] ) && is_array( $event['codes'] ) ? $event['codes'] : [];
+                    return ! self::is_retry_codes( $codes );
                 }
             )
         );
@@ -891,6 +1033,11 @@ class Turnstile_Validator {
             'timeout-or-duplicate',
             'token_missing',
             'replay_detected',
+            // Stale WP nonce – common on cached pages or after a session/login
+            // change, not a security signal. Grouped with the other recoverable
+            // "friction" codes so it stops inflating checks_failed / the
+            // failure-spike alert with routine cache hiccups.
+            'nonce_invalid',
         ];
 
         foreach ($codes as $code) {
@@ -924,6 +1071,7 @@ class Turnstile_Validator {
                 'outcome'     => ! empty($entry['outcome']) && $entry['outcome'] === 'success' ? 'success' : 'failure',
                 'codes'       => $codes,
                 'retry'       => self::is_retry_codes($codes),
+                'latency_ms'  => max(0, (int) ($entry['latency_ms'] ?? 0)),
             ];
         }
 
@@ -944,13 +1092,13 @@ class Turnstile_Validator {
         if ( $outcome === 'success' ) {
             return [
                 'category' => 'passed',
-                'note'     => __( 'Challenge verified by Cloudflare — legitimate submission.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+                'note'     => __( 'Challenge verified by Cloudflare – legitimate submission.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
             ];
         }
 
         // Pick the most significant code from the set.
         $map = [
-            // Configuration issues — fix in plugin settings
+            // Configuration issues – fix in plugin settings
             'missing-input-secret'    => [
                 'category' => 'config-error',
                 'note'     => __( 'Plugin secret key is not configured. Go to Settings → Cloudflare Turnstile to fix.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
@@ -964,7 +1112,7 @@ class Turnstile_Validator {
                 'note'     => __( 'Site key and secret key belong to different Turnstile widgets. Verify both in your Cloudflare dashboard.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
             ],
 
-            // Infrastructure issues — usually transient
+            // Infrastructure issues – usually transient
             'http_error' => [
                 'category' => 'network-error',
                 'note'     => __( 'Plugin could not reach Cloudflare to verify the token (timeout or connectivity issue). No user action blocked by this alone.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
@@ -978,10 +1126,16 @@ class Turnstile_Validator {
                 'note'     => __( 'Cloudflare rejected the verification request as malformed. May indicate a plugin conflict or proxy stripping POST fields.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
             ],
 
+            // Zero-JS bot trap (checked before Cloudflare is even contacted)
+            'honeypot_tripped' => [
+                'category' => 'honeypot-blocked',
+                'note'     => __( 'A hidden trap field was filled in. Real visitors never see or fill this field, so this is almost always an automated bot submitting the form blindly.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            ],
+
             // Likely false positives (common on cached/shared-session sites)
             'nonce_invalid' => [
                 'category' => 'cached-or-expired-page',
-                'note'     => __( 'Stale WP security token. Most common on cached pages or after a session/login change. Usually a false positive — NOT necessarily a bot or attack.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+                'note'     => __( 'Stale WP security token. Most common on cached pages or after a session/login change. Usually a false positive – NOT necessarily a bot or attack.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
             ],
 
             // Widget load issues (may be real users on slow connections or bots)
@@ -1005,7 +1159,7 @@ class Turnstile_Validator {
             ],
             'replay_detected' => [
                 'category' => 'replay-blocked',
-                'note'     => __( 'Identical Turnstile token submitted more than once. Potential replay attack blocked.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+                'note'     => __( 'Identical Turnstile token submitted more than once. Usually an ordinary double-click or back-button resubmit – a genuine replay attack looks the same, so treat this as informational unless it repeats from one visitor.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
             ],
         ];
 
@@ -1017,7 +1171,7 @@ class Turnstile_Validator {
 
         return [
             'category' => 'blocked',
-            'note'     => __( 'Blocked — reason not mapped to a known category.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            'note'     => __( 'Blocked – reason not mapped to a known category.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
         ];
     }
 
@@ -1030,7 +1184,7 @@ class Turnstile_Validator {
         $format = (string) get_option('date_format') . ' ' . (string) get_option('time_format');
         $lines  = [
             // Header so the format is self-documenting
-            '# Columns: timestamp | integration (key) | outcome | category | error codes | note',
+            '# Columns: timestamp | integration (key) | outcome | latency | category | error codes | note',
         ];
 
         foreach (array_reverse($events) as $event) {
@@ -1045,16 +1199,22 @@ class Turnstile_Validator {
             $codes_str  = $codes_arr !== [] ? implode(', ', $codes_arr) : __('none', 'kitgenix-captcha-for-cloudflare-turnstile');
             $outcome    = (string) ($event['outcome'] ?? 'failure');
             $context    = self::get_event_category_and_note($codes_arr, $outcome);
+            $latency_ms = max(0, (int) ($event['latency_ms'] ?? 0));
+            $latency_str = $latency_ms > 0
+                /* translators: %d: siteverify round-trip time in milliseconds. */
+                ? sprintf(__('%dms', 'kitgenix-captcha-for-cloudflare-turnstile'), $latency_ms)
+                : __('n/a', 'kitgenix-captcha-for-cloudflare-turnstile');
 
             $integration_key   = (string) ($event['integration'] ?? 'general');
             $integration_label = (string) ($event['label'] ?? self::get_integration_label($integration_key));
 
             $lines[] = sprintf(
-                '%1$s | %2$s (%3$s) | %4$s | %5$s | %6$s | %7$s',
+                '%1$s | %2$s (%3$s) | %4$s | %5$s | %6$s | %7$s | %8$s',
                 $when ?: __('Unknown time', 'kitgenix-captcha-for-cloudflare-turnstile'),
                 $integration_label,
                 $integration_key,
                 $outcome,
+                $latency_str,
                 $context['category'],
                 $codes_str,
                 $context['note']
@@ -1136,11 +1296,11 @@ class Turnstile_Validator {
             $body['remoteip'] = $remoteip;
         }
 
-        $url  = apply_filters('kitgenix_turnstile_siteverify_url', 'https://challenges.cloudflare.com/turnstile/v0/siteverify');
+        $url  = apply_filters('kitgenix_turnstile_siteverify_url', 'https://challenges.cloudflare.com/turnstile/v0/siteverify'); // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- Cloudflare Turnstile's own official verification endpoint, the plugin's core third-party CAPTCHA service; there is no self-hosted alternative.
         $args = [
             'timeout'   => (int) apply_filters('kitgenix_turnstile_siteverify_timeout', 10),
             'headers'   => [
-                'User-Agent' => 'kitgenix-captcha-for-cloudflare-turnstile/1.0',
+                'User-Agent' => 'kitgenix-captcha-for-cloudflare-turnstile/' . ( defined( 'KitgenixCaptchaForCloudflareTurnstile_Version' ) ? (string) constant( 'KitgenixCaptchaForCloudflareTurnstile_Version' ) : '2.0.0' ),
                 'Accept'     => 'application/json',
             ],
             'body'      => $body,
@@ -1148,7 +1308,9 @@ class Turnstile_Validator {
         ];
         $args = apply_filters('kitgenix_turnstile_siteverify_http_args', $args, $token);
 
+        $request_start = microtime(true);
         $resp = wp_remote_post($url, $args);
+        self::$last_latency_ms = (int) round((microtime(true) - $request_start) * 1000);
 
         if ( ! $resp || is_wp_error($resp) ) {
             $msg = $resp && is_wp_error($resp) ? $resp->get_error_message() : 'no-response';
@@ -1253,6 +1415,7 @@ class Turnstile_Validator {
             'integration' => $integration,
             'outcome'     => $ok ? 'success' : 'failure',
             'codes'       => $codes,
+            'latency_ms'  => self::$last_latency_ms,
         ];
 
         if ( count($log) > self::RECENT_EVENT_LOG_LIMIT ) {

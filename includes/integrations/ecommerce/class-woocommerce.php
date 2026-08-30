@@ -53,7 +53,7 @@ class WooCommerce {
             // Use woocommerce_registration_errors filter so validation errors are added
             // to the WP_Error object that WooCommerce checks to block registration.
             // woocommerce_register_post + wc_add_notice() only queues a notice and does
-            // NOT prevent the account from being created — a critical bypass vector.
+            // NOT prevent the account from being created – a critical bypass vector.
             add_filter('woocommerce_registration_errors', [__CLASS__, 'validate_wc_registration_errors'], 9, 3);
         }
 
@@ -67,9 +67,23 @@ class WooCommerce {
             add_action('woocommerce_resetpassword_form',     [__CLASS__, 'render_widget']);
             add_action('woocommerce_reset_password_form',    [__CLASS__, 'render_widget']);
 
-            // Validation hook (server-side) when the reset is submitted.
+            // Validation hook (server-side) when the NEW password is submitted (2nd step).
             // Pass 2 args so we receive the WP_Error object and can add errors to it directly.
             add_action('woocommerce_reset_password_validation', [__CLASS__, 'validate_wc_reset_password'], 10, 2);
+
+            // The "request a reset email" step (1st step) does not have a WooCommerce-specific
+            // validation hook: WC_Form_Handler::process_lost_password() delegates straight to
+            // WordPress core's retrieve_password(), which fires the shared `lostpassword_post`
+            // action. Without this, the widget above renders and collects a token, but nothing
+            // ever verifies it – the reset email sends regardless of the Turnstile result. Only
+            // register our own handler here when the separate "WordPress Core → Lost password"
+            // toggle ISN'T already covering that same shared hook, to avoid validating the same
+            // submission twice; validate_wc_lostpassword_request() only ever acts on submissions
+            // that carry WooCommerce's own `wc_reset_password` marker field, so it never touches
+            // wp-login.php's native lost-password form.
+            if ( empty( $settings['enable_wordpress'] ) || empty( $settings['wp_lostpassword_form'] ) ) {
+                add_action( 'lostpassword_post', [ __CLASS__, 'validate_wc_lostpassword_request' ], 10, 2 );
+            }
         }
 
         /**
@@ -133,15 +147,13 @@ class WooCommerce {
         // Hidden token field (classic checkout + account forms will submit this).
         echo '<input type="hidden" name="cf-turnstile-response" value="" />';
 
-        // Container; global public JS renders Turnstile.
-         $normalized_size = Script_Handler::normalize_widget_size( (string) ( $settings['widget_size'] ?? 'normal' ) );
+        // Zero-JS honeypot trap (empty markup when the setting is off)
+        echo Script_Handler::render_honeypot_field(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
 
+        // Container; global public JS renders Turnstile.
         echo '<div class="cf-turnstile"'
        . ' data-hook="'      . esc_attr( $hook ) . '"'
-           . ' data-sitekey="'    . esc_attr($site_key) . '"'
-           . ' data-theme="'      . esc_attr($settings['theme']       ?? 'auto') . '"'
-            . ' data-size="'       . esc_attr( $normalized_size ) . '"'
-           . ' data-appearance="' . esc_attr($settings['appearance']  ?? 'always') . '"'
+           . Script_Handler::get_widget_data_attributes( 'woocommerce', $site_key ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
            . ' data-kitgenix-captcha-for-cloudflare-turnstile-owner="woocommerce"></div>';
     }
 
@@ -211,6 +223,35 @@ class WooCommerce {
     }
 
     /**
+     * Validate WooCommerce's "request a reset email" step (My Account → Lost password, 1st step).
+     *
+     * Hook: lostpassword_post (WP core action, 2 args) – this is the SAME hook wp-login.php's
+     * native lost-password form triggers, since WC_Form_Handler::process_lost_password()
+     * delegates to WordPress core's retrieve_password(). Gated on WooCommerce's own
+     * `wc_reset_password` marker field so this only ever validates submissions that actually
+     * came from WooCommerce's My Account form (the only place that field is rendered) –
+     * wp-login.php's native form is left to the separate WordPress Core integration/setting.
+     *
+     * @param \WP_Error      $errors
+     * @param \WP_User|mixed $user_data
+     */
+    public static function validate_wc_lostpassword_request( $errors, $user_data ) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- presence check only, used to scope this handler to WooCommerce's own form; WC's own nonce ('lost_password') and our Turnstile nonce are verified by is_valid_submission()/WC_Form_Handler itself.
+        if ( ! isset( $_POST['wc_reset_password'] ) ) {
+            return;
+        }
+        if ( ! ( $errors instanceof \WP_Error ) ) {
+            return;
+        }
+        if ( is_admin() && function_exists( 'current_user_can' ) && current_user_can( 'edit_users' ) ) {
+            return;
+        }
+        if ( ! Turnstile_Validator::is_valid_submission( true, 'woocommerce-account' ) ) {
+            $errors->add( 'turnstile_error', Turnstile_Validator::get_error_message( 'woocommerce' ) );
+        }
+    }
+
+    /**
      * After successful order creation in classic checkout, mark the Turnstile token as used.
      * This prevents the token from being reused even if the customer comes back to the thank you page.
      *
@@ -219,6 +260,24 @@ class WooCommerce {
     public static function mark_token_used_after_checkout($order_id) {
         // Mark the token used only on the thank you page (after successful payment/order)
         Turnstile_Validator::mark_submission_token_used();
+    }
+
+    /**
+     * Run (and memoize) the login Turnstile check once per request. WooCommerce fires both
+     * the modern `woocommerce_process_login_errors` and legacy `woocommerce_login_errors`
+     * filters for the same login attempt on some versions/themes; without this guard the
+     * second call would re-validate the SAME token, find it already marked used by the
+     * first (successful) call's replay protection, and incorrectly report a failure –
+     * blocking a legitimate login. One real check per request, reused by both filters.
+     *
+     * @return bool
+     */
+    private static function login_validation_result(): bool {
+        static $result = null;
+        if ( $result === null ) {
+            $result = Turnstile_Validator::is_valid_submission( true, 'woocommerce-login' );
+        }
+        return $result;
     }
 
     /**
@@ -231,7 +290,7 @@ class WooCommerce {
         if ( ! $errors instanceof \WP_Error ) {
             $errors = new \WP_Error();
         }
-        if ( ! Turnstile_Validator::is_valid_submission( true, 'woocommerce-login' ) ) {
+        if ( ! self::login_validation_result() ) {
             $errors->add( 'turnstile_error', Turnstile_Validator::get_error_message('woocommerce') );
         }
         return $errors;
@@ -247,7 +306,7 @@ class WooCommerce {
         if ( $error instanceof \WP_Error ) {
             return self::filter_login_errors($error, null);
         }
-        if ( ! Turnstile_Validator::is_valid_submission( true, 'woocommerce-login' ) ) {
+        if ( ! self::login_validation_result() ) {
             $msg  = '<strong>' . esc_html__( 'Error:', 'kitgenix-captcha-for-cloudflare-turnstile' ) . '</strong> ';
             $msg .= esc_html( Turnstile_Validator::get_error_message('woocommerce') );
             // Prepend our message to existing HTML/string.
@@ -284,14 +343,11 @@ class WooCommerce {
             return $content;
         }
 
-        // Build markup (no nonce here; Blocks POST via Store API, not a classic form).
-        $normalized_size = Script_Handler::normalize_widget_size( (string) ( $settings['widget_size'] ?? 'normal' ) );
-
+        // Build markup (no nonce/honeypot here; Blocks POST via the Store API's JSON
+        // body, not a classic form, so a hidden $_POST-based honeypot field would
+        // never reach the server and isn't rendered for this path).
         $injection  = '<div class="cf-turnstile"';
-        $injection .= ' data-sitekey="'    . esc_attr($site_key) . '"';
-        $injection .= ' data-theme="'      . esc_attr($settings['theme']       ?? 'auto') . '"';
-        $injection .= ' data-size="'       . esc_attr( $normalized_size ) . '"';
-        $injection .= ' data-appearance="' . esc_attr($settings['appearance']  ?? 'always') . '"';
+        $injection .= Script_Handler::get_widget_data_attributes( 'woocommerce_blocks', $site_key );
         $injection .= ' data-kitgenix-captcha-for-cloudflare-turnstile-owner="woocommerce-blocks"></div>';
 
         // Prefer inserting above the Place Order UI in Blocks checkout.

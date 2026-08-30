@@ -1,5 +1,5 @@
 /**
- * Kitgenix CAPTCHA for Cloudflare Turnstile — Admin UI
+ * Kitgenix CAPTCHA for Cloudflare Turnstile – Admin UI
  *
  * GUIDE: What this file does
  * -----------------------------------------
@@ -216,6 +216,22 @@
     /* ------------------------------------------------------------------
        End-to-end setup verification
     ------------------------------------------------------------------ */
+    var kitgenixNoticeIcons = {
+      success: '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M10 18.333A8.333 8.333 0 1 0 10 1.667a8.333 8.333 0 0 0 0 16.666Z" stroke="currentColor" stroke-width="1.4"/><path d="M6.667 10.417 8.75 12.5l4.583-4.583" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      warning: '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8.65 3.25c.6-1 2.1-1 2.7 0l6.6 11.05c.6 1.03-.14 2.33-1.35 2.33H3.4c-1.21 0-1.95-1.3-1.35-2.33L8.65 3.25Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M10 8v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="14" r=".9" fill="currentColor"/></svg>',
+      info: '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M10 18.333A8.333 8.333 0 1 0 10 1.667a8.333 8.333 0 0 0 0 16.666Z" stroke="currentColor" stroke-width="1.4"/><path d="M10 9v4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="10" cy="6.5" r=".9" fill="currentColor"/></svg>'
+    };
+
+    function setKitgenixSetupStatus($status, variant, bodyHtml){
+      if(!$status.length){ return; }
+      $status.removeClass('kitgenix-notice-success kitgenix-notice-warning kitgenix-notice-info').addClass('kitgenix-notice-' + variant);
+      var icon = kitgenixNoticeIcons[variant] || kitgenixNoticeIcons.info;
+      $status.html(
+        '<span class="kitgenix-notice-icon" aria-hidden="true">' + icon + '</span>' +
+        '<div class="kitgenix-notice-body">' + bodyHtml + '</div>'
+      );
+    }
+
     window.KitgenixCaptchaForCloudflareTurnstileAdminHandleToken = function(token){
       const cfg = window.KitgenixTurnstileAdmin || {};
       const $status = $('#kitgenix-captcha-for-cloudflare-turnstile-setup-status');
@@ -226,10 +242,7 @@
       }
 
       if(!cfg.ajax_url || !cfg.verify_setup_action || !cfg.verify_setup_nonce || !token){
-        if($status.length){
-          $status.removeClass('notice-success notice-info').addClass('notice-warning');
-          $status.html('<p><strong>Setup verification:</strong> Unable to run the server-side setup test from this screen.</p>');
-        }
+        setKitgenixSetupStatus($status, 'warning', '<p class="kitgenix-notice-text"><strong>Setup verification:</strong> Unable to run the server-side setup test from this screen.</p>');
         return;
       }
 
@@ -242,33 +255,24 @@
         const setupStatus = payload && payload.status ? payload.status : null;
 
         if(!setupStatus || !setupStatus.message){
-          if($status.length){
-            $status.removeClass('notice-success notice-info').addClass('notice-warning');
-            $status.html('<p><strong>Setup verification:</strong> The server response was incomplete.</p>');
-          }
+          setKitgenixSetupStatus($status, 'warning', '<p class="kitgenix-notice-text"><strong>Setup verification:</strong> The server response was incomplete.</p>');
           return;
         }
 
-        if($status.length){
-          $status.removeClass('notice-success notice-warning notice-info').addClass(setupStatus.verified ? 'notice-success' : 'notice-warning');
-          let html = '<p><strong>Setup verification:</strong> ' + $('<div/>').text(setupStatus.message).html() + '</p>';
-          if(setupStatus.checked_at){
-            const checkedAt = new Date(Number(setupStatus.checked_at) * 1000);
-            if(!Number.isNaN(checkedAt.getTime())){
-              html += '<p class="description">Last checked: ' + $('<div/>').text(checkedAt.toLocaleString()).html() + '</p>';
-            }
+        let html = '<p class="kitgenix-notice-text"><strong>Setup verification:</strong> ' + $('<div/>').text(setupStatus.message).html() + '</p>';
+        if(setupStatus.checked_at){
+          const checkedAt = new Date(Number(setupStatus.checked_at) * 1000);
+          if(!Number.isNaN(checkedAt.getTime())){
+            html += '<p class="description">Last checked: ' + $('<div/>').text(checkedAt.toLocaleString()).html() + '</p>';
           }
-          $status.html(html);
         }
+        setKitgenixSetupStatus($status, setupStatus.verified ? 'success' : 'warning', html);
 
         if($success.length){
           $success.text(setupStatus.verified ? 'Widget challenge completed and the server-side setup verification passed.' : 'Widget challenge completed, but the server-side setup verification did not pass.').show().attr('aria-hidden', 'false');
         }
       }).fail(function(){
-        if($status.length){
-          $status.removeClass('notice-success notice-info').addClass('notice-warning');
-          $status.html('<p><strong>Setup verification:</strong> Could not reach the WordPress AJAX endpoint to complete the server-side test.</p>');
-        }
+        setKitgenixSetupStatus($status, 'warning', '<p class="kitgenix-notice-text"><strong>Setup verification:</strong> Could not reach the WordPress AJAX endpoint to complete the server-side test.</p>');
       });
     };
 
@@ -366,6 +370,102 @@
         feedback();
       }
     });
+
+    /* ------------------------------------------------------------------
+       Settings import preview
+       Reads the chosen JSON file client-side (it never leaves the browser
+       until the admin actually submits) and shows what it contains before
+       Replace/Merge is committed server-side. This is a preview only –
+       Settings_Transfer::handle_import() remains the authoritative
+       validator/sanitizer, unchanged by anything shown here.
+    ------------------------------------------------------------------ */
+    const $importFile = $('#kitgenix_turnstile_import_file');
+    const $importPreview = $('#kitgenix-turnstile-import-preview');
+    const $importSubmit = $('#kitgenix-turnstile-import-submit');
+    if ($importFile.length && $importPreview.length) {
+      if ($importSubmit.length) $importSubmit.prop('disabled', true);
+
+      function renderImportError(message) {
+        $importPreview.attr('hidden', false).html(
+          '<div class="kitgenix-notice kitgenix-notice-error"><div class="kitgenix-notice-body"><p class="kitgenix-notice-text"></p></div></div>'
+        );
+        $importPreview.find('.kitgenix-notice-text').text(message);
+        if ($importSubmit.length) $importSubmit.prop('disabled', true);
+      }
+
+      function renderImportPreview(data) {
+        const pluginId = (data && typeof data.plugin === 'string') ? data.plugin : '';
+        const expectedId = 'kitgenix-captcha-for-cloudflare-turnstile';
+        const exportedAt = (data && typeof data.exported_at === 'string') ? data.exported_at : '';
+        const settings = (data && typeof data.settings === 'object' && data.settings) ? data.settings : (typeof data === 'object' ? data : {});
+        const keys = Object.keys(settings || {});
+        const hasSiteKey = Object.prototype.hasOwnProperty.call(settings, 'site_key');
+        const hasSecretKey = Object.prototype.hasOwnProperty.call(settings, 'secret_key');
+
+        const groups = [];
+        const groupChecks = [
+          { label: 'Integration toggles', test: function (k) { return k.indexOf('enable_') === 0; } },
+          { label: 'Per-integration modes', test: function (k) { return k.indexOf('mode_') === 0; } },
+          { label: 'Test Mode per Integration', test: function (k) { return k === 'test_mode_integrations'; } },
+          { label: 'IP / User-Agent whitelist', test: function (k) { return k.indexOf('whitelist') === 0; } },
+          { label: 'Trusted proxy configuration', test: function (k) { return k.indexOf('trusted_prox') === 0 || k === 'trust_proxy' || k === 'respect_proxy_headers'; } },
+          { label: 'Custom messages', test: function (k) { return k.indexOf('message') !== -1; } },
+          { label: 'Widget display settings', test: function (k) { return k === 'theme' || k === 'widget_size' || k === 'appearance' || k.indexOf('_override_') !== -1; } }
+        ];
+        groupChecks.forEach(function (g) {
+          if (keys.some(g.test)) groups.push(g.label);
+        });
+
+        let html = '<div class="kitgenix-notice ' + (pluginId && pluginId !== expectedId ? 'kitgenix-notice-warning' : 'kitgenix-notice-info') + '">';
+        html += '<div class="kitgenix-notice-body">';
+        html += '<p class="kitgenix-notice-title">Import preview</p>';
+        if (pluginId && pluginId !== expectedId) {
+          html += '<p class="kitgenix-notice-text">This file was exported from a different plugin/slug (<code>' + escapeHtml(pluginId) + '</code>). The import will likely be rejected on submit.</p>';
+        }
+        html += '<ul style="margin:6px 0 0 18px;list-style:disc;">';
+        html += '<li>' + keys.length + ' setting key(s) found' + (exportedAt ? ', exported ' + escapeHtml(exportedAt) : '') + '</li>';
+        html += '<li>Site Key / Secret Key in file: ' + (hasSiteKey || hasSecretKey ? 'yes – current keys on this site will be affected per the chosen mode' : 'no – this site’s current keys are kept either way') + '</li>';
+        html += '<li>Contains: ' + (groups.length ? escapeHtml(groups.join(', ')) : 'no recognizable settings groups') + '</li>';
+        html += '</ul>';
+        html += '</div></div>';
+
+        $importPreview.attr('hidden', false).html(html);
+        if ($importSubmit.length) $importSubmit.prop('disabled', false);
+      }
+
+      function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+      }
+
+      $importFile.on('change', function () {
+        const file = this.files && this.files[0];
+        if (!file) {
+          $importPreview.attr('hidden', true).empty();
+          if ($importSubmit.length) $importSubmit.prop('disabled', true);
+          return;
+        }
+        if (!window.FileReader) {
+          // No client-side preview available; let the server validate on submit.
+          if ($importSubmit.length) $importSubmit.prop('disabled', false);
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = function () {
+          try {
+            const parsed = JSON.parse(String(reader.result || ''));
+            renderImportPreview(parsed);
+          } catch (e) {
+            renderImportError('This file is not valid JSON, so it cannot be imported.');
+          }
+        };
+        reader.onerror = function () {
+          renderImportError('Could not read this file.');
+        };
+        reader.readAsText(file);
+      });
+    }
 
     } catch(err){ if(window.console) console.error('[Kitgenix Admin UI]', err); }
   });

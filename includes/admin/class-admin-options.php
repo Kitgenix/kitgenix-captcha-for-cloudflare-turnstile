@@ -2,6 +2,8 @@
 namespace KitgenixCaptchaForCloudflareTurnstile\Admin;
 
 use KitgenixCaptchaForCloudflareTurnstile\Core\Settings_Overrides;
+use KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler;
+use KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Validator;
 
 defined('ABSPATH') || exit;
 
@@ -136,6 +138,7 @@ class Admin_Options {
         $clean['enable_paidmembershipspro'] = !empty($settings['enable_paidmembershipspro']) ? 1 : 0;
         $clean['enable_ultimatemember']  = !empty($settings['enable_ultimatemember']) ? 1 : 0;
         $clean['enable_wpdiscuz']        = !empty($settings['enable_wpdiscuz']) ? 1 : 0;
+        $clean['enable_ninjaforms']      = !empty($settings['enable_ninjaforms']) ? 1 : 0;
 
         // --- Per-form toggles (WordPress Core) ---
         $clean['wp_login_form']        = !empty($settings['wp_login_form']) ? 1 : 0;
@@ -180,7 +183,7 @@ class Admin_Options {
         $appearance = $settings['appearance'] ?? 'always';
         $clean['appearance'] = \in_array($appearance, ['always', 'interaction-only'], true) ? $appearance : 'always';
 
-        $allowed_langs = ['auto','en','es','fr','de','it','pt','ru','zh-CN','zh-TW','ja','ko','ar','tr','pl','nl','sv','fi','da','no','cs','hu','el','he','uk','ro','bg','id','th','vi'];
+        $allowed_langs = Script_Handler::get_allowed_languages();
         $lang = \sanitize_text_field($settings['language'] ?? 'auto');
         $clean['language'] = \in_array($lang, $allowed_langs, true) ? $lang : 'auto';
 
@@ -198,8 +201,15 @@ class Admin_Options {
             ? (!empty($settings['replay_protection']) ? 1 : 0)
             : $replay_default;
 
-        // Dev mode (warn-only)
+        // Dev mode (warn-only) – global, applies to every integration.
         $clean['dev_mode_warn_only'] = !empty($settings['dev_mode_warn_only']) ? 1 : 0;
+
+        // Per-integration test mode: warn-only for specific integrations without putting the
+        // whole site into warn-only mode. Stored as a list of canonical integration keys (see
+        // Script_Handler::get_override_integration_keys()); anything not in that list is dropped.
+        $clean['test_mode_integrations'] = self::sanitize_integration_key_list(
+            $settings['test_mode_integrations'] ?? []
+        );
 
         // --- Messages ---
         $clean['error_message'] = \sanitize_text_field($settings['error_message'] ?? '');
@@ -252,6 +262,9 @@ class Admin_Options {
     $mode = \sanitize_text_field( $settings['mode_jetformbuilder'] ?? 'auto' );
     $clean['mode_jetformbuilder'] = \in_array( $mode, $allowed_modes, true ) ? $mode : 'auto';
 
+    $mode = \sanitize_text_field( $settings['mode_ninjaforms'] ?? 'auto' );
+    $clean['mode_ninjaforms'] = \in_array( $mode, $allowed_modes, true ) ? $mode : 'auto';
+
     // Non-form integrations
     $mode = \sanitize_text_field( $settings['mode_woocommerce'] ?? 'auto' );
     $clean['mode_woocommerce'] = \in_array( $mode, $allowed_modes, true ) ? $mode : 'auto';
@@ -268,7 +281,55 @@ class Admin_Options {
     $mode = \sanitize_text_field( $settings['mode_edd'] ?? 'auto' );
     $clean['mode_edd'] = \in_array( $mode, $allowed_modes, true ) ? $mode : 'auto';
 
+    // --- Per-integration widget overrides (theme/size/language) ---
+    // Empty string means "inherit the global Display setting" for that integration.
+    $allowed_themes = [ 'auto', 'light', 'dark' ];
+    $allowed_sizes  = [ 'normal', 'compact', 'flexible' ];
+    foreach ( \array_keys( Script_Handler::get_override_integration_keys() ) as $integration_key ) {
+        $theme_override = \sanitize_key( (string) ( $settings[ 'theme_override_' . $integration_key ] ?? '' ) );
+        $clean[ 'theme_override_' . $integration_key ] = \in_array( $theme_override, $allowed_themes, true ) ? $theme_override : '';
+
+        $size_override = \sanitize_key( (string) ( $settings[ 'size_override_' . $integration_key ] ?? '' ) );
+        if ( \in_array( $size_override, [ 'small', 'compact' ], true ) ) {
+            $size_override = 'compact';
+        } elseif ( 'flexible' !== $size_override && ! \in_array( $size_override, $allowed_sizes, true ) ) {
+            $size_override = '';
+        }
+        $clean[ 'size_override_' . $integration_key ] = \in_array( $size_override, $allowed_sizes, true ) ? $size_override : '';
+
+        $language_override = \sanitize_text_field( (string) ( $settings[ 'language_override_' . $integration_key ] ?? '' ) );
+        $clean[ 'language_override_' . $integration_key ] = \in_array( $language_override, $allowed_langs, true ) ? $language_override : '';
+    }
+
+    // --- Honeypot fallback field (zero-JS defense-in-depth) ---
+    $clean['honeypot_enabled'] = !empty($settings['honeypot_enabled']) ? 1 : 0;
+
     return $clean;
+    }
+
+    /**
+     * Sanitize a submitted list of integration keys (e.g. Test Mode per Integration)
+     * down to only the canonical keys Turnstile_Validator actually recognizes.
+     *
+     * @param mixed $raw
+     * @return string[]
+     */
+    private static function sanitize_integration_key_list( $raw ): array {
+        if ( ! is_array( $raw ) ) {
+            return [];
+        }
+
+        $allowed = Turnstile_Validator::get_all_integration_keys();
+        $clean   = [];
+
+        foreach ( $raw as $key ) {
+            $key = \sanitize_key( (string) $key );
+            if ( '' !== $key && in_array( $key, $allowed, true ) && ! in_array( $key, $clean, true ) ) {
+                $clean[] = $key;
+            }
+        }
+
+        return $clean;
     }
 
     /**

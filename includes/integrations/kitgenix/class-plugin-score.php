@@ -29,7 +29,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Turnstile integration for Kitgenix Plugin Score.
  *
- * Works entirely via output buffering and template_redirect interception —
+ * Works entirely via output buffering and template_redirect interception –
  * no modifications to the Plugin Score plugin or theme are required.
  *
  * Protects the custom login, register, and forgot-password forms rendered
@@ -39,7 +39,7 @@ defined( 'ABSPATH' ) || exit;
  *  1. On GET: ob_start() callback injects the Turnstile widget + CSRF nonce into
  *     the form HTML before each submit button, and injects any pending error message.
  *  2. On POST: template_redirect (priority 5) intercepts the form submission,
- *     validates the Turnstile token, and — on failure — redirects back to the page
+ *     validates the Turnstile token, and – on failure – redirects back to the page
  *     with an error stored in a short-lived transient before the page template runs.
  */
 class Plugin_Score {
@@ -131,7 +131,7 @@ class Plugin_Score {
 
 		// Validate Turnstile.
 		if ( Turnstile_Validator::is_valid_submission( true, $form['integration'] ) ) {
-			// Token is valid — let the template process the form normally.
+			// Token is valid – let the template process the form normally.
 			return;
 		}
 
@@ -204,14 +204,12 @@ class Plugin_Score {
 		$widget  = '<input type="hidden"'
 			. ' name="kitgenix_captcha_for_cloudflare_turnstile_nonce"'
 			. ' value="' . esc_attr( $nonce ) . '" />' . "\n";
+		$widget .= Script_Handler::render_honeypot_field() . "\n";
 		$widget .= '<div'
 			. ' id="cf-turnstile-' . esc_attr( $form['widget_id'] ) . '"'
 			. ' class="cf-turnstile"'
 			. ' style="' . esc_attr( $style ) . '"'
-			. ' data-sitekey="'    . esc_attr( $site_key ) . '"'
-			. ' data-theme="'      . esc_attr( (string) ( $settings['theme']       ?? 'auto' ) ) . '"'
-			. ' data-size="'       . esc_attr( Script_Handler::normalize_widget_size( (string) ( $settings['widget_size'] ?? 'normal' ) ) ) . '"'
-			. ' data-appearance="' . esc_attr( (string) ( $settings['appearance']  ?? 'always' ) ) . '"'
+			. Script_Handler::get_widget_data_attributes( 'kitgenix_plugin_score', $site_key )
 			. '></div>' . "\n";
 
 		// Inject before the submit button.

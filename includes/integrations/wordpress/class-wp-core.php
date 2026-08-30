@@ -120,6 +120,7 @@ class WP_Core {
 
         // Hidden token input
         echo '<input type="hidden" name="cf-turnstile-response" value="" />';
+        echo \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::render_honeypot_field(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
 
         // Left-align the widget for submit-area placement.
         $inline_style = (string) apply_filters(
@@ -128,11 +129,11 @@ class WP_Core {
             'comment_submit'
         );
 
+        // Product reviews share WooCommerce's widget overrides; standard comments use WordPress Core's.
+        $override_key = self::is_product_review_form( [], $args ) ? 'woocommerce' : 'wordpress';
+
         echo '<div id="cf-turnstile-comment" class="cf-turnstile" style="' . esc_attr( $inline_style ) . '"'
-           . ' data-sitekey="'    . esc_attr( $site_key ) . '"'
-           . ' data-theme="'      . esc_attr( $settings['theme']       ?? 'auto' ) . '"'
-           . ' data-size="'       . esc_attr( \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::normalize_widget_size( (string)( $settings['widget_size'] ?? 'normal' ) ) ) . '"'
-           . ' data-appearance="' . esc_attr( $settings['appearance']  ?? 'always' ) . '"'
+           . \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::get_widget_data_attributes( $override_key, $site_key ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
            . '></div>';
 
         $injection = ob_get_clean();
@@ -398,11 +399,9 @@ class WP_Core {
             'kitgenix_captcha_for_cloudflare_turnstile_nonce'
         );
         echo '<input type="hidden" name="cf-turnstile-response" value="" />';
+        echo \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::render_honeypot_field(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
         echo '<div id="' . esc_attr( $unique_id ) . '" class="cf-turnstile" style="' . esc_attr( $inline_style ) . '"'
-           . ' data-sitekey="'    . esc_attr( $site_key ) . '"'
-           . ' data-theme="'      . esc_attr( $settings['theme']       ?? 'auto' ) . '"'
-           . ' data-size="'       . esc_attr( \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::normalize_widget_size( (string)( $settings['widget_size'] ?? 'normal' ) ) ) . '"'
-           . ' data-appearance="' . esc_attr( $settings['appearance']  ?? 'always' ) . '"'
+           . \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::get_widget_data_attributes( 'wordpress', $site_key ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
            . '></div>';
 
         return (string) ob_get_clean();

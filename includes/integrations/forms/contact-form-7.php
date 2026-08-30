@@ -12,9 +12,7 @@ use function add_filter;
 use function esc_attr;
 use function esc_html__;
 use function get_option;
-use function sanitize_text_field;
 use function wp_nonce_field;
-use function wp_unslash;
 
 class ContactForm7 {
 
@@ -23,22 +21,25 @@ class ContactForm7 {
             return;
         }
         $settings = get_option('kitgenix_captcha_for_cloudflare_turnstile_settings', []);
-        // Respect per-integration mode: 'auto' (auto-inject) or 'shortcode' (manual placement only).
-        $mode = $settings['mode_cf7'] ?? 'auto';
-        if ( $mode === 'shortcode' ) {
-            // Shortcode-only mode: do not register auto-inject or validation hooks,
-            // but still allow shortcodes placed inside the CF7 form editor to render.
-            if ( function_exists( 'add_filter' ) ) {
-                add_filter( 'wpcf7_form_elements', [ __CLASS__, 'process_shortcodes_in_form' ], 9 );
-            }
-            return;
-        }
         if ( empty($settings['enable_cf7']) ) {
             return;
         }
 
-        // Inject widget before the submit control.
-        add_filter('wpcf7_form_elements', [__CLASS__, 'inject_turnstile'], 20, 1);
+        // Respect per-integration mode: 'auto' (auto-inject) or 'shortcode' (manual placement only).
+        // Mode only controls WHERE the widget is rendered – validation below is registered
+        // unconditionally either way, so an admin-placed [kitgenix_turnstile] shortcode is
+        // still enforced server-side, not just displayed.
+        $mode = $settings['mode_cf7'] ?? 'auto';
+        if ( $mode === 'shortcode' ) {
+            // Shortcode-only mode: don't auto-inject the widget, but still allow shortcodes
+            // placed inside the CF7 form editor to render.
+            if ( function_exists( 'add_filter' ) ) {
+                add_filter( 'wpcf7_form_elements', [ __CLASS__, 'process_shortcodes_in_form' ], 9 );
+            }
+        } else {
+            // Inject widget before the submit control.
+            add_filter('wpcf7_form_elements', [__CLASS__, 'inject_turnstile'], 20, 1);
+        }
 
         // Validate on submit (AJAX + non-AJAX).
         add_filter('wpcf7_validate', [__CLASS__, 'validate_turnstile'], 10, 2);
@@ -106,12 +107,12 @@ class ContactForm7 {
         // Hidden token field populated by public JS after challenge success.
         echo '<input type="hidden" name="cf-turnstile-response" value="" />';
 
+        // Zero-JS honeypot trap (empty markup when the setting is off)
+        echo \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::render_honeypot_field(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
+
         // Container only; global renderer loads/handles the Turnstile widget.
         echo '<div class="cf-turnstile"'
-           . ' data-sitekey="'    . esc_attr($site_key) . '"'
-           . ' data-theme="'      . esc_attr($settings['theme']       ?? 'auto') . '"'
-           . ' data-size="'       . esc_attr( \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::normalize_widget_size( (string)( $settings['widget_size'] ?? 'normal' ) ) ) . '"'
-           . ' data-appearance="' . esc_attr($settings['appearance']  ?? 'always') . '"'
+           . \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::get_widget_data_attributes( 'cf7', $site_key ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
            . ' data-kitgenix-captcha-for-cloudflare-turnstile-owner="cf7"></div>';
 
         $injection = ob_get_clean();
@@ -154,27 +155,16 @@ class ContactForm7 {
      * @return \WPCF7_Validation
      */
     public static function validate_turnstile($result, $contact_form) {
-        // Only validate on POST (sanitize access to $_SERVER).
-        if ( self::request_method() !== 'POST' ) {
-            return $result;
-        }
-
+        // Deliberately does NOT gate on $_SERVER['REQUEST_METHOD']: that value is
+        // attacker-controlled, and skipping validation for anything CF7's own submit
+        // handler still accepted would be a fail-open bypass. Validate unconditionally
+        // whenever CF7 invokes this filter.
         if ( ! Turnstile_Validator::is_valid_submission( true, 'cf7' ) ) {
             // Use a generic form-level error (no specific tag).
             $result->invalidate( 'form', Turnstile_Validator::get_error_message('cf7') );
         }
 
         return $result;
-    }
-
-    /**
-     * Sanitize request method (PHPCS-friendly).
-     */
-    private static function request_method(): string {
-        $method = isset($_SERVER['REQUEST_METHOD'])
-            ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) )
-            : '';
-        return strtoupper( $method ?: 'GET' );
     }
 }
 

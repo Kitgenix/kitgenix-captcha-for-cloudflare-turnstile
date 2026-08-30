@@ -43,7 +43,18 @@ class Easy_Digital_Downloads {
         if ( ! empty($settings['edd_login_form']) ) {
             // Inject widget into the login form markup so it appears above the submit button.
             add_filter('edd_login_form', [__CLASS__, 'filter_login_form']);
-            add_action('edd_process_login_form', [__CLASS__, 'validate_generic']);
+
+            // NOTE: EDD's own edd_process_login_form() calls edd_log_user_in() – and therefore
+            // wp_signon() – unconditionally, with NO edd_get_errors() check beforehand (only
+            // AFTER, to decide whether to redirect). `edd_process_login_form` is also a plain
+            // function name, not an action EDD ever fires – add_action() on it silently never
+            // runs. Calling edd_set_error() from any real EDD hook on this path cannot block
+            // the login. Instead, hook WordPress core's own `authenticate` filter (same
+            // mechanism wp_signon()/wp_authenticate() itself consults) so a WP_Error returned
+            // here is authoritative and wp_signon() cannot proceed to log the user in – scoped
+            // to EDD's own login form via its dedicated 'edd_login_nonce' field so this never
+            // interferes with wp-login.php's native form or other integrations.
+            add_filter('authenticate', [__CLASS__, 'validate_login'], 30, 3);
         }
 
         // Registration form (EDD register form and checkout registration area).
@@ -100,12 +111,12 @@ class Easy_Digital_Downloads {
         // Hidden token field consumed by Turnstile_Validator::is_valid_submission().
         echo '<input type="hidden" name="cf-turnstile-response" value="" />';
 
+        // Zero-JS honeypot trap (empty markup when the setting is off)
+        echo \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::render_honeypot_field(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
+
         echo '<div class="cf-turnstile"'
            . ' data-hook="'      . esc_attr($hook) . '"'
-           . ' data-sitekey="'    . esc_attr($site_key) . '"'
-           . ' data-theme="'      . esc_attr($settings['theme']       ?? 'auto') . '"'
-           . ' data-size="'       . esc_attr( \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::normalize_widget_size( (string)( $settings['widget_size'] ?? 'normal' ) ) ) . '"'
-           . ' data-appearance="' . esc_attr($settings['appearance']  ?? 'always') . '"'
+           . \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::get_widget_data_attributes( 'edd', $site_key ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
            . ' data-kitgenix-captcha-for-cloudflare-turnstile-owner="edd"></div>';
     }
 
@@ -173,7 +184,34 @@ class Easy_Digital_Downloads {
     }
 
     /**
-     * Generic validator for login/register/profile flows.
+     * Validate Turnstile for EDD's own login form via WordPress core's `authenticate` filter.
+     *
+     * Scoped to EDD's login submission via its own dedicated 'edd_login_nonce' field (the
+     * exact nonce field edd_process_login_form() itself checks) so this never affects
+     * wp-login.php's native form or unrelated authenticate-filter callbacks. Returning a
+     * WP_Error here is authoritative: wp_signon()/wp_authenticate() will not treat the
+     * login as successful, and edd_log_user_in() checks `$user instanceof WP_User` before
+     * setting the current user – a WP_Error fails that check, so the login is genuinely
+     * blocked, not just logged as an error.
+     *
+     * @param \WP_User|\WP_Error|null $user
+     * @param string                  $username
+     * @param string                  $password
+     * @return \WP_User|\WP_Error|null
+     */
+    public static function validate_login( $user, $username, $password ) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- presence check only, used to scope this handler to EDD's own login form; the nonce value itself is verified by is_valid_submission() (our nonce) and by edd_process_login_form() (EDD's own 'edd-login-nonce' action).
+        if ( ! isset( $_POST['edd_login_nonce'] ) ) {
+            return $user;
+        }
+        if ( ! Turnstile_Validator::is_valid_submission( true, 'edd-account' ) ) {
+            return new \WP_Error( 'turnstile_failed', esc_html( Turnstile_Validator::get_error_message( 'edd' ) ) );
+        }
+        return $user;
+    }
+
+    /**
+     * Generic validator for register/profile flows.
      */
     public static function validate_generic() {
         if ( ! Turnstile_Validator::is_valid_submission( true, 'edd-account' ) ) {

@@ -8,13 +8,13 @@
  * Author Support URI: https://kitgenix.com/plugins/kitgenix-captcha-for-cloudflare-turnstile/support
  * Feature Request URI: https://kitgenix.com/plugins/kitgenix-captcha-for-cloudflare-turnstile/feature-request
  * Description:       Add Cloudflare Turnstile CAPTCHA to WordPress, WooCommerce, Elementor, and popular form plugins with privacy-first server-side verification.
- * Version:           1.1.3
+ * Version:           2.0.0
  * Requires at least: 6.0
- * Tested up to:      7.0
+ * Tested up to:      7.1
  * Requires PHP:      8.1
  * Author:            Kitgenix
  * Author URI:        https://kitgenix.com/
- * Donate link:       https://buymeacoffee.com/kitgenix
+ * Donate link:       https://www.paypal.com/donate/?hosted_button_id=KALF36K6JJ9B2
  * License:           GPLv3 or later
  * License URI:       https://www.gnu.org/licenses/gpl-3.0.html
  * Text Domain:       kitgenix-captcha-for-cloudflare-turnstile
@@ -31,8 +31,8 @@ if ( ! function_exists( 'kitgenix_get_admin_menu_icon' ) ) {
     function kitgenix_get_admin_menu_icon( string $plugin_file ): string {
         $plugin_dir = dirname( $plugin_file ) . '/';
         $icon_paths = [
-            $plugin_dir . 'assets/images/logos/kitgenix-wordpress-admin-icon.svg',
-            $plugin_dir . 'assets/images/logos/kitgenix-custom-wordpress-admin-icon.svg',
+            $plugin_dir . 'assets/images/logos/kitgenix-wordpress-admin-menu-favicon.svg',
+            $plugin_dir . 'assets/images/logos/kitgenix-black-favicon.svg',
         ];
 
         foreach ( $icon_paths as $icon_path ) {
@@ -85,6 +85,44 @@ if ( ! function_exists( 'kitgenix_ensure_admin_menu' ) ) {
 
 // Ensure the shared Kitgenix top-level menu exists.
 add_action( 'admin_menu', 'kitgenix_ensure_admin_menu', 5 );
+
+if ( ! function_exists( 'kitgenix_captcha_for_cloudflare_turnstile_register_icons' ) ) {
+    /**
+     * Register this plugin's brand icon with WordPress 7.1's Icon Registration API
+     * (wp_register_icon_collection()/wp_register_icon()), so it is discoverable via
+     * wp_get_icon('kitgenix/mark') and the /wp-json/wp/v2/icons REST endpoint.
+     *
+     * This is unrelated to the wp-admin top-level menu icon (add_menu_page()'s
+     * icon_url argument still only accepts a dashicon class, a URL, or a base64
+     * data: URI – the Icon API does not feed into it), so the menu icon above keeps
+     * using kitgenix_get_admin_menu_icon() as before, on every supported WP version.
+     */
+    function kitgenix_captcha_for_cloudflare_turnstile_register_icons(): void {
+        if ( ! function_exists( 'wp_register_icon_collection' ) || ! function_exists( 'wp_register_icon' ) ) {
+            return;
+        }
+
+        wp_register_icon_collection(
+            'kitgenix',
+            [
+                'label'       => __( 'Kitgenix', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+                'description' => __( 'Brand icons shared across Kitgenix plugins.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            ]
+        );
+
+        $icon_path = dirname( __FILE__ ) . '/assets/images/logos/kitgenix-wordpress-admin-menu-favicon.svg';
+        if ( is_readable( $icon_path ) ) {
+            wp_register_icon(
+                'kitgenix/mark',
+                [
+                    'label'     => __( 'Kitgenix', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+                    'file_path' => $icon_path,
+                ]
+            );
+        }
+    }
+}
+add_action( 'init', 'kitgenix_captcha_for_cloudflare_turnstile_register_icons' );
 
 if ( ! function_exists( 'kitgenix_hub_get_wporg_active_installs' ) ) {
     /**
@@ -403,11 +441,19 @@ if ( ! function_exists( 'kitgenix_render_admin_page' ) ) {
             ],
             [
                 'id'       => 'multistore',
-                'name'     => __( 'MultiStore Sync', 'kitgenix-captcha-for-cloudflare-turnstile' ),
-                'slug'     => 'kitgenix-multistore-sync',
-                'file'     => 'kitgenix-multistore-sync/kitgenix-multistore-sync.php',
-                'page'     => 'kitgenix-multistore-sync',
+                'name'     => __( 'MultiStore for WooCommerce', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+                'slug'     => 'kitgenix-multistore-sync-for-woocommerce',
+                'file'     => 'kitgenix-multistore-sync-for-woocommerce/kitgenix-multistore-sync-for-woocommerce.php',
+                'page'     => 'kitgenix-multistore-sync-for-woocommerce',
                 'requires' => __( 'Sync WooCommerce products, prices, media, and metadata between multiple stores with a secure master-child architecture.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            ],
+            [
+                'id'       => 'image_optimizer',
+                'name'     => __( 'Image Optimizer', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+                'slug'     => 'kitgenix-image-optimizer',
+                'file'     => 'kitgenix-image-optimizer/kitgenix-image-optimizer.php',
+                'page'     => 'kitgenix-image-optimizer',
+                'requires' => __( 'Optimize, compress, and resize images in your WordPress media library with automatic on-upload processing and bulk optimization tools.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
             ],
             [
                 'id'       => 'affiliate',
@@ -428,15 +474,17 @@ if ( ! function_exists( 'kitgenix_render_admin_page' ) ) {
         $wporg_active_installs = kitgenix_hub_get_wporg_active_installs( $slugs );
         $wporg_ratings        = kitgenix_hub_get_wporg_ratings( $slugs );
         $wporg_media          = kitgenix_hub_get_wporg_media( $slugs );
-        $logo_url             = plugins_url( 'assets/images/logos/kitgenix-favicon-purple.svg', __FILE__ );
+        $logo_url             = plugins_url( 'assets/images/logos/kitgenix-primary-favicon.svg', __FILE__ );
 
-        echo '<div class="wrap plugin-install-php kitgenix-hub-wrap">'
-            . '<div class="kitgenix-hub">'
+        echo '<div class="wrap kitgenix-admin-app plugin-install-php">'
             . '<div class="kitgenix-hub-header">'
             . '<div class="kitgenix-hub-brand">'
-            . '<img class="kitgenix-hub-logo" src="' . esc_url( $logo_url ) . '" alt="' . esc_attr__( 'Kitgenix', 'kitgenix-captcha-for-cloudflare-turnstile' ) . '" />'
+            . '<span class="kitgenix-topbar-brand">'
+            . '<img class="kitgenix-hub-logo" src="' . esc_url( $logo_url ) . '" alt="' . esc_attr__( 'Kitgenix', 'kitgenix-captcha-for-cloudflare-turnstile' ) . '" width="30" height="30" />'
+            . '</span>'
+            . '<span class="kitgenix-topbar-divider" aria-hidden="true"></span>'
             . '<div class="kitgenix-hub-brand-copy">'
-            . '<h1 class="kitgenix-hub-title">' . esc_html__( 'Discover and manage every Kitgenix plugin from one screen.', 'kitgenix-captcha-for-cloudflare-turnstile' ) . '</h1>'
+            . '<h1 class="kitgenix-hub-title">' . esc_html__( 'Kitgenix', 'kitgenix-captcha-for-cloudflare-turnstile' ) . '</h1>'
             . '<p class="kitgenix-hub-description">' . esc_html__( 'Install, activate, open, and review Kitgenix plugins.', 'kitgenix-captcha-for-cloudflare-turnstile' ) . '</p>'
             . '</div>'
             . '</div>'
@@ -453,6 +501,8 @@ if ( ! function_exists( 'kitgenix_render_admin_page' ) ) {
             . '<a href="https://github.com/kitgenix" target="_blank" rel="noopener noreferrer" aria-label="GitHub" title="GitHub"><img src="' . esc_url( plugins_url( 'assets/images/social-media/github-solid.svg', __FILE__ ) ) . '" alt="" width="13" height="13" aria-hidden="true" /><span class="screen-reader-text">GitHub</span></a>'
             . '</div>'
             . '</div>'
+            . '<div class="kitgenix-hub-wrap">'
+            . '<div class="kitgenix-hub">'
             . '<div class="kitgenix-hub-grid">';
         foreach ( $plugins as $p ) {
             $id = (string) $p['id'];
@@ -567,7 +617,7 @@ if ( ! function_exists( 'kitgenix_render_admin_page' ) ) {
                 . '</div>';
         }
 
-        echo '</div></div></div>';
+        echo '</div></div></div></div>';
     }
 }
 
@@ -577,15 +627,15 @@ if ( ! function_exists( 'kitgenix_turnstile_register_admin_ui_style' ) ) {
             return;
         }
 
-        if ( function_exists( 'wp_style_is' ) && wp_style_is( 'kitgenix-admin-ui', 'registered' ) ) {
+        if ( function_exists( 'wp_style_is' ) && wp_style_is( 'kitgenix-captcha-for-cloudflare-turnstile-admin-ui', 'registered' ) ) {
             return;
         }
 
-        $ver      = defined( 'KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION' ) ? (string) KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION : '1.1.3';
+        $ver      = defined( 'KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION' ) ? (string) KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION : '2.0.0';
         $css_file = plugin_dir_path( __FILE__ ) . 'assets/css/kitgenix-admin-ui.css';
         $css_ver  = file_exists( $css_file ) ? (string) filemtime( $css_file ) : $ver;
 
-        wp_register_style( 'kitgenix-admin-ui', plugins_url( 'assets/css/kitgenix-admin-ui.css', __FILE__ ), [], $css_ver );
+        wp_register_style( 'kitgenix-captcha-for-cloudflare-turnstile-admin-ui', plugins_url( 'assets/css/kitgenix-admin-ui.css', __FILE__ ), [], $css_ver );
     }
 }
 add_action( 'admin_enqueue_scripts', 'kitgenix_turnstile_register_admin_ui_style', 5 );
@@ -608,12 +658,12 @@ function kitgenix_turnstile_enqueue_hub_assets( string $hook_suffix ): void {
         return;
     }
 
-    $ver = defined( 'KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION' ) ? (string) KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION : '1.1.3';
+    $ver = defined( 'KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION' ) ? (string) KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION : '2.0.0';
     wp_register_style( 'kitgenix-hub', plugins_url( 'assets/css/kitgenix-hub.css', __FILE__ ), [], $ver );
     wp_enqueue_style( 'kitgenix-hub' );
 
-    wp_register_style( 'kitgenix-admin-ui', plugins_url( 'assets/css/kitgenix-admin-ui.css', __FILE__ ), [], $ver );
-    wp_enqueue_style( 'kitgenix-admin-ui' );
+    wp_register_style( 'kitgenix-captcha-for-cloudflare-turnstile-admin-ui', plugins_url( 'assets/css/kitgenix-admin-ui.css', __FILE__ ), [], $ver );
+    wp_enqueue_style( 'kitgenix-captcha-for-cloudflare-turnstile-admin-ui' );
 }
 add_action( 'admin_enqueue_scripts', 'kitgenix_turnstile_enqueue_hub_assets' );
 
@@ -621,7 +671,7 @@ add_action( 'admin_enqueue_scripts', 'kitgenix_turnstile_enqueue_hub_assets' );
  * Constants (guarded)
  */
 if ( ! defined('KitgenixCaptchaForCloudflareTurnstile_Version') ) {
-    define('KitgenixCaptchaForCloudflareTurnstile_Version', '1.1.3');
+    define('KitgenixCaptchaForCloudflareTurnstile_Version', '2.0.0');
 }
 
 // Also expose a conventional uppercase version constant for shared Kitgenix hub assets.
@@ -643,6 +693,23 @@ if ( ! defined('KitgenixCaptchaForCloudflareTurnstile_Includes_Path') ) {
 if ( ! defined('KitgenixCaptchaForCloudflareTurnstile_Assets_URL') ) {
     define('KitgenixCaptchaForCloudflareTurnstile_Assets_URL', KitgenixCaptchaForCloudflareTurnstile_URL . 'assets/');
 }
+
+/**
+ * Declare WooCommerce High-Performance Order Storage (HPOS / custom_order_tables)
+ * compatibility. The only place this plugin touches order data is
+ * WooCommerce::annotate_blocks_order(), which reads/writes exclusively through WC_Order's
+ * own CRUD API (update_meta_data()/save()) – never direct $wpdb/postmeta queries – so it
+ * works unmodified whether orders are stored in wp_posts or HPOS's custom tables.
+ */
+add_action( 'before_woocommerce_init', function () {
+    if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+        \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility(
+            'custom_order_tables',
+            __FILE__,
+            true
+        );
+    }
+} );
 
 /**
  * Requires

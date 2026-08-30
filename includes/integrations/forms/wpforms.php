@@ -127,12 +127,12 @@ class WPForms {
         // Hidden input for the token; public JS will populate it on successful challenge.
         echo '<input type="hidden" name="cf-turnstile-response" value="" />';
 
+        // Zero-JS honeypot trap (empty markup when the setting is off)
+        echo \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::render_honeypot_field(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
+
         // Turnstile container (global renderer will render the widget)
         echo '<div class="cf-turnstile"'
-           . ' data-sitekey="'    . esc_attr( $site_key ) . '"'
-           . ' data-theme="'      . esc_attr( $settings['theme']       ?? 'auto' ) . '"'
-           . ' data-size="'       . esc_attr( \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::normalize_widget_size( (string)( $settings['widget_size'] ?? 'normal' ) ) ) . '"'
-           . ' data-appearance="' . esc_attr( $settings['appearance']  ?? 'always' ) . '"'
+           . \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::get_widget_data_attributes( 'wpforms', $site_key ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
            . ' data-kitgenix-captcha-for-cloudflare-turnstile-owner="wpforms"'
            . '></div>';
 
@@ -155,8 +155,14 @@ class WPForms {
         if ( ! Turnstile_Validator::is_valid_submission( true, 'wpforms' ) ) {
             $form_id = isset( $form_data['id'] ) ? (int) $form_data['id'] : 0;
             if ( $form_id && function_exists( 'wpforms' ) ) {
-                // Use a keyed footer error so WPForms displays it reliably.
-                wpforms()->process->errors[ $form_id ]['footer']['turnstile'] =
+                // WPForms' documented error convention is a plain string under the 'header'
+                // key (e.g. $errors[$form_id]['header'] = 'message') – this array still being
+                // non-empty is what actually halts processing, so the previous nested
+                // ['footer']['turnstile'] => string shape didn't allow a bypass, but WPForms'
+                // template echoes $errors['header']/['footer'] expecting a string, not an
+                // array, which would throw a PHP "array to string conversion" notice and show
+                // the literal text "Array" instead of the real message.
+                wpforms()->process->errors[ $form_id ]['header'] =
                     Turnstile_Validator::get_error_message( 'wpforms' );
             }
         }

@@ -69,7 +69,7 @@ class Script_Handler {
                 continue;
             }
             $src = isset( $obj->src ) ? (string) $obj->src : '';
-            if ( $src && stripos( $src, 'challenges.cloudflare.com/turnstile/v0/api.js' ) !== false ) {
+            if ( $src && stripos( $src, 'challenges.cloudflare.com/turnstile/v0/api.js' ) !== false ) { // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- Cloudflare Turnstile's own official widget domain, the plugin's core third-party CAPTCHA service; there is no self-hosted alternative.
                 $matches[ $handle ] = $src;
             }
         }
@@ -216,7 +216,7 @@ class Script_Handler {
         // --- Cloudflare Turnstile -----------------------------------------------------------
         // Only enqueue api.js if we have a site key and the request isn't whitelisted.
         if ( $site_key && ! $whitelisted ) {
-            $url = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=kitgenix_captcha_for_cloudflare_turnstile_TurnstileOnLoad';
+            $url = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=kitgenix_captcha_for_cloudflare_turnstile_TurnstileOnLoad'; // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- Cloudflare Turnstile's own official widget script, the plugin's core third-party CAPTCHA service; there is no self-hosted alternative.
             if ( ! empty( $settings['language'] ) && 'auto' !== $settings['language'] ) {
                 $url .= '&hl=' . rawurlencode( (string) $settings['language'] );
             }
@@ -366,19 +366,28 @@ class Script_Handler {
         $base_path = \trailingslashit( constant( 'KitgenixCaptchaForCloudflareTurnstile_Path' ) );
         $base_url  = constant( 'KitgenixCaptchaForCloudflareTurnstile_Assets_URL' );
 
-        \wp_enqueue_style( 'kitgenix-admin-ui' );
+        \wp_enqueue_style( 'kitgenix-captcha-for-cloudflare-turnstile-admin-ui' );
 
         $admin_css_path = $base_path . 'assets/css/admin.css';
         $admin_js_path  = $base_path . 'assets/js/admin.js';
+        $ui_js_path     = $base_path . 'assets/js/kitgenix-admin-tabs.js';
 
-        $css_ver = \file_exists( $admin_css_path ) ? \filemtime( $admin_css_path ) : constant( 'KitgenixCaptchaForCloudflareTurnstile_Version' );
-        $js_ver  = \file_exists( $admin_js_path )  ? \filemtime( $admin_js_path )  : constant( 'KitgenixCaptchaForCloudflareTurnstile_Version' );
+        $css_ver   = \file_exists( $admin_css_path ) ? \filemtime( $admin_css_path ) : constant( 'KitgenixCaptchaForCloudflareTurnstile_Version' );
+        $js_ver    = \file_exists( $admin_js_path )  ? \filemtime( $admin_js_path )  : constant( 'KitgenixCaptchaForCloudflareTurnstile_Version' );
+        $ui_js_ver = \file_exists( $ui_js_path )     ? \filemtime( $ui_js_path )     : constant( 'KitgenixCaptchaForCloudflareTurnstile_Version' );
 
         \wp_enqueue_style(
             'kitgenix-captcha-for-cloudflare-turnstile-admin',
             $base_url . 'css/admin.css',
-            [],
+            [ 'kitgenix-captcha-for-cloudflare-turnstile-admin-ui' ],
             $css_ver
+        );
+        \wp_enqueue_script(
+            'kitgenix-admin-tabs',
+            $base_url . 'js/kitgenix-admin-tabs.js',
+            [],
+            $ui_js_ver,
+            true
         );
         \wp_enqueue_script(
             'kitgenix-captcha-for-cloudflare-turnstile-admin',
@@ -453,7 +462,7 @@ class Script_Handler {
      */
     public static function resource_hints( $hints, $rel ) {
         if ( $rel === 'preconnect' || $rel === 'dns-prefetch' ) {
-            $origin = 'https://challenges.cloudflare.com';
+            $origin = 'https://challenges.cloudflare.com'; // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- Cloudflare Turnstile's own official widget domain, the plugin's core third-party CAPTCHA service; there is no self-hosted alternative.
             if ( ! in_array( $origin, $hints, true ) ) {
                 $hints[] = $origin;
             }
@@ -467,5 +476,214 @@ class Script_Handler {
     private static function get_settings() {
         $opts = \get_option( 'kitgenix_captcha_for_cloudflare_turnstile_settings', [] );
         return \is_array( $opts ) ? $opts : [];
+    }
+
+    /**
+     * Canonical Turnstile-supported language codes. Kept as the single source of truth;
+     * Admin_Options::sanitize_settings_payload() validates against this same list.
+     *
+     * @return string[]
+     */
+    public static function get_allowed_languages(): array {
+        return [ 'auto', 'en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'zh-CN', 'zh-TW', 'ja', 'ko', 'ar', 'tr', 'pl', 'nl', 'sv', 'fi', 'da', 'no', 'cs', 'hu', 'el', 'he', 'uk', 'ro', 'bg', 'id', 'th', 'vi' ];
+    }
+
+    /**
+     * Canonical integration keys eligible for per-integration widget overrides
+     * (theme/size/language) and for Display → "Per-integration widget overrides".
+     * Keys mirror the existing `enable_{key}` settings suffixes.
+     *
+     * @return array<string,string> key => human-readable label
+     */
+    public static function get_override_integration_keys(): array {
+        return [
+            'wordpress'            => \__( 'WordPress Core (login, register, lost password, comments)', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            'woocommerce'          => \__( 'WooCommerce (checkout, reviews, account)', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            'woocommerce_blocks'   => \__( 'WooCommerce Blocks (Checkout block)', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            'edd'                  => \__( 'Easy Digital Downloads', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            'elementor'            => \__( 'Elementor Forms', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            'wpforms'              => \__( 'WPForms', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            'fluentforms'          => \__( 'Fluent Forms', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            'gravityforms'         => \__( 'Gravity Forms', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            'cf7'                  => \__( 'Contact Form 7', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            'formidableforms'      => \__( 'Formidable Forms', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            'forminator'           => \__( 'Forminator', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            'jetpackforms'         => \__( 'Jetpack Forms', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            'kadenceforms'         => \__( 'Kadence Forms', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            'jetformbuilder'       => \__( 'JetFormBuilder', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            'ninjaforms'           => \__( 'Ninja Forms', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            'buddypress'           => \__( 'BuddyPress', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            'bbpress'              => \__( 'bbPress', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            'mailpoet'             => \__( 'MailPoet', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            'memberpress'          => \__( 'MemberPress', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            'paidmembershipspro'   => \__( 'Paid Memberships Pro', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            'ultimatemember'       => \__( 'Ultimate Member', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            'wpdiscuz'             => \__( 'wpDiscuz', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            'kitgenix_plugin_score' => \__( 'Kitgenix Plugin Score', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+        ];
+    }
+
+    /**
+     * Map each fine-grained `Turnstile_Validator` analytics/diagnostics integration
+     * key (e.g. 'woocommerce-checkout', 'kgps-login') to the coarser top-level
+     * integration key used by settings (`enable_{key}` / `mode_{key}`) and by
+     * get_override_integration_keys() above. Used by the admin Integration Health
+     * Matrix to show each analytics row's actual Enabled/Mode state without
+     * duplicating a second, drift-prone copy of this list.
+     *
+     * @return array<string,string> analytics integration key => top-level settings key
+     */
+    public static function get_integration_analytics_key_map(): array {
+        return [
+            'bbpress'                       => 'bbpress',
+            'buddypress'                    => 'buddypress',
+            'cf7'                            => 'cf7',
+            'edd'                            => 'edd',
+            'edd-account'                    => 'edd',
+            'edd-checkout'                   => 'edd',
+            'elementor'                      => 'elementor',
+            'fluentforms'                    => 'fluentforms',
+            'formidableforms'                => 'formidableforms',
+            'forminator'                     => 'forminator',
+            'gravityforms'                   => 'gravityforms',
+            'jetformbuilder'                 => 'jetformbuilder',
+            'jetpackforms'                   => 'jetpackforms',
+            'kadenceforms'                   => 'kadenceforms',
+            'kgps-login'                     => 'kitgenix_plugin_score',
+            'kgps-register'                  => 'kitgenix_plugin_score',
+            'kgps-lostpassword'              => 'kitgenix_plugin_score',
+            'mailpoet'                       => 'mailpoet',
+            'ninjaforms'                     => 'ninjaforms',
+            'memberpress'                    => 'memberpress',
+            'memberpress-signup'             => 'memberpress',
+            'paid-memberships-pro'           => 'paidmembershipspro',
+            'paid-memberships-pro-checkout'  => 'paidmembershipspro',
+            'ultimate-member'                => 'ultimatemember',
+            'woocommerce'                    => 'woocommerce',
+            'woocommerce-account'            => 'woocommerce',
+            'woocommerce-checkout'           => 'woocommerce',
+            'woocommerce-login'              => 'woocommerce',
+            'woocommerce-review'             => 'woocommerce',
+            'woocommerce-blocks-checkout'    => 'woocommerce_blocks',
+            'wordpress-comment'              => 'wordpress',
+            'wordpress-login'                => 'wordpress',
+            'wordpress-lostpassword'         => 'wordpress',
+            'wordpress-register'             => 'wordpress',
+            'wordpress-resetpassword'        => 'wordpress',
+            'wp-core'                        => 'wordpress',
+            'wpdiscuz'                       => 'wpdiscuz',
+            'wpforms'                        => 'wpforms',
+        ];
+    }
+
+    /**
+     * Resolve an analytics integration key's Enabled + Mode state from settings,
+     * via get_integration_analytics_key_map() above.
+     *
+     * @return array{group:string,enabled:bool,mode:string} mode is '' when this
+     *         integration has no auto/shortcode mode setting (e.g. WordPress core).
+     */
+    public static function get_integration_protection_state( string $analytics_key ): array {
+        $map   = self::get_integration_analytics_key_map();
+        $group = $map[ $analytics_key ] ?? '';
+        if ( '' === $group ) {
+            return [ 'group' => '', 'enabled' => false, 'mode' => '' ];
+        }
+
+        $settings = self::get_settings();
+        $enabled  = ! empty( $settings[ 'enable_' . $group ] );
+        $mode     = isset( $settings[ 'mode_' . $group ] ) ? (string) $settings[ 'mode_' . $group ] : '';
+
+        return [ 'group' => $group, 'enabled' => $enabled, 'mode' => $mode ];
+    }
+
+    /**
+     * Resolve the effective theme for one integration: its own override when set,
+     * otherwise the global Display → Theme setting.
+     */
+    public static function get_effective_theme( string $key ): string {
+        $settings = self::get_settings();
+        $override = isset( $settings[ 'theme_override_' . $key ] ) ? (string) $settings[ 'theme_override_' . $key ] : '';
+        if ( \in_array( $override, [ 'auto', 'light', 'dark' ], true ) ) {
+            return $override;
+        }
+
+        $theme = (string) ( $settings['theme'] ?? 'auto' );
+        return \in_array( $theme, [ 'auto', 'light', 'dark' ], true ) ? $theme : 'auto';
+    }
+
+    /**
+     * Resolve the effective widget size for one integration: its own override when set,
+     * otherwise the global Display → Widget Size setting.
+     */
+    public static function get_effective_size( string $key ): string {
+        $settings = self::get_settings();
+        $override = isset( $settings[ 'size_override_' . $key ] ) ? (string) $settings[ 'size_override_' . $key ] : '';
+        if ( '' !== $override ) {
+            return self::normalize_widget_size( $override );
+        }
+
+        return self::normalize_widget_size( (string) ( $settings['widget_size'] ?? 'normal' ) );
+    }
+
+    /**
+     * Resolve the effective widget appearance (not per-integration overridable today,
+     * kept here so callers have one place to read every widget attribute from).
+     */
+    public static function get_effective_appearance(): string {
+        $settings   = self::get_settings();
+        $appearance = (string) ( $settings['appearance'] ?? 'always' );
+        return \in_array( $appearance, [ 'always', 'interaction-only' ], true ) ? $appearance : 'always';
+    }
+
+    /**
+     * Resolve an active per-integration language override, or '' when the integration
+     * should keep relying on the global `hl` script parameter (no `data-language` attribute).
+     */
+    public static function get_effective_language_override( string $key ): string {
+        $settings = self::get_settings();
+        $override = isset( $settings[ 'language_override_' . $key ] ) ? (string) $settings[ 'language_override_' . $key ] : '';
+        return \in_array( $override, self::get_allowed_languages(), true ) ? $override : '';
+    }
+
+    /**
+     * Render the zero-JS honeypot trap field (empty string when the setting is off).
+     * A real visitor never sees or fills this field (see public.css); a filled value
+     * means whatever submitted the form skipped rendering/JS entirely, so
+     * Turnstile_Validator::is_valid_submission()/validate_token() reject it before
+     * even contacting Cloudflare. Integrations echo this next to their widget markup.
+     */
+    public static function render_honeypot_field(): string {
+        $settings = self::get_settings();
+        if ( empty( $settings['honeypot_enabled'] ) ) {
+            return '';
+        }
+
+        $field_name = Turnstile_Validator::honeypot_field_name();
+
+        return '<div class="kitgenix-captcha-for-cloudflare-turnstile-hp-wrap" aria-hidden="true">'
+            . '<label for="' . \esc_attr( $field_name ) . '">' . \esc_html__( 'Leave this field empty', 'kitgenix-captcha-for-cloudflare-turnstile' ) . '</label>'
+            . '<input type="text" name="' . \esc_attr( $field_name ) . '" id="' . \esc_attr( $field_name ) . '" value="" tabindex="-1" autocomplete="off" />'
+            . '</div>';
+    }
+
+    /**
+     * Build the shared data-sitekey/data-theme/data-size/data-appearance (+ optional
+     * data-language) attribute string used by every integration's Turnstile widget markup.
+     * Centralizing this means a per-integration override (or any future shared attribute)
+     * only needs to change here instead of in every integration file.
+     */
+    public static function get_widget_data_attributes( string $key, string $site_key ): string {
+        $attrs = ' data-sitekey="' . \esc_attr( $site_key ) . '"'
+            . ' data-theme="' . \esc_attr( self::get_effective_theme( $key ) ) . '"'
+            . ' data-size="' . \esc_attr( self::get_effective_size( $key ) ) . '"'
+            . ' data-appearance="' . \esc_attr( self::get_effective_appearance() ) . '"';
+
+        $language_override = self::get_effective_language_override( $key );
+        if ( '' !== $language_override ) {
+            $attrs .= ' data-language="' . \esc_attr( $language_override ) . '"';
+        }
+
+        return $attrs;
     }
 }

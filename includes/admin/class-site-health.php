@@ -44,7 +44,7 @@ class Site_Health {
             if ($status !== 'critical') { $status = 'recommended'; }
             $list = '';
             foreach ($dupe['matches'] as $handle => $src) {
-                $list .= '<li><code>' . \esc_html((string) $handle) . '</code> — <span style="word-break:break-all;">' . \esc_html((string) $src) . '</span></li>';
+                $list .= '<li><code>' . \esc_html((string) $handle) . '</code> – <span style="word-break:break-all;">' . \esc_html((string) $src) . '</span></li>';
             }
             $issues[] =
                 '<li>' .
@@ -102,7 +102,7 @@ class Site_Health {
                 }
             }
         } else {
-            // No data yet — likely no submissions since install.
+            // No data yet – likely no submissions since install.
             $issues[] = '<li>' . \esc_html__('No verification data yet (no recent submissions).', 'kitgenix-captcha-for-cloudflare-turnstile') . '</li>';
         }
 
@@ -113,7 +113,7 @@ class Site_Health {
                 \esc_html__('A caching/optimization plugin is active and may be delaying or deferring the Turnstile API, which can break rendering.', 'kitgenix-captcha-for-cloudflare-turnstile') .
                 ' ' .
                 \esc_html__('Ensure the following URL is excluded from “Delay JS” / “Defer JS” / “Combine JS” rules:', 'kitgenix-captcha-for-cloudflare-turnstile') .
-                '<br><code>' . \esc_html('https://challenges.cloudflare.com/turnstile/v0/api.js') . '</code>' .
+                '<br><code>' . \esc_html('https://challenges.cloudflare.com/turnstile/v0/api.js') . '</code>' . // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- Plain-text mention of Cloudflare's own widget script URL in Site Health troubleshooting copy, not an offloaded asset.
                 '</li>';
         }
 
@@ -137,6 +137,101 @@ class Site_Health {
             ],
             'test'        => 'kitgenix_turnstile_readiness',
         ];
+    }
+
+    /**
+     * Compute the discrete, actionable protection-health states for the admin
+     * dashboard (distinct from test_readiness()'s single good/recommended/critical
+     * verdict for WP Site Health – a dashboard card can show several states at
+     * once, e.g. both "High failure rate" and "Duplicate Turnstile loader").
+     *
+     * "Widget not detected" is deliberately NOT one of these states: nothing in
+     * this plugin currently observes whether the Turnstile widget actually
+     * mounted client-side (that would need a new frontend beacon), so a claim
+     * of "not detected" here would be a guess dressed up as a finding. "No
+     * recent traffic" is the honest, verifiable state for that symptom.
+     *
+     * @return array<int,array{key:string,label:string,severity:string,description:string}>
+     */
+    public static function get_protection_states(): array {
+        $settings = \get_option( 'kitgenix_captcha_for_cloudflare_turnstile_settings', [] );
+        $site_key = (string) ( $settings['site_key'] ?? '' );
+        $secret   = (string) ( $settings['secret_key'] ?? '' );
+
+        $states = [];
+
+        if ( '' === $site_key || '' === $secret ) {
+            $states[] = [
+                'key'         => 'configuration_problem',
+                'label'       => \__( 'Configuration problem', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+                'severity'    => 'critical',
+                'description' => \__( 'Site Key and/or Secret Key is missing, so Turnstile cannot verify anything yet.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            ];
+        }
+
+        $dupe = Script_Handler::get_duplicate_loader_detection();
+        if ( ! empty( $dupe['matches'] ) && \is_array( $dupe['matches'] ) ) {
+            $states[] = [
+                'key'         => 'duplicate_loader',
+                'label'       => \__( 'Duplicate Turnstile loader', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+                'severity'    => 'warning',
+                'description' => \__( 'Another plugin or theme is also loading the Cloudflare Turnstile API script, which can break rendering or callbacks.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            ];
+        }
+
+        foreach ( Turnstile_Validator::get_active_alerts() as $alert ) {
+            $alert_key = (string) ( $alert['key'] ?? '' );
+            if ( 'blocked-siteverify-requests' === $alert_key ) {
+                $states[] = [
+                    'key'         => 'cloudflare_unavailable',
+                    'label'       => \__( 'Cloudflare unavailable', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+                    'severity'    => 'critical',
+                    'description' => (string) ( $alert['message'] ?? '' ),
+                ];
+            } elseif ( 'verification-failure-spike' === $alert_key ) {
+                $states[] = [
+                    'key'         => 'high_failure_rate',
+                    'label'       => \__( 'High failure rate', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+                    'severity'    => 'warning',
+                    'description' => (string) ( $alert['message'] ?? '' ),
+                ];
+            }
+        }
+
+        // "No recent traffic": at least one integration is enabled and both keys
+        // are configured, yet not a single check has ever been recorded. Only
+        // meaningful once configuration is actually complete – an unconfigured
+        // site already gets 'configuration_problem' above instead.
+        if ( '' !== $site_key && '' !== $secret ) {
+            $any_integration_enabled = false;
+            foreach ( $settings as $setting_key => $setting_value ) {
+                if ( 0 === strpos( (string) $setting_key, 'enable_' ) && ! empty( $setting_value ) ) {
+                    $any_integration_enabled = true;
+                    break;
+                }
+            }
+
+            $metrics = Turnstile_Validator::get_metrics_snapshot();
+            if ( $any_integration_enabled && (int) ( $metrics['checks_total'] ?? 0 ) === 0 ) {
+                $states[] = [
+                    'key'         => 'no_recent_traffic',
+                    'label'       => \__( 'No recent traffic', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+                    'severity'    => 'info',
+                    'description' => \__( 'At least one integration is enabled, but no Turnstile checks have been recorded yet. Visit a protected page to confirm the widget renders and submits correctly.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+                ];
+            }
+        }
+
+        if ( empty( $states ) ) {
+            $states[] = [
+                'key'         => 'healthy',
+                'label'       => \__( 'Healthy', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+                'severity'    => 'good',
+                'description' => \__( 'No configuration problems, verification failures, or duplicate loaders currently detected.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            ];
+        }
+
+        return $states;
     }
 
     /**

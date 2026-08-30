@@ -69,8 +69,15 @@ final class BbPress {
 		add_action( 'bbp_new_reply_pre_extras', [ __CLASS__, 'validate_submission' ] );
 
 		// Validate before forum is created.
+		// NOTE: bbp_new_forum_pre_extras alone is sufficient and fires before wp_insert_post().
+		// bbp_new_forum_pre_insert is NOT a plain action like the others above – bbPress uses
+		// it as a filter to build the $forum_data array passed to wp_insert_post(). Hooking it
+		// with add_action() (an alias for add_filter()) meant validate_submission()'s return
+		// value (always null, since the method returns void) replaced $forum_data on every
+		// forum submission. Combined with this method running twice per request via both
+		// hooks, the second call also always saw the token as already-replayed (marked used by
+		// the first call), so this incorrectly wp_die()'d on every legitimate forum creation.
 		add_action( 'bbp_new_forum_pre_extras', [ __CLASS__, 'validate_submission' ] );
-		add_action( 'bbp_new_forum_pre_insert', [ __CLASS__, 'validate_submission' ] );
 	}
 
 	/**
@@ -149,6 +156,7 @@ final class BbPress {
 
 		// Hidden input that your JS can populate with the Turnstile token if needed.
 		echo '<input type="hidden" name="cf-turnstile-response" value="" />';
+		echo \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::render_honeypot_field(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
 
 		// Allow inline style to be customized per context.
 		$inline_style = (string) apply_filters(
@@ -160,10 +168,7 @@ final class BbPress {
 		$classes = trim( 'cf-turnstile ' . $extra_class );
 
 		echo '<div class="' . esc_attr( $classes ) . '" style="' . esc_attr( $inline_style ) . '"'
-			. ' data-sitekey="'    . esc_attr( $site_key ) . '"'
-			. ' data-theme="'      . esc_attr( $settings['theme']       ?? 'auto' ) . '"'
-			. ' data-size="'       . esc_attr( \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::normalize_widget_size( (string)( $settings['widget_size'] ?? 'normal' ) ) ) . '"'
-			. ' data-appearance="' . esc_attr( $settings['appearance']  ?? 'always' ) . '"'
+			. \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::get_widget_data_attributes( 'bbpress', $site_key ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
 			. '></div>';
 	}
 

@@ -83,12 +83,12 @@ class Elementor {
         // Hidden input for token (add elementor-field class for serialization)
         echo '<input type="hidden" name="cf-turnstile-response" value="" class="elementor-field" />';
 
+        // Zero-JS honeypot trap (empty markup when the setting is off)
+        echo \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::render_honeypot_field(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
+
         // Placeholder Turnstile container (NO rendering done here)
         echo '<div class="cf-turnstile"'
-           . ' data-sitekey="'   . esc_attr( $site_key ) . '"'
-           . ' data-theme="'     . esc_attr( $settings['theme']       ?? 'auto' ) . '"'
-           . ' data-size="'      . esc_attr( \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::normalize_widget_size( (string)( $settings['widget_size'] ?? 'normal' ) ) ) . '"'
-           . ' data-appearance="'. esc_attr( $settings['appearance']  ?? 'always' ) . '"'
+           . \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::get_widget_data_attributes( 'elementor', $site_key ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
            . ' data-kitgenix-captcha-for-cloudflare-turnstile-owner="elementor"'
            . '></div>';
         
@@ -102,9 +102,13 @@ class Elementor {
     public static function fallback_inject_widget() {
         $settings   = get_option( 'kitgenix_captcha_for_cloudflare_turnstile_settings', [] );
         $site_key   = $settings['site_key'] ?? '';
-        $theme      = $settings['theme'] ?? 'auto';
-        $size       = \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::normalize_widget_size( (string)( $settings['widget_size'] ?? 'normal' ) );
-        $appearance = $settings['appearance'] ?? 'always';
+        $theme      = \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::get_effective_theme( 'elementor' );
+        $size       = \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::get_effective_size( 'elementor' );
+        $appearance = \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::get_effective_appearance();
+        $language_override = \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::get_effective_language_override( 'elementor' );
+        $honeypot_field_name = ! empty( $settings['honeypot_enabled'] )
+            ? \KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Validator::honeypot_field_name()
+            : '';
 
         // Respect per-integration mode: if shortcode-only is selected for Elementor, skip the fallback injection.
         $mode = $settings['mode_elementor'] ?? 'auto';
@@ -166,6 +170,19 @@ class Elementor {
                             . 'form.appendChild(input);'
                         . '}'
 
+                        . ( $honeypot_field_name !== ''
+                            ? 'if (!form.querySelector(' . wp_json_encode( 'input[name="' . $honeypot_field_name . '"]' ) . ')) {'
+                                . 'var hp = document.createElement("input");'
+                                . 'hp.type = "text";'
+                                . 'hp.name = ' . wp_json_encode( $honeypot_field_name ) . ';'
+                                . 'hp.tabIndex = -1;'
+                                . 'hp.autocomplete = "off";'
+                                . 'hp.setAttribute("aria-hidden", "true");'
+                                . 'hp.className = "kitgenix-captcha-for-cloudflare-turnstile-hp-wrap";'
+                                . 'form.appendChild(hp);'
+                            . '}'
+                            : '' )
+
                         . 'var submitGroup = wrapper.querySelector(".elementor-field-type-submit");'
                         . 'if (!submitGroup) return;'
 
@@ -175,6 +192,7 @@ class Elementor {
                         . 'container.setAttribute("data-theme", ' . wp_json_encode( (string) $theme ) . ');'
                         . 'container.setAttribute("data-size", ' . wp_json_encode( (string) $size ) . ');'
                         . 'container.setAttribute("data-appearance", ' . wp_json_encode( (string) $appearance ) . ');'
+                        . ( $language_override !== '' ? 'container.setAttribute("data-language", ' . wp_json_encode( $language_override ) . ');' : '' )
                         . 'container.setAttribute("data-kitgenix-captcha-for-cloudflare-turnstile-owner", "elementor");'
                         . 'submitGroup.parentNode.insertBefore(container, submitGroup);'
 
@@ -191,9 +209,10 @@ class Elementor {
      * Server-side validation for Elementor Pro forms (AJAX).
      */
     public static function validate_turnstile( $record, $ajax_handler ) {
-        if ( self::request_method() !== 'POST' ) {
-            return;
-        }
+        // Deliberately does NOT gate on $_SERVER['REQUEST_METHOD']: that value is
+        // attacker-controlled and skipping validation for anything Elementor's own
+        // AJAX handler still accepted as a submission would be a fail-open bypass.
+        // Validate unconditionally whenever Elementor invokes this hook.
 
         // FIXED: Try multiple methods to get the token - POST first (most reliable), then Elementor record, then header
         $token = '';
@@ -246,7 +265,7 @@ class Elementor {
         }
 
         // If a nonce was provided by the form, verify it. If verification fails,
-        // treat the submission as invalid. If no nonce is present, continue —
+        // treat the submission as invalid. If no nonce is present, continue –
         // Elementor may rely on its own CSRF protections in some flows.
         if ( $nonce !== '' ) {
             if ( function_exists( 'wp_verify_nonce' ) && ! wp_verify_nonce( $nonce, 'kitgenix_captcha_for_cloudflare_turnstile_action' ) ) {
@@ -281,7 +300,7 @@ class Elementor {
 
         global $post;
         if ( empty( $post ) || ! is_object( $post ) ) {
-            // No global post context — skip to avoid Elementor reading null post properties.
+            // No global post context – skip to avoid Elementor reading null post properties.
             return;
         }
 
@@ -292,16 +311,6 @@ class Elementor {
             KitgenixCaptchaForCloudflareTurnstile_Version,
             true
         );
-    }
-
-    /**
-     * Get sanitized request method to satisfy PHPCS for $_SERVER access.
-     */
-    private static function request_method(): string {
-        $method = isset( $_SERVER['REQUEST_METHOD'] )
-            ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) )
-            : '';
-        return strtoupper( $method ?: 'GET' );
     }
 }
 

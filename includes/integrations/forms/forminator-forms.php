@@ -81,7 +81,7 @@ class ForminatorForms {
         }
         $site_key = $settings['site_key'] ?? '';
         if ( ! $site_key ) {
-            // Do not sanitize/alter original markup here—let Forminator output as-is.
+            // Do not sanitize/alter original markup here–let Forminator output as-is.
             return $html;
         }
 
@@ -119,12 +119,12 @@ class ForminatorForms {
         // Hidden token field (populated by global Turnstile callback).
         echo '<input type="hidden" name="cf-turnstile-response" value="" />';
 
+        // Zero-JS honeypot trap (empty markup when the setting is off)
+        echo \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::render_honeypot_field(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
+
         echo '<div class="kitgenix-captcha-for-cloudflare-turnstile-forminator-wrapper">';
         echo '<div id="' . esc_attr( $widget_id ) . '" class="cf-turnstile"'
-            . ' data-sitekey="'    . esc_attr( $site_key ) . '"'
-            . ' data-theme="'      . esc_attr( $settings['theme']       ?? 'auto' ) . '"'
-            . ' data-size="'       . esc_attr( \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::normalize_widget_size( (string)( $settings['widget_size'] ?? 'normal' ) ) ) . '"'
-            . ' data-appearance="' . esc_attr( $settings['appearance']  ?? 'always' ) . '"'
+            . \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::get_widget_data_attributes( 'forminator', $site_key ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
             . ' data-kitgenix-captcha-for-cloudflare-turnstile-owner="forminator"></div>';
 
         // Keep the original submit button markup verbatim.
@@ -153,7 +153,7 @@ class ForminatorForms {
             }
         }
 
-        // Return widget + submit markup (no wp_kses_post — Forminator controls sanitization).
+        // Return widget + submit markup (no wp_kses_post – Forminator controls sanitization).
         return $widget;
     }
 

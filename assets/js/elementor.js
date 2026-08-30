@@ -101,21 +101,43 @@
     document.querySelectorAll('.elementor-popup-modal .elementor-form-fields-wrapper').forEach(ensureContainer);
   });
 
-  // GUIDE: After Elementor AJAX submit, clear hidden token (public.js will reset/re-render)
+  // GUIDE: After a successful Elementor AJAX submit, clear the hidden token and
+  // collapse the widget for that form only (layout tidy-up). This must NEVER run
+  // on a failed/validation-error response – doing so would hide the widget right
+  // after public.js's error handler resets it for a retry, leaving the visitor
+  // with an error message and no way to re-verify. success is read from the
+  // response body itself (Elementor's send_form action uses wp_send_json_*),
+  // never inferred from "the request merely completed".
   $(document).on('ajaxComplete', function (_e, xhr, settings) {
     var data = settings && settings.data ? String(settings.data) : '';
-    if (data.indexOf('action=elementor_pro_forms_send_form') !== -1) {
-      $('.elementor-form').each(function () {
-        var $form = $(this);
-        var $input = $form.find('input[name="cf-turnstile-response"]');
-        if ($input.length) $input.val('');
-        // Collapse and hide containers to eliminate any layout gap after success
-        $form.find('.cf-turnstile').each(function(){
-          this.classList.add('kitgenix-ts-collapsed');
-          this.classList.add('kitgenix-ts-hide');
-        });
-      });
+    if (data.indexOf('action=elementor_pro_forms_send_form') === -1) return;
+
+    var succeeded = false;
+    try {
+      var json = xhr && xhr.responseJSON ? xhr.responseJSON : JSON.parse(xhr && xhr.responseText);
+      succeeded = !!(json && json.success);
+    } catch (e) {
+      succeeded = false;
     }
+    if (!succeeded) return;
+
+    // ajaxComplete does not tell us which form issued the request, and a page
+    // (or a popup) can have more than one Elementor form. Scope by state instead
+    // of guessing the DOM node: only a form that actually held a solved token
+    // could have produced this successful submission, so only those are touched.
+    // A second, untouched form on the same page still has an empty token and is
+    // left alone.
+    $('.elementor-form').each(function () {
+      var $form = $(this);
+      var $input = $form.find('input[name="cf-turnstile-response"]');
+      if (!$input.length || !$input.val()) return;
+      $input.val('');
+      // Collapse and hide containers to eliminate any layout gap after success
+      $form.find('.cf-turnstile').each(function(){
+        this.classList.add('kitgenix-ts-collapsed');
+        this.classList.add('kitgenix-ts-hide');
+      });
+    });
   });
 
   // Optional: also react when Elementor initializes frontend (covers some lazy loads)

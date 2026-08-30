@@ -1,5 +1,5 @@
 /**
- * Kitgenix CAPTCHA for Cloudflare Turnstile — Public script
+ * Kitgenix CAPTCHA for Cloudflare Turnstile – Public script
  *
  * WHAT THIS DOES (high level)
  * ---------------------------------------------------------
@@ -12,13 +12,13 @@
  *
  * WHERE IT RENDERS (GUIDES)
  * ---------------------------------------------------------
- * - WordPress core forms (login/register/lost password/comment) — via `.cf-turnstile` containers output by PHP.
- * - Elementor forms/popups — see `renderElementorWidgets()` and elementor event hooks below.
- * - Gravity Forms — `renderGravityFormsWidgets()` + `gform_post_render`.
- * - Formidable Forms — `renderFormidableFormsWidgets()` + frm events.
- * - Forminator — `renderForminatorWidgets()` + forminator events.
- * - Jetpack Forms — `renderJetpackFormsWidgets()` after their form HTML loads.
- * - Kadence Blocks Forms — `renderKadenceFormsWidgets()` when Kadence is present.
+ * - WordPress core forms (login/register/lost password/comment) – via `.cf-turnstile` containers output by PHP.
+ * - Elementor forms/popups – see `renderElementorWidgets()` and elementor event hooks below.
+ * - Gravity Forms – `renderGravityFormsWidgets()` + `gform_post_render`.
+ * - Formidable Forms – `renderFormidableFormsWidgets()` + frm events.
+ * - Forminator – `renderForminatorWidgets()` + forminator events.
+ * - Jetpack Forms – `renderJetpackFormsWidgets()` after their form HTML loads.
+ * - Kadence Blocks Forms – `renderKadenceFormsWidgets()` when Kadence is present.
  *
  * IMPORTANT INTEGRATION HOOK
  * ---------------------------------------------------------
@@ -260,6 +260,7 @@
           theme: el.getAttribute('data-theme') || this.config.theme || 'auto',
           size: this.sizeMap[el.getAttribute('data-size')] || 'normal',
           appearance: el.getAttribute('data-appearance') || this.config.appearance || 'always',
+          language: el.getAttribute('data-language') || undefined,
           callback: (token) => {
             this._clearInlineMsg(el);
             this.setResponseInput(el, token);
@@ -344,7 +345,7 @@
         el.addEventListener('touchstart', bump, { passive: true });
       });
 
-      // GUIDE: Contact Form 7 — ensure submit is re-enabled after CF7 finalizes
+      // GUIDE: Contact Form 7 – ensure submit is re-enabled after CF7 finalizes
       if (typeof wpcf7 !== 'undefined') {
         document.querySelectorAll('.wpcf7 form').forEach(function(form) {
           form.addEventListener('wpcf7submit', function() {
@@ -387,7 +388,7 @@
     },
 
     /**
-     * GUIDE: Elementor — render inside Elementor forms & popups (AJAX and dynamic UIs).
+     * GUIDE: Elementor – render inside Elementor forms & popups (AJAX and dynamic UIs).
      */
     renderElementorWidgets: function () {
       if (typeof turnstile === 'undefined') return;
@@ -407,6 +408,7 @@
           theme: el.getAttribute('data-theme') || this.config.theme || 'auto',
           size: this.sizeMap[el.getAttribute('data-size')] || 'normal',
           appearance: el.getAttribute('data-appearance') || this.config.appearance || 'always',
+          language: el.getAttribute('data-language') || undefined,
           callback: (token) => {
             this._clearInlineMsg(el);
             this.setResponseInput(el, token);
@@ -443,7 +445,7 @@
     },
 
     /**
-     * GUIDE: Gravity Forms — render on `.gform_wrapper` markup and refresh after GF re-renders.
+     * GUIDE: Gravity Forms – render on `.gform_wrapper` markup and refresh after GF re-renders.
      */
     renderGravityFormsWidgets: function () {
       if (typeof turnstile === 'undefined') return;
@@ -456,6 +458,7 @@
           theme: el.getAttribute('data-theme') || this.config.theme || 'auto',
           size: this.sizeMap[el.getAttribute('data-size')] || 'normal',
           appearance: el.getAttribute('data-appearance') || this.config.appearance || 'always',
+          language: el.getAttribute('data-language') || undefined,
           callback: (token) => {
             this._clearInlineMsg(el);
             this.setResponseInput(el, token);
@@ -491,7 +494,7 @@
     },
 
     /**
-     * GUIDE: Formidable Forms — render near `.frm_form_fields`.
+     * GUIDE: Formidable Forms – render near `.frm_form_fields`.
      */
     renderFormidableFormsWidgets: function () {
       if (typeof turnstile === 'undefined') return;
@@ -504,6 +507,7 @@
           theme: el.getAttribute('data-theme') || this.config.theme || 'auto',
           size: this.sizeMap[el.getAttribute('data-size')] || 'normal',
           appearance: el.getAttribute('data-appearance') || this.config.appearance || 'always',
+          language: el.getAttribute('data-language') || undefined,
           callback: (token) => {
             this._clearInlineMsg(el);
             this.setResponseInput(el, token);
@@ -539,7 +543,7 @@
     },
 
     /**
-     * GUIDE: Forminator — render inside `.forminator-custom-form`.
+     * GUIDE: Forminator – render inside `.forminator-custom-form`.
      */
     renderForminatorWidgets: function () {
       if (typeof turnstile === 'undefined') return;
@@ -556,6 +560,7 @@
           theme: el.getAttribute('data-theme') || this.config.theme || 'auto',
           size: this.sizeMap[el.getAttribute('data-size')] || 'normal',
           appearance: el.getAttribute('data-appearance') || this.config.appearance || 'always',
+          language: el.getAttribute('data-language') || undefined,
           callback: (token) => {
             this._clearInlineMsg(el);
             this.setResponseInput(el, token);
@@ -599,7 +604,7 @@
     },
 
     /**
-     * GUIDE: Jetpack Forms — render inside `.contact-form`.
+     * GUIDE: Jetpack Forms – render inside `.contact-form`.
      */
     renderJetpackFormsWidgets: function () {
       if (typeof turnstile === 'undefined') return;
@@ -612,6 +617,7 @@
           theme: el.getAttribute('data-theme') || this.config.theme || 'auto',
           size: this.sizeMap[el.getAttribute('data-size')] || 'normal',
           appearance: el.getAttribute('data-appearance') || this.config.appearance || 'always',
+          language: el.getAttribute('data-language') || undefined,
           callback: (token) => {
             this._clearInlineMsg(el);
             this.setResponseInput(el, token);
@@ -653,7 +659,7 @@
       });
     },
 
-    // Kadence — defined only when Kadence Forms likely present
+    // Kadence – defined only when Kadence Forms likely present
     renderKadenceFormsWidgets: null,
 
     /**
@@ -883,7 +889,7 @@
     },
 
     /**
-     * GUIDE: Fluent Forms — render and reset on their AJAX lifecycle events.
+     * GUIDE: Fluent Forms – render and reset on their AJAX lifecycle events.
      */
     fluentFormsIntegration: function () {
       function renderFluentTurnstile() {
@@ -907,6 +913,7 @@
             theme: el.getAttribute('data-theme') || KitgenixCaptchaForCloudflareTurnstile.config.theme || 'auto',
             size: KitgenixCaptchaForCloudflareTurnstile.sizeMap[el.getAttribute('data-size')] || 'normal',
             appearance: el.getAttribute('data-appearance') || KitgenixCaptchaForCloudflareTurnstile.config.appearance || 'always',
+          language: el.getAttribute('data-language') || undefined,
             callback: function (token) { 
               KitgenixCaptchaForCloudflareTurnstile._clearInlineMsg(el);
               KitgenixCaptchaForCloudflareTurnstile.setResponseInput(el, token); 
@@ -976,7 +983,7 @@
     }
   };
 
-  // Kadence — keep parity, add freshness
+  // Kadence – keep parity, add freshness
   var kadenceEnabled = typeof Kadence_Blocks_Form !== 'undefined' || (window.KitgenixCaptchaForCloudflareTurnstileConfig && window.KitgenixCaptchaForCloudflareTurnstileConfig.enable_kadenceforms);
   if (kadenceEnabled) {
     KitgenixCaptchaForCloudflareTurnstile.renderKadenceFormsWidgets = function () {
@@ -991,6 +998,7 @@
           theme: el.getAttribute('data-theme') || KitgenixCaptchaForCloudflareTurnstile.config.theme || 'auto',
           size: KitgenixCaptchaForCloudflareTurnstile.sizeMap[el.getAttribute('data-size')] || 'normal',
           appearance: el.getAttribute('data-appearance') || KitgenixCaptchaForCloudflareTurnstile.config.appearance || 'always',
+          language: el.getAttribute('data-language') || undefined,
           callback: function (token) { 
             KitgenixCaptchaForCloudflareTurnstile._clearInlineMsg(el);
             KitgenixCaptchaForCloudflareTurnstile.setResponseInput(el, token); 
@@ -1055,7 +1063,7 @@
     });
   });
 
-  // GUIDE: Gravity Forms — after re-render (which happens on validation errors), reset & re-render
+  // GUIDE: Gravity Forms – after re-render (which happens on validation errors), reset & re-render
   $(document).on('gform_post_render', function () {
     setTimeout(() => { 
       try { 
@@ -1069,7 +1077,7 @@
     }, 100);
   });
 
-  // GUIDE: Forminator — reset on error hooks
+  // GUIDE: Forminator – reset on error hooks
   $(document).on('forminator:form:submit:error forminator:form:submit:failed', function(e){
     const $form = $(e.target).closest('form');
     $form.find('.cf-turnstile').each(function () {
@@ -1077,14 +1085,14 @@
     });
   });
 
-  // GUIDE: WooCommerce Classic Checkout — reset Turnstile after a failed checkout submission
+  // GUIDE: WooCommerce Classic Checkout – reset Turnstile after a failed checkout submission
   $(document.body).on('checkout_error', function () {
     $('.cf-turnstile[data-kitgenix-captcha-for-cloudflare-turnstile-owner="woocommerce"]').each(function () {
       KitgenixCaptchaForCloudflareTurnstile.resetWidget(this, 'error');
     });
   });
 
-  // GUIDE: WooCommerce Classic Checkout — re-run init after checkout fragments are refreshed
+  // GUIDE: WooCommerce Classic Checkout – re-run init after checkout fragments are refreshed
   // (covers cases where WooCommerce replaces the checkout form HTML via AJAX)
   $(document.body).on('updated_checkout', function () {
     KitgenixCaptchaForCloudflareTurnstile.init();
@@ -1108,7 +1116,7 @@
       try { KitgenixCaptchaForCloudflareTurnstile.renderForminatorWidgets(); } catch (e) { if (window.console) console.error(e); }
     }, 500);
 
-    // GUIDE: WordPress core forms (login/register/lostpassword/comment) — if a widget exists, ensure render pass
+    // GUIDE: WordPress core forms (login/register/lostpassword/comment) – if a widget exists, ensure render pass
     ['login', 'register', 'lostpassword', 'comment'].forEach(function (context) {
       const el = document.getElementById('cf-turnstile-' + context);
       if (el && typeof turnstile !== 'undefined') {
@@ -1174,7 +1182,7 @@
   // EXPOSE THE MODULE GLOBALLY (GUIDE: used by Woo Blocks fetch bridge)
   window.KitgenixCaptchaForCloudflareTurnstile = KitgenixCaptchaForCloudflareTurnstile;
 
-// SAFETY: Fallback checker — ensure we render widgets if order-of-load caused us to miss the
+// SAFETY: Fallback checker – ensure we render widgets if order-of-load caused us to miss the
 // Cloudflare API onload or other race conditions. This will try for ~15 seconds and then stop.
 // Fallback removed: rely on API onload and `init()` retry loop for robustness.
 

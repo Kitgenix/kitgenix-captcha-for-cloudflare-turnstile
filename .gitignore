@@ -38,7 +38,7 @@ pnpm-debug.log*
 
 # Dependency folders
 node_modules/
-vendor/
+
 
 # Build / cache folders
 dist/

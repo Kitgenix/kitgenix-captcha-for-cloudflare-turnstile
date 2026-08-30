@@ -1,5 +1,5 @@
 /**
- * Kitgenix CAPTCHA for Cloudflare Turnstile — Public CSS
+ * Kitgenix CAPTCHA for Cloudflare Turnstile – Public CSS
  * Styles for the CAPTCHA widget on front-end forms, including WordPress core forms, WooCommerce forms, and popular form plugins.
  * Built to be clean, modern, and cohesive with the WordPress front-end, while also incorporating Kitgenix's brand colors.
  */
@@ -8,8 +8,8 @@
    Design tokens (tweakable; keep conservative defaults)
 ----------------------------------------------------------- */
 :root {
-  --kitgenix-accent:        #4f2a9a; /* Kitgenix main */
-  --kitgenix-accent-weak:   #f364dd; /* Kitgenix accent */
+  --kitgenix-accent:        #214BFF; /* Kitgenix Primary Blue */
+  --kitgenix-accent-weak:   #42B3FF; /* Kitgenix Electric Blue */
   --kitgenix-danger:        #ef4444; /* red-500 */
   --kitgenix-danger-bg:     #fef2f2; /* red-50 */
   --kitgenix-warn:          #f59e0b; /* amber-500 */
@@ -21,8 +21,8 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --kitgenix-accent:      #4f2a9a; /* Kitgenix main */
-    --kitgenix-accent-weak: #f364dd; /* Kitgenix accent */
+    --kitgenix-accent:      #42B3FF; /* Kitgenix Electric Blue */
+    --kitgenix-accent-weak: #6EC6FF; /* Kitgenix Electric Blue (dark-mode tint) */
     --kitgenix-danger:      #f87171;
     --kitgenix-danger-bg:   #1e293b; /* slate-800 */
     --kitgenix-warn:        #f59e0b;
@@ -80,7 +80,7 @@
   display: none !important;
 }
 
-/* Flexible (data-size=flexible) — make iframe stretch full width */
+/* Flexible (data-size=flexible) – make iframe stretch full width */
 .cf-turnstile[data-size="flexible"],
 .cf-turnstile[data-size="flexible"] > div,
 .cf-turnstile[data-size="flexible"] iframe {
@@ -356,4 +356,21 @@ form .cf-turnstile:last-child { margin-bottom: 24px; }
   .cf-turnstile,
   .kitgenix-captcha-for-cloudflare-turnstile-ts-inline-msg,
   .kitgenix-captcha-for-cloudflare-turnstile-warning { display: none !important; }
+}
+
+/* -----------------------------------------------------------
+   Honeypot fallback field (zero-JS bot trap)
+   Positioned off-screen rather than display:none/visibility:hidden so it
+   still "exists" to a bot that specifically skips invisible fields, while
+   staying unreachable and invisible to real visitors and screen readers.
+----------------------------------------------------------- */
+.kitgenix-captcha-for-cloudflare-turnstile-hp-wrap {
+  position: absolute !important;
+  left: -9999px !important;
+  top: -9999px !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }

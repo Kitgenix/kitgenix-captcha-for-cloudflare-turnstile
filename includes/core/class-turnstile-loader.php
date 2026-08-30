@@ -128,8 +128,12 @@ class Turnstile_Loader {
             require_once KitgenixCaptchaForCloudflareTurnstile_Includes_Path . 'integrations/forms/jetpack-forms.php';
         }
 
-        // Kadence Forms (auto-init)
-        if (!empty($settings['enable_kadenceforms']) && class_exists('Kadence_Blocks_Form')) {
+        // Kadence Forms (auto-init). Kadence_Blocks_Form is not a real class in Kadence
+        // Blocks; gate on the plugin's own version constant instead (the integration itself
+        // additionally requires Kadence_Blocks_Advanced_Form_Block – the only Kadence form
+        // type with a genuine pre-actions validation hook – before registering anything).
+        $kadence_blocks_present = defined( 'KADENCE_BLOCKS_VERSION' ) || class_exists( 'Kadence_Blocks_Advanced_Form_Block' );
+        if (!empty($settings['enable_kadenceforms']) && $kadence_blocks_present) {
             require_once KitgenixCaptchaForCloudflareTurnstile_Includes_Path . 'integrations/forms/kadence-forms.php';
         }
 
@@ -137,6 +141,12 @@ class Turnstile_Loader {
         $jfb_present = class_exists( '\\Jet_Form_Builder\\Plugin' ) || defined( 'JET_FORM_BUILDER_VERSION' ) || defined( 'JET_FORM_BUILDER_PATH' );
         if ( ! empty( $settings['enable_jetformbuilder'] ) && $jfb_present ) {
             require_once KitgenixCaptchaForCloudflareTurnstile_Includes_Path . 'integrations/forms/jetformbuilder.php';
+        }
+
+        // Ninja Forms (auto-init)
+        $ninjaforms_present = class_exists( 'Ninja_Forms' ) || defined( 'NF_PLUGIN_DIR' );
+        if ( ! empty( $settings['enable_ninjaforms'] ) && $ninjaforms_present ) {
+            require_once KitgenixCaptchaForCloudflareTurnstile_Includes_Path . 'integrations/forms/ninja-forms.php';
         }
 
         // MailPoet newsletter forms.
@@ -184,7 +194,7 @@ class Turnstile_Loader {
             }
         }
 
-        // BuddyPress (forums) integration — accept multiple presence signals
+        // BuddyPress (forums) integration – accept multiple presence signals
         $bp_present = defined( 'BP_VERSION' ) || class_exists( 'BuddyPress' ) || function_exists( 'bp_is_active' ) || function_exists( 'bp_register' );
         if ( ! empty( $settings['enable_buddypress'] ) && $bp_present ) {
             require_once KitgenixCaptchaForCloudflareTurnstile_Includes_Path . 'integrations/forums/buddypress.php';
@@ -193,7 +203,7 @@ class Turnstile_Loader {
             }
         }
 
-        // bbPress integration — accept multiple presence signals (constant, class, or common function)
+        // bbPress integration – accept multiple presence signals (constant, class, or common function)
         $bbp_present = defined( 'BBPRESS_VERSION' ) || defined( 'BBP_VERSION' ) || class_exists( 'bbPress' ) || function_exists( 'bbp_is_single_forum' );
         if ( ! empty( $settings['enable_bbpress'] ) && $bbp_present ) {
             require_once KitgenixCaptchaForCloudflareTurnstile_Includes_Path . 'integrations/forums/bbpress.php';
@@ -202,7 +212,7 @@ class Turnstile_Loader {
             }
         }
 
-        // Kitgenix Plugin Score — custom auth forms (login, register, forgot-password).
+        // Kitgenix Plugin Score – custom auth forms (login, register, forgot-password).
         $kgps_present = defined( 'KGPS_VERSION' ) || class_exists( 'KGPS_Plugin' ) || in_array( 'kitgenix-plugin-score/kitgenix-plugin-score.php', (array) get_option( 'active_plugins', [] ), true );
         if ( ! empty( $settings['enable_kitgenix_plugin_score'] ) && $kgps_present ) {
             require_once KitgenixCaptchaForCloudflareTurnstile_Includes_Path . 'integrations/kitgenix/class-plugin-score.php';

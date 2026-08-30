@@ -47,16 +47,14 @@ class BuddyPress {
         }
 
         echo '<input type="hidden" name="cf-turnstile-response" value="" />';
+        echo \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::render_honeypot_field(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
 
         // Default to left-aligned so the activity stream widget matches other forms
         $inline_style = (string) apply_filters( 'kitgenix_turnstile_inline_style', 'display: flex; justify-content: flex-start;', 'buddypress' );
 
           // Mark this container so our JS can relocate it to just before the Post Update button
           echo '<div class="cf-turnstile"'
-              . ' data-sitekey="'    . esc_attr( $site_key ) . '"'
-              . ' data-theme="'      . esc_attr( $settings['theme']       ?? 'auto' ) . '"'
-              . ' data-size="'       . esc_attr( \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::normalize_widget_size( (string)( $settings['widget_size'] ?? 'normal' ) ) ) . '"'
-              . ' data-appearance="' . esc_attr( $settings['appearance']  ?? 'always' ) . '"'
+              . \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::get_widget_data_attributes( 'buddypress', $site_key ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
               . ' data-placement="buddypress-post-update"'
               . '></div>';
     }

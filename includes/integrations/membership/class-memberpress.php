@@ -37,11 +37,9 @@ final class MemberPress {
         );
 
         echo '<input type="hidden" name="cf-turnstile-response" value="" />';
+        echo \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::render_honeypot_field(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
         echo '<div class="cf-turnstile"'
-            . ' data-sitekey="' . \esc_attr( $site_key ) . '"'
-            . ' data-theme="' . \esc_attr( $settings['theme'] ?? 'auto' ) . '"'
-            . ' data-size="' . \esc_attr( \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::normalize_widget_size( (string)( $settings['widget_size'] ?? 'normal' ) ) ) . '"'
-            . ' data-appearance="' . \esc_attr( $settings['appearance'] ?? 'always' ) . '"'
+            . \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::get_widget_data_attributes( 'memberpress', $site_key ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
             . ' data-kitgenix-captcha-for-cloudflare-turnstile-owner="memberpress"></div>';
     }
 
