@@ -1,265 +1,258 @@
 === Kitgenix CAPTCHA for Cloudflare Turnstile ===
 Contributors: kitgenix
 Donate link: https://www.paypal.com/donate/?hosted_button_id=KALF36K6JJ9B2
-Tags: captcha, cloudflare turnstile, spam protection, anti-spam, woocommerce, contact form 7, gravity forms, wpforms, elementor, login security
+Tags: cloudflare turnstile, captcha, anti spam, woocommerce, form security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.1
 Stable tag: 2.0.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
-Plugin URI: https://wordpress.org/plugins/kitgenix-captcha-for-cloudflare-turnstile/
-Author: Kitgenix
-Author URI: https://kitgenix.com/
-Author Plugin URI: https://kitgenix.com/plugins/kitgenix-captcha-for-cloudflare-turnstile
-Documentation URI: https://kitgenix.com/plugins/kitgenix-captcha-for-cloudflare-turnstile/documentation
-Support URI: https://wordpress.org/support/plugin/kitgenix-captcha-for-cloudflare-turnstile/
-Author Support URI: https://kitgenix.com/plugins/kitgenix-captcha-for-cloudflare-turnstile/support
-Feature Request URI: https://kitgenix.com/plugins/kitgenix-captcha-for-cloudflare-turnstile/feature-request
 
-Cloudflare Turnstile CAPTCHA and spam protection for WordPress, WooCommerce, and popular form plugins, with privacy-first server-side verification.
+Add Cloudflare Turnstile to WordPress, WooCommerce and popular forms with server-side verification and anti-spam controls.
 
 == Description ==
 
-**Kitgenix CAPTCHA for Cloudflare Turnstile** adds Cloudflare Turnstile – a privacy-focused CAPTCHA alternative – to your WordPress login, registration, comment, checkout, and form pages. Every submission is verified server-side against Cloudflare's official `siteverify` endpoint before it's allowed through, so spam bots are blocked without forcing real visitors to solve image puzzles.
+**Kitgenix CAPTCHA for Cloudflare Turnstile** adds Cloudflare Turnstile CAPTCHA and anti-spam protection to WordPress, WooCommerce and a wide range of form, membership, community and ecommerce plugins. Challenges are not treated as a client-side decoration: submitted Turnstile tokens are verified server-side with Cloudflare before a protected action is accepted.
 
-This plugin is built for site owners and store admins who are tired of spam registrations, fake comments, junk form submissions, or bot-driven checkout abuse, and want a CAPTCHA that stays out of the way for legitimate users.
+The plugin is designed for site owners who want to reduce automated login attempts, fake registrations, comment spam, bot-driven checkout abuse and unwanted form submissions while using Cloudflare's privacy-oriented Turnstile challenge rather than a traditional image CAPTCHA.
 
-You'll need a free Cloudflare account and a Turnstile Site Key and Secret Key to use this plugin – see "External Services" below for exactly what data is sent to Cloudflare and when.
+Configuration, integration controls, diagnostics and local verification metrics are managed inside WordPress. The only service required for CAPTCHA functionality is Cloudflare Turnstile itself; no Kitgenix verification proxy is used.
 
-= Key features =
+Learn more about Kitgenix WordPress plugins at [Kitgenix](https://kitgenix.com/).
 
-* **Server-side verification** – every token is checked against Cloudflare's `siteverify` endpoint before a form is allowed to proceed; nothing is trusted client-side alone.
-* **Conditional script loading** – the Turnstile API script only loads on pages where a widget will actually render, keeping unrelated pages free of the extra request.
-* **Auto-inject or shortcode-only** – most integrations can either add the widget automatically or leave placement to you via the `[kitgenix_turnstile]` shortcode.
-* **Per-integration widget overrides** – give one integration (e.g. a dark checkout page) its own Theme, Widget Size, or Language without changing the site-wide Display Settings.
-* **Replay protection** – rejects a Turnstile token that's already been used, on by default, with a filterable time window.
-* **Honeypot fallback field** – an optional hidden trap field that rejects bots which submit forms without loading JavaScript, checked before Cloudflare is even contacted.
-* **Developer/warn-only mode** – test a rollout site-wide or per integration without blocking real submissions while you verify everything renders correctly.
-* **Whitelisting** – skip verification for logged-in users, specific IPs (wildcards and CIDR, including IPv6), or User-Agent strings.
-* **Proxy-aware IP detection** – resolves the real visitor IP behind Cloudflare or another reverse proxy, but only trusts forwarded headers from proxies you've explicitly configured.
-* **Setup verification gate** – login-sensitive protections (login, registration, password reset, membership sign-up) stay inactive until your current key pair passes a real end-to-end verification test, so a typo in your Secret Key can't silently lock out real visitors.
-* **Diagnostics and Site Health** – a dedicated Site Health test, a recent verification log, per-integration analytics, and automatic alerts when failures spike or Cloudflare requests start failing.
-* **Settings portability** – export settings to JSON (with or without your keys) and import them on another site for repeatable deployments.
+= Supported WordPress and Plugin Integrations =
 
-= Where it protects your site =
+The codebase contains dedicated integrations for:
 
-Each integration is off by default and only loads its code when you enable it and the related plugin is active.
+* WordPress login.
+* WordPress registration.
+* Lost-password and password-reset flows.
+* WordPress comments.
+* Custom login forms produced with `wp_login_form()`.
+* WooCommerce login, registration, lost password, checkout and related account flows supported by the integration.
+* Easy Digital Downloads.
+* Elementor forms.
+* Contact Form 7.
+* WPForms.
+* Gravity Forms.
+* Fluent Forms.
+* Formidable Forms.
+* Forminator.
+* Ninja Forms.
+* Jetpack Forms.
+* JetFormBuilder.
+* Kadence Forms.
+* MailPoet.
+* bbPress.
+* BuddyPress.
+* wpDiscuz.
+* Ultimate Member.
+* MemberPress.
+* Paid Memberships Pro.
+* Kitgenix Plugin Score integration points included in the codebase.
 
-**WordPress Core**
+Each integration is loaded conditionally and can use integration-specific display/validation behaviour rather than forcing one generic hook onto every form system.
 
-* Login (including custom login forms rendered with `wp_login_form()`)
-* Registration
-* Lost password and reset password
-* Comments (standard WordPress comment forms)
+= Server-Side Turnstile Verification =
 
-**WooCommerce**
+The browser obtains a Turnstile response token from Cloudflare's official widget. When a protected form is submitted, the plugin sends that token to Cloudflare's official Siteverify endpoint using the WordPress HTTP API. The protected action is allowed only when the verification result satisfies the integration's validation flow.
 
-* Classic Checkout, near the Place Order button
-* Product reviews
-* My Account login, registration, and lost/reset password
-* WooCommerce Blocks (Store API) checkout – the widget renders inside the block-based checkout UI and the token is validated server-side against the Store API request
+This server-side step is important because simply placing a widget in the browser is not sufficient protection on its own. The plugin tracks the most recent verification response, error codes and latency for diagnostics and can record aggregate verification metrics locally.
 
-**Easy Digital Downloads**
+= Setup Verification for Login-Sensitive Forms =
 
-* Checkout, login, registration, and the profile editor
+Login, registration and other account-sensitive protections can be gated behind a setup-verification state. The administrator can verify the configured Site Key and Secret Key before those protections are treated as ready.
 
-**Form plugins**
+This reduces the risk of enabling a broken key pair on a login screen and accidentally locking legitimate administrators or customers out of the site.
 
-* Contact Form 7, WPForms, Fluent Forms, Formidable Forms, Forminator, Gravity Forms, JetFormBuilder, Jetpack Forms, Kadence Forms (Advanced Form block), Ninja Forms, and Elementor Pro Forms (including popups and AJAX submissions; requires Elementor Pro's Form widget)
+Site and secret keys can be supplied from plugin settings or from supported environment variables/constants, allowing security-conscious deployments to keep the secret outside the normal WordPress options table.
 
-**Membership, community, and newsletters**
+= Replay Protection =
 
-* Ultimate Member (login, registration, password reset)
-* MemberPress (checkout/signup)
-* Paid Memberships Pro (checkout/registration)
-* MailPoet subscription forms
-* wpDiscuz comment forms
-* bbPress (topic and reply forms) and BuddyPress (registration and activity posting)
+Turnstile tokens are intended to be short lived and single use. The plugin includes optional replay protection that hashes accepted tokens and temporarily remembers that hash. A token that is submitted again during the replay window can be rejected rather than being accepted repeatedly.
 
-**Kitgenix Plugin Score**
+The replay window is filterable for developers. Stored replay information is a hash/temporary value, not the raw challenge token itself.
 
-* Protects the login, registration, and forgot-password pages rendered by the separate Kitgenix Plugin Score plugin, via output buffering – no theme or Plugin Score changes required.
+= Honeypot and Layered Anti-Spam Controls =
 
-= Manual placement (shortcode) =
+An optional honeypot can be rendered alongside Turnstile. This adds a second low-friction signal for simple bots that fill fields a normal visitor never sees.
 
-For a custom form or an unsupported plugin, add the widget manually with:
+The plugin also supports whitelisting logic so trusted requests can bypass the challenge where appropriate. Whitelist decisions can take account of configured rules and developer filters rather than hard-coding one bypass mechanism for every site.
+
+= Trusted Proxy and Client IP Handling =
+
+Sites may sit behind Cloudflare, another reverse proxy or a load balancer. The client-IP component can be configured to trust proxy headers only when the request path matches the trusted-proxy configuration. This avoids blindly believing spoofable forwarding headers from arbitrary visitors.
+
+Administrators can also choose whether the resolved visitor IP is included in the Siteverify request to Cloudflare. A developer filter is available to change that behaviour when required by a site's privacy or infrastructure policy.
+
+= Widget Appearance and Placement =
+
+The plugin supports central defaults plus integration-level overrides for Turnstile appearance. Depending on the supported integration, administrators can control options such as theme, size, appearance and language, and can choose placement behaviour where the integration exposes more than one suitable hook.
+
+A manual shortcode is also registered:
 
 `[kitgenix_turnstile]`
 
-The shortcode renders a nonce field, a hidden `cf-turnstile-response` input, and the widget container, and accepts extra HTML attributes if you need them. Many integrations also support a "shortcode-only" mode, so you control exactly where the widget appears while the plugin still validates the submission server-side.
+The shortcode is useful when the site owner needs to render the widget in a supported custom workflow. Rendering a widget alone does not automatically secure arbitrary custom PHP processing; custom form handlers must still validate the submitted token server-side.
 
-= Security =
+= Diagnostics, Metrics and Site Health =
 
-* Every settings save, AJAX action, and admin form is nonce-protected and capability-checked (`manage_options`, or `manage_woocommerce` for the shared Kitgenix admin menu when only WooCommerce management access is granted).
-* The stored Secret Key is never printed in the settings page HTML; revealing it uses a dedicated, nonce-protected AJAX action available to administrators only.
-* Trusted-proxy IP headers (`CF-Connecting-IP`, `True-Client-IP`, `X-Forwarded-For`, `X-Real-IP`) are only honoured when the request originates from an address or CIDR range you've explicitly added to the trusted proxy list, and only public, routable addresses are accepted from them.
-* Site Key and Secret Key can be defined outside the database via the `KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_SITE_KEY` and `KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_SECRET_KEY` constants (in `wp-config.php`) or matching environment variables.
-* Settings exports exclude your Site Key and Secret Key by default; including them is an explicit opt-in on export.
+The plugin includes diagnostics for configuration and verification health, local counters for passed/failed checks, latency information, recent verification events and integration-level metrics. Site Health integration can surface configuration or connectivity issues to administrators.
 
-= Diagnostics =
+Developer Mode adds additional troubleshooting detail without changing the fundamental requirement that live submissions be verified correctly when protection is active.
 
-* A Site Health test ("Cloudflare Turnstile readiness") checks that keys are present, flags duplicate Turnstile loaders from other plugins/themes, and shows your last verification outcome.
-* A recent diagnostic log records the last 50 verification events (outcome, integration, error category, and Cloudflare round-trip latency) without storing raw IP addresses, request URLs, or submitted form values.
-* Per-integration analytics and both the log and the analytics summary can be exported as CSV from the Support tab.
-* Automatic admin and Site Health alerts fire when recent verification failures spike or Cloudflare's `siteverify` endpoint starts failing at the HTTP layer, so a broken integration doesn't fail silently.
+= Settings Portability =
 
-= Performance and caching notes =
+Settings can be exported and imported for controlled migration between WordPress installations. The transfer system is designed for plugin configuration rather than for exporting visitor submissions or unrelated site data.
 
-Turnstile is lightweight, but aggressive optimisation plugins can interfere with rendering or token freshness. If you run a caching/optimisation plugin:
+= Performance and Script Loading =
 
-* Allow `https://challenges.cloudflare.com` through any "Delay JS" / "Defer JS" / "Combine JS" rule.
-* Avoid full-page caching on login, account, and checkout pages.
-* Make sure outbound HTTPS requests to Cloudflare aren't blocked – they're required for server-side verification.
+The public Cloudflare Turnstile script is loaded only for pages/contexts where the plugin determines that a Turnstile widget may be needed. The loader includes duplicate-script detection so multiple integrations do not intentionally enqueue several copies of the same Turnstile API script.
 
-= Quick start =
+Public assets are kept separate from the admin interface, and admin-only diagnostics/settings code does not need to run as part of every anonymous form request.
 
-1. Install and activate the plugin.
-2. Open the Turnstile settings under the Kitgenix menu in wp-admin.
-3. Add your Cloudflare Turnstile Site Key and Secret Key, then run the setup verification test.
-4. Configure widget options (theme, size, language) and messaging if needed.
-5. Enable the integrations and per-form toggles you want.
-6. Test the key journeys on your site: login, registration, checkout, and your main contact form.
+= Privacy and Data Flow =
 
-Consider starting with Developer mode (warn-only) while you roll out, then disabling it once you've confirmed everything verifies correctly.
+Turnstile is an external service provided by Cloudflare, so challenge rendering and server-side verification necessarily communicate with Cloudflare. The plugin itself stores configuration and limited diagnostic/aggregate verification data locally. It does not require a Kitgenix account and does not send form contents to Kitgenix for verification.
+
+The exact Cloudflare data flow, WordPress.org Hub request and Google Fonts admin request are documented in the **External Services** section below.
+
+= Common Uses =
+
+* Protect a WordPress login page from automated credential attacks.
+* Reduce spam registrations on WordPress or WooCommerce.
+* Add anti-bot verification to WooCommerce checkout and account forms.
+* Protect Elementor and popular WordPress form plugins with one central Turnstile configuration.
+* Add a challenge to membership, forum and community registration/login flows.
+* Replace more intrusive CAPTCHA experiences with Cloudflare Turnstile while keeping server-side validation.
 
 == Installation ==
 
-1. In wp-admin, go to Plugins → Add New and search for "Kitgenix Turnstile", or upload the plugin ZIP.
-2. Activate the plugin.
-3. Open the settings page under the Kitgenix menu in wp-admin.
-4. Get a Site Key and Secret Key from your Cloudflare dashboard at https://dash.cloudflare.com/?to=/:account/turnstile (a free Cloudflare account is enough) and enter both on the Site Keys tab.
-5. Run the setup verification test so login-sensitive protections can activate.
-6. Enable the integrations you want under the Integrations tab, and save.
+1. Upload the plugin through **Plugins → Add New → Upload Plugin**, or install it from the WordPress.org Plugin Directory.
+2. Activate **Kitgenix CAPTCHA for Cloudflare Turnstile**.
+3. Create a Turnstile widget in your Cloudflare account and copy its Site Key and Secret Key.
+4. Open the plugin settings from the Kitgenix menu in wp-admin.
+5. Enter the Site Key and Secret Key and run the setup verification test.
+6. Enable only the integrations and forms you want to protect.
+7. Test the protected forms while logged out and, where relevant, through checkout/account flows.
+
+A Cloudflare account and Turnstile key pair are required. Your website does not need to use Cloudflare's CDN or proxy service to use Turnstile.
 
 == Frequently Asked Questions ==
 
+= What is Cloudflare Turnstile? =
+
+Cloudflare Turnstile is a CAPTCHA alternative that runs a challenge in the visitor's browser and produces a token. The token must then be validated server-side before the protected action is accepted.
+
+= Do I need to use Cloudflare DNS or the Cloudflare CDN? =
+
+No. Turnstile can be used on a WordPress site even when the site's traffic is not proxied through Cloudflare.
+
 = Do I need a Cloudflare account? =
 
-Yes. Cloudflare Turnstile requires a Site Key and Secret Key from a Cloudflare account. A free account is sufficient.
+Yes. You need a Cloudflare account and a Turnstile Site Key / Secret Key pair.
 
-= Is this plugin free? =
+= Does the plugin verify Turnstile on the server? =
 
-Yes, this plugin is free on WordPress.org, and Cloudflare Turnstile has a free tier.
+Yes. Supported integrations validate the token with Cloudflare's Siteverify endpoint before accepting the protected submission, unless Developer Mode or the relevant per-integration Test Mode is intentionally configured to warn rather than block.
 
-= Which forms does it protect? =
+= Which WordPress forms can it protect? =
 
-WordPress login, registration, comments, and password reset/reset; WooCommerce Classic and Blocks checkout, product reviews, and My Account forms; Easy Digital Downloads checkout and account forms; Contact Form 7, WPForms, Fluent Forms, Formidable Forms, Forminator, Gravity Forms, JetFormBuilder, Jetpack Forms, Kadence Forms, Ninja Forms, and Elementor Pro Forms; Ultimate Member, MemberPress, Paid Memberships Pro, MailPoet, wpDiscuz, bbPress, and BuddyPress; and the login/registration/forgot-password pages of the separate Kitgenix Plugin Score plugin. Each is off until you enable it.
+Native WordPress login, registration, lost/reset password and comment forms are supported. The plugin also supports WooCommerce, Easy Digital Downloads, Elementor Pro Forms, Contact Form 7, WPForms, Fluent Forms, Formidable Forms, Forminator, Gravity Forms, JetFormBuilder, Jetpack Forms, Kadence Forms, Ninja Forms and several membership/community plugins.
 
-= What happens if verification fails? =
+= Does it support WooCommerce Checkout Blocks? =
 
-The submission is blocked with an error message (customisable in Settings), unless Developer mode (warn-only) is enabled site-wide or for that specific integration – in which case the failure is logged but the submission is still allowed through, so you can test safely.
+Yes. The plugin can render Turnstile in block-based checkout and validates the token server-side during the WooCommerce Store API checkout request.
 
-= Do you verify tokens on the server? =
+= Does it support WooCommerce HPOS? =
 
-Yes. Every supported integration validates the Turnstile token server-side against Cloudflare's `siteverify` endpoint; nothing relies on client-side JavaScript alone.
+Yes. The plugin declares HPOS compatibility and uses WooCommerce order CRUD methods for its Checkout Blocks verification metadata.
+
+= Can I choose where the Turnstile widget appears? =
+
+Yes. Automatic placement is available for supported integrations, and many integrations include a shortcode-only placement option. The `[kitgenix_turnstile]` shortcode can also render a widget manually.
+
+= Can I use the shortcode on any custom form? =
+
+The shortcode can render the widget, but an unsupported custom form still needs a server-side validation integration. Rendering a widget alone is not sufficient security.
+
+= Can different forms use different Turnstile themes or sizes? =
+
+Yes. Global theme, size and language settings can be overridden per integration.
+
+= What does Developer Mode do? =
+
+Developer Mode is warn-only. Failed verification is recorded but does not block the submission. Individual integrations can also be placed in Test Mode without putting the entire site into warn-only mode.
 
 = What is replay protection? =
 
-It rejects a Turnstile token that has already been used once, which blocks a common bot technique of resubmitting a captured token. It's on by default, and the time window is filterable for developers.
+Replay protection helps reject a Turnstile token that has already been accepted or processed. This reduces the usefulness of captured or repeatedly submitted tokens.
 
-= What is the honeypot fallback field? =
+= Does the plugin include a honeypot? =
 
-An optional hidden field (Settings → Security) that a real visitor never sees or fills in. A bot that submits a form without loading JavaScript typically fills every field blindly, so a filled honeypot is rejected immediately, before Cloudflare's `siteverify` endpoint is even contacted.
+Yes. The optional honeypot can reject simple automated submissions before Cloudflare Siteverify is contacted.
 
-= I'm behind Cloudflare or another reverse proxy – is IP detection correct? =
+= Can I whitelist administrators or trusted visitors? =
 
-Yes, but only once you enable proxy trust and list your proxy's IP or CIDR range in Settings. Forwarded headers are otherwise ignored, and only public, routable addresses are accepted from them.
+The plugin can whitelist logged-in users, configured IP addresses/ranges and User-Agent strings. Whitelisted visitors do not need to complete Turnstile, and the frontend Turnstile script is skipped for them.
 
-= Can I whitelist logged-in users, IPs, or User-Agents? =
+= Does it work behind Cloudflare or another reverse proxy? =
 
-Yes. You can skip Turnstile for logged-in users, specific IPs (exact, wildcard, or CIDR, including IPv6), and User-Agent strings, and developers can further adjust the decision with a filter.
+Yes. Proxy-aware IP detection is included. For security, forwarded headers are trusted only when proxy trust is enabled and the connecting proxy matches your configured trusted proxy list.
 
-= Can different integrations use a different theme, size, or language? =
+= Can I stop the visitor IP address being sent to Cloudflare Siteverify? =
 
-Yes. The Display Settings tab includes per-integration overrides – leave a field on "Inherit global setting" to keep your site-wide Display Settings, or choose a specific Theme, Widget Size, or Language for one integration only.
+Developers can return `false` from the `kitgenix_turnstile_send_remoteip` filter. See the External Services section for the default data flow.
 
-= Can I export or import my settings? =
+= Can I store the Site Key and Secret Key outside the WordPress database? =
 
-Yes, from the Portability tab. You choose whether the export includes your Site Key and Secret Key, and can import as a full replace or a merge with existing settings.
+Yes. The plugin supports the `KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_SITE_KEY` and `KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_SECRET_KEY` constants and matching environment variables.
 
-= Can I define keys outside wp-admin? =
+= Can I move settings between sites? =
 
-Yes, via the `KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_SITE_KEY` and `KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_SECRET_KEY` constants in `wp-config.php`, or matching environment variables.
+Yes. Export settings to JSON and import them using Replace or Merge mode. Credentials are excluded by default unless you explicitly include them.
 
-= Will Turnstile slow down my site? =
+= Why is the widget not appearing? =
 
-The Turnstile script only loads on pages where a widget is actually needed, loads asynchronously, and the plugin adds preconnect/dns-prefetch hints for Cloudflare's domain to speed up the first request. See "Performance and caching notes" above if you run aggressive caching or optimisation plugins.
+Check that the Site Key exists, the integration and relevant form toggle are enabled, the visitor is not whitelisted, and another plugin or optimisation rule is not blocking `https://challenges.cloudflare.com`. Also check the plugin's duplicate-loader warning and Site Health test.
 
-= Does this plugin store or share personal data? =
+= Why do I see expired, missing or replayed-token errors? =
 
-The plugin doesn't add tracking cookies and doesn't sell or share personal data. The diagnostic log is privacy-safe: it avoids storing raw IP addresses, request URLs, or submitted form values. See "External Services" below for what's sent to Cloudflare during verification.
-
-= The widget isn't showing. What should I check? =
-
-Confirm your Site Key is entered, that the relevant integration and per-form toggle are enabled, and clear any page caches. If a caching/optimisation plugin heavily delays scripts, allowlist `https://challenges.cloudflare.com`.
-
-= Users keep seeing verification errors. Why? =
-
-Common causes are cached form pages (an expired security token), aggressive script delay/defer, blocked outbound requests to Cloudflare, a duplicate Turnstile loader from another plugin/theme, or misconfigured proxy trust settings. Developer mode (warn-only) can help you diagnose the cause without blocking real users while you investigate.
+Turnstile tokens are short-lived and single-use. Cached forms, back-button resubmissions, double-clicks, delayed JavaScript or submitting after a token has expired can all require a fresh Turnstile challenge.
 
 == Screenshots ==
 
-1. WordPress login form protected by Cloudflare Turnstile.
-2. WordPress registration form protected by Cloudflare Turnstile.
-3. WooCommerce Classic checkout, with the widget near the Place Order button.
-4. WooCommerce Blocks (Store API) checkout, with the widget rendered inside the block-based checkout UI.
-5. WooCommerce My Account login form protected by Cloudflare Turnstile.
-6. A contact form protected by Cloudflare Turnstile.
-7. A WPForms form protected by Cloudflare Turnstile.
-8. An Elementor Pro form protected by Cloudflare Turnstile.
-9. Settings overview: Site Key and Secret Key management with a live test widget.
-10. Security settings: replay protection and whitelist configuration (logged-in users, IPs, User-Agents).
+1. WordPress login protected with Cloudflare Turnstile.
+2. WordPress registration protected with Cloudflare Turnstile.
+3. Cloudflare Turnstile on WooCommerce Classic Checkout.
+4. Cloudflare Turnstile on WooCommerce Checkout Blocks / Store API checkout.
+5. WooCommerce My Account login protection.
+6. Turnstile protection on a contact form.
+7. WPForms protected with Cloudflare Turnstile.
+8. Elementor Pro Forms protected with Cloudflare Turnstile.
+9. Site Key, Secret Key and setup-verification settings.
+10. Security controls.
 
-== Settings Overview ==
+== Developer Notes ==
 
-**Site Keys**
-
-* Site Key and Secret Key (with a "secret present" state, plus clear/reveal controls)
-* Live test widget to confirm your keys work, and the setup verification gate status
-
-**Display**
-
-* Theme (auto/light/dark), Widget Size (normal/compact/flexible), Appearance, Language
-* Per-integration Theme/Widget Size/Language overrides – one row per integration, each defaulting to "Inherit global setting"
-* Disable submit until completed, custom error message, extra message text
-
-**Integrations**
-
-* Enable/disable each integration and, where available, its Auto vs Shortcode-only injection mode and per-form toggles (WordPress Core, WooCommerce, WooCommerce Blocks, Easy Digital Downloads, and every supported form/membership/community plugin)
-
-**Security**
-
-* Replay protection, honeypot fallback field, Developer mode (warn-only) and per-integration Test Mode
-* Whitelist for logged-in users, IPs, and User-Agents
-* Proxy trust (enable/disable) and trusted proxy IP/CIDR list
-
-**Portability**
-
-* Export settings to JSON (choosing whether to include keys) and import from JSON
-* `KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_SITE_KEY` / `_SECRET_KEY` constant and environment-variable support
-
-**Log**
-
-* Active alerts, per-integration analytics, and the recent diagnostic log, each with CSV export
-
-== Developers ==
-
-Shortcode:
+= Shortcode =
 
 `[kitgenix_turnstile]`
 
-Server-side verification endpoint:
+= Main settings option =
 
-`https://challenges.cloudflare.com/turnstile/v0/siteverify`
+`kitgenix_captcha_for_cloudflare_turnstile_settings`
 
-Filters (script/loading):
+= Useful filters =
 
-* `kitgenix_captcha_for_cloudflare_turnstile_script_url( $url, $settings )`
+Script and display:
+
+* `kitgenix_captcha_for_cloudflare_turnstile_script_url`
 * `kitgenix_turnstile_freshness_ms`
 * `kitgenix_turnstile_inline_style`
 
-Filters (verification / request handling):
+Verification:
 
 * `kitgenix_turnstile_siteverify_url`
 * `kitgenix_turnstile_siteverify_timeout`
@@ -268,129 +261,111 @@ Filters (verification / request handling):
 * `kitgenix_turnstile_send_remoteip`
 * `kitgenix_turnstile_remote_ip`
 * `kitgenix_turnstile_token_from_request`
-* `kitgenix_turnstile_handle_comment_form`
 * `kitgenix_turnstile_error_codes`
 * `kitgenix_turnstile_error_message`
 * `kitgenix_turnstile_replay_message`
-* `kitgenix_captcha_for_cloudflare_turnstile_{context}_turnstile_error_message`
-* `kitgenix_turnstile_skip_wp_login_validation( $skip, $user )` – return true to skip the WordPress Core login integration's Turnstile check for a specific `authenticate` callback invocation (already skipped by default for XML-RPC and REST-context requests, where no widget exists to solve).
+* `kitgenix_turnstile_skip_wp_login_validation`
 
-Filters (replay protection):
+Replay protection:
 
 * `kitgenix_turnstile_replay_ttl`
 
-Filters (operational alerts):
+Whitelisting and proxy handling:
+
+* `kitgenix_turnstile_is_whitelisted`
+* `kitgenix_turnstile_trust_headers`
+* `kitgenix_turnstile_trusted_proxies`
+
+Operational alerts:
 
 * `kitgenix_turnstile_alert_window_seconds`
 * `kitgenix_turnstile_alert_failure_spike_min_failures`
 * `kitgenix_turnstile_alert_failure_spike_failure_rate`
 * `kitgenix_turnstile_alert_http_error_min_failures`
 
-Filters (whitelist / proxy trust):
-
-* `kitgenix_turnstile_is_whitelisted( $is_whitelisted, $details )`
-* `kitgenix_turnstile_trust_headers`
-* `kitgenix_turnstile_trusted_proxies`
-
-Per-integration widget overrides:
-
-Settings keys follow the pattern `theme_override_{key}`, `size_override_{key}`, `language_override_{key}` inside the main settings option, where `{key}` matches the existing `enable_{key}` integration suffix (e.g. `theme_override_gravityforms`, `language_override_elementor`). An empty string means "inherit the global Display Setting". `Script_Handler::get_override_integration_keys()` returns the canonical list of keys/labels; `get_effective_theme()`, `get_effective_size()`, `get_effective_appearance()`, and `get_effective_language_override()` resolve the effective value for a given key.
-
-Developer Mode / Test Mode per integration:
-
-* Settings key (global warn-only): `dev_mode_warn_only` (0/1). Applies to every integration.
-* Settings key (per-integration warn-only): `test_mode_integrations` – an array of canonical integration keys (see `Turnstile_Validator::get_all_integration_keys()`, e.g. `wordpress-login`, `woocommerce-checkout`, `ninjaforms`). An integration listed here is warn-only even while the rest of the site enforces normally.
-* Both `Turnstile_Validator::is_valid_submission()` and `validate_token()` check the global setting first, then the per-integration list, before returning `false` on any failure – a `false` return from either method in normal (non-warn-only) operation is authoritative and integrations must treat it as a hard block.
-
-Honeypot fallback field:
-
-* Settings key: `honeypot_enabled` (0/1)
-* Field name: `Turnstile_Validator::honeypot_field_name()` (constant value: `kitgenix_captcha_for_cloudflare_turnstile_hp_field`)
-* Checked at the very top of `Turnstile_Validator::is_valid_submission()`/`validate_token()`, before Cloudflare's `siteverify` is contacted; a tripped honeypot is logged with error code `honeypot_tripped` / category `honeypot-blocked`.
-
-Internal identifiers (options / transients / cookies / meta):
-
-* Option: `kitgenix_captcha_for_cloudflare_turnstile_settings`
-* Settings group (Settings API): `kitgenix_captcha_for_cloudflare_turnstile_settings_group`
-* Option: `kitgenix_captcha_for_cloudflare_turnstile_metrics`
-* Option: `kitgenix_turnstile_recent_event_log`
-* Option: `kitgenix_turnstile_last_verify`
-* Option: `kitgenix_turnstile_setup_verification` (the setup-verification gate's key-pair hash and last result)
-* Transient: `kitgenix_captcha_for_cloudflare_turnstile_do_activation_redirect`
-* Transient: `kitgenix_turnstile_duplicate_scripts`
-* Transient prefix (replay protection): `kitgenix_captcha_for_cloudflare_turnstile_ts_`
-* Cookie (replay notice): `kitgenix_captcha_for_cloudflare_turnstile_ts_replay`
-* WooCommerce order meta (Blocks/Store API verification): `_kitgenix_turnstile_verified`
-
-Internal nonces / actions:
-
-* Shortcode/form nonce field name: `kitgenix_captcha_for_cloudflare_turnstile_nonce`
-* Shortcode/form nonce action: `kitgenix_captcha_for_cloudflare_turnstile_action`
-* Settings save nonce field name: `kitgenix_captcha_for_cloudflare_turnstile_settings_nonce`
-* Settings save nonce action: `kitgenix_captcha_for_cloudflare_turnstile_settings_save`
-* Admin AJAX action (reveal saved secret): `kitgenix_turnstile_get_secret` (WordPress hook: `wp_ajax_kitgenix_turnstile_get_secret`)
-* Admin AJAX nonce action (reveal saved secret): `kitgenix_turnstile_reveal_secret`
-* Admin-post action (analytics exports): `kitgenix_turnstile_export_analytics`
-* Admin-post nonce action (analytics exports): `kitgenix_turnstile_export_analytics`
-* Duplicate-loader notice dismiss query arg: `kitgenix_captcha_for_cloudflare_turnstile_ts_dismiss_dupe`
-* Duplicate-loader notice dismiss nonce action: `kitgenix_captcha_for_cloudflare_turnstile_ts_dismiss`
-
-Actions (developer logging):
+Developer logging action:
 
 * `kitgenix_turnstile_dev_log`
 
+The plugin also exposes context-specific error-message filtering through `kitgenix_captcha_for_cloudflare_turnstile_{context}_turnstile_error_message`.
+
+== Privacy and Local Data ==
+
+The plugin stores its configuration in the WordPress database. Depending on enabled features it also stores local operational data such as setup-verification state, aggregate integration metrics, the recent event log and replay-protection transients.
+
+The recent event log is limited to 50 events and contains operational fields such as time, integration, success/failure, error codes and Siteverify latency. It does not store raw form submissions, the raw Turnstile response token, the visitor's raw IP address or the request URL in that log.
+
+Turnstile itself is an external Cloudflare service and receives data when a widget is loaded and when the server validates a token. See **External Services** below.
+
 == External Services ==
 
-This plugin uses **Cloudflare Turnstile** to verify form submissions and prevent spam and abuse. A free Cloudflare account and a Turnstile Site Key/Secret Key pair are required for the plugin to function.
+This plugin relies on third-party services for specific functionality. These connections are documented here so site owners can make an informed decision before enabling and using the plugin.
 
-The plugin may:
+= Cloudflare Turnstile =
 
-* Load the Turnstile widget script from `https://challenges.cloudflare.com/turnstile/v0/api.js` on any page where a protected form renders, so the visitor can complete the challenge.
-* Submit a server-side verification request to `https://challenges.cloudflare.com/turnstile/v0/siteverify` whenever a protected form is submitted.
+Cloudflare Turnstile is the CAPTCHA / bot-verification service that provides the plugin's core protection. A Cloudflare account and Turnstile Site Key / Secret Key are required.
 
-When verification runs, the plugin sends Cloudflare:
+When a protected widget is rendered, the visitor's browser loads Cloudflare Turnstile from:
 
-* Your Turnstile Secret Key
-* The Turnstile response token generated by the visitor's browser
-* The visitor's IP address, as the optional `remoteip` parameter (this can be disabled with the `kitgenix_turnstile_send_remoteip` filter)
+`https://challenges.cloudflare.com/turnstile/v0/api.js`
 
-The plugin does not send the visitor's browser user agent to Cloudflare as part of the verification payload.
+The browser communicates with Cloudflare as part of the Turnstile challenge. As with normal web requests, Cloudflare can receive network/request information such as the visitor's IP address and browser/request metadata, and Turnstile evaluates browser signals to generate a verification token.
 
-If proxy trust is enabled in Settings, the plugin may read forwarding headers (e.g. `CF-Connecting-IP`, `X-Forwarded-For`) to determine the visitor's real IP address, but only when the request originates from a proxy address you've configured as trusted.
+When a protected form is submitted, the WordPress server sends a POST request to:
 
-The plugin does not add tracking cookies itself and does not sell or share personal data.
+`https://challenges.cloudflare.com/turnstile/v0/siteverify`
 
-Cloudflare Turnstile documentation: https://developers.cloudflare.com/turnstile/
-Cloudflare Terms of Service: https://www.cloudflare.com/website-terms/
+By default, that request contains:
+
+* The configured Turnstile Secret Key
+* The Turnstile response token
+* The visitor IP address as Cloudflare's optional `remoteip` parameter when an address is available
+
+The `remoteip` value can be disabled by developers with the `kitgenix_turnstile_send_remoteip` filter.
+
+Cloudflare documentation: https://developers.cloudflare.com/turnstile/
+Cloudflare Terms: https://www.cloudflare.com/website-terms/
 Cloudflare Privacy Policy: https://www.cloudflare.com/privacypolicy/
 
-This plugin also includes a shared "Kitgenix hub" screen in wp-admin, which may fetch publicly available plugin metadata from WordPress.org using WordPress core's `plugins_api()` function.
+= WordPress.org Plugin API =
 
-* When it runs: only in wp-admin, on Kitgenix plugin admin pages.
-* Data sent: plugin slug(s) only – no personal data.
-* Data received: publicly available plugin information (e.g. active install counts, ratings).
-* Caching: responses are cached locally as transients for around a day (`kitgenix_hub_wporg_active_installs_v1`, `kitgenix_hub_wporg_ratings_v1`, `kitgenix_hub_wporg_media_v1`).
+The shared Kitgenix Hub in wp-admin uses WordPress core's `plugins_api()` functionality to request public WordPress.org plugin-directory information such as plugin details, active-install counts, ratings and media.
+
+These requests occur on Kitgenix administration screens. The plugin supplies WordPress.org plugin slugs to WordPress core; the outbound request itself is handled by WordPress and can include normal HTTP request metadata generated by WordPress. Responses are cached locally with WordPress transients to reduce repeat requests.
+
+WordPress.org: https://wordpress.org/
+WordPress.org Privacy Policy: https://wordpress.org/about/privacy/
+
+= Google Fonts =
+
+The Kitgenix administration stylesheet imports the Inter and Manrope font families from Google Fonts. This occurs on Kitgenix plugin administration screens, not as part of the Turnstile verification request itself.
+
+Loading those font resources causes the administrator's browser to connect to Google-hosted domains such as `fonts.googleapis.com` and `fonts.gstatic.com`, which can receive normal request information such as IP address and browser headers.
+
+Google Fonts: https://fonts.google.com/
+Google Privacy Policy: https://policies.google.com/privacy
+Google Terms: https://policies.google.com/terms
 
 == Trademark Notice ==
 
-"Cloudflare" and the Cloudflare logo are trademarks of Cloudflare, Inc. This plugin is not affiliated with or endorsed by Cloudflare, Inc.
+Cloudflare and Cloudflare Turnstile are trademarks or services of Cloudflare, Inc. This plugin is independently developed by Kitgenix and is not affiliated with or endorsed by Cloudflare, Inc.
+
+WordPress and WooCommerce trademarks belong to their respective owners. References are descriptive and identify supported integrations.
 
 == Support Development ==
 
-If this plugin helps keep spam away without slowing your site down, you can support ongoing development here:
-https://www.paypal.com/donate/?hosted_button_id=KALF36K6JJ9B2
+Kitgenix CAPTCHA for Cloudflare Turnstile is free software. If the plugin is useful to you, you can support continued maintenance and development through the Donate link shown on the WordPress.org plugin page.
 
-== Credits ==
-Built with ❤︎ by @kitgenix - https://kitgenix.com
+More WordPress plugins and development resources are available from [Kitgenix](https://kitgenix.com/).
 
 == Upgrade Notice ==
 
 = 2.0.0 =
-Security fix: EDD login, Fluent Forms, Kadence Forms, Ninja Forms, Contact Form 7, and Elementor Forms now properly enforce Turnstile server-side (previously some did not; Elementor hid the retry widget after failure). Also adds WP 7.1/WooCommerce HPOS support and a Protection health dashboard.
+Version 2.0.0 adds the redesigned Kitgenix admin experience, Ninja Forms support, per-integration display and test-mode controls, honeypot protection and protection-health diagnostics, while also including important server-side enforcement fixes across several integrations.
 
 == Changelog ==
 
-= 2.0.0 (25 August 2026) =
+= 2.0.0 (31 August 2026) =
 
 * New: Redesigned the admin settings interface around the shared Kitgenix design system with a sticky topbar, cross-plugin branding, grouped navigation, an Advanced dropdown for Security, Advanced, and Portability, and a light/dark theme toggle that remembers the selected preference.
 * New: Added in-page settings search with "/" and Cmd/Ctrl+K keyboard shortcuts, filtering the active tab's cards and rows as you type and displaying a dedicated no-results state when nothing matches.
