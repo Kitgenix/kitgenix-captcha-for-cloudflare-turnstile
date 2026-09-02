@@ -8,7 +8,7 @@
  * Author Support URI: https://kitgenix.com/plugins/kitgenix-captcha-for-cloudflare-turnstile/support
  * Feature Request URI: https://kitgenix.com/plugins/kitgenix-captcha-for-cloudflare-turnstile/feature-request
  * Description:       Add Cloudflare Turnstile CAPTCHA to WordPress, WooCommerce, Elementor, and popular form plugins with privacy-first server-side verification.
- * Version:           2.0.1
+ * Version:           2.0.2
  * Requires at least: 6.0
  * Tested up to:      7.1
  * Requires PHP:      8.1
@@ -631,7 +631,7 @@ if ( ! function_exists( 'kitgenix_turnstile_register_admin_ui_style' ) ) {
             return;
         }
 
-        $ver      = defined( 'KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION' ) ? (string) KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION : '2.0.1';
+        $ver      = defined( 'KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION' ) ? (string) KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION : '2.0.2';
         $css_file = plugin_dir_path( __FILE__ ) . 'assets/css/kitgenix-admin-ui.css';
         $css_ver  = file_exists( $css_file ) ? (string) filemtime( $css_file ) : $ver;
 
@@ -658,7 +658,7 @@ function kitgenix_turnstile_enqueue_hub_assets( string $hook_suffix ): void {
         return;
     }
 
-    $ver = defined( 'KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION' ) ? (string) KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION : '2.0.1';
+    $ver = defined( 'KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION' ) ? (string) KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION : '2.0.2';
     wp_register_style( 'kitgenix-hub', plugins_url( 'assets/css/kitgenix-hub.css', __FILE__ ), [], $ver );
     wp_enqueue_style( 'kitgenix-hub' );
 
@@ -671,7 +671,7 @@ add_action( 'admin_enqueue_scripts', 'kitgenix_turnstile_enqueue_hub_assets' );
  * Constants (guarded)
  */
 if ( ! defined('KitgenixCaptchaForCloudflareTurnstile_Version') ) {
-    define('KitgenixCaptchaForCloudflareTurnstile_Version', '2.0.1');
+    define('KitgenixCaptchaForCloudflareTurnstile_Version', '2.0.2');
 }
 
 // Also expose a conventional uppercase version constant for shared Kitgenix hub assets.

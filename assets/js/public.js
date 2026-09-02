@@ -196,7 +196,23 @@
       }
 
       $('.cf-turnstile').each((_, el) => {
-        if (el.dataset.rendered || el.dataset.KitgenixCaptchaForCloudflareTurnstileRendering === '1') return;
+        if (el.dataset.KitgenixCaptchaForCloudflareTurnstileRendering === '1') return;
+        // A "rendered" container isn't necessarily healthy: WooCommerce Blocks'
+        // React tree can wipe a container's children out while leaving the
+        // wrapper div itself in place — the CSS gap stays, but nothing is
+        // actually rendered inside it. Detect that *conservatively*: only
+        // treat it as a zombie once the container has had zero child elements
+        // for a while (well past how long Turnstile normally takes to mount),
+        // never immediately — checking too eagerly (or checking specifically
+        // for an <iframe>, which isn't guaranteed to be a direct, queryable
+        // child) wipes and restarts widgets that are still loading or already
+        // solved, which repeatedly interrupts verification.
+        if (el.dataset.rendered) {
+          var hasContent = el.children && el.children.length > 0;
+          var renderedAt = parseInt(el.dataset.kitgenixRenderedAt || '0', 10);
+          var sinceRender = Date.now() - renderedAt;
+          if (hasContent || !renderedAt || sinceRender < 8000) return;
+        }
         $(el).find('.kitgenix-captcha-for-cloudflare-turnstile-spinner').remove();
         el.dataset.KitgenixCaptchaForCloudflareTurnstileRendering = '1';
 
@@ -301,6 +317,7 @@
         }
         const renderNow = () => {
           // Clean any stale children (defensive, in case of prior duplicate render attempts)
+          KitgenixCaptchaForCloudflareTurnstile._safeRemoveWidget(el);
           try { el.innerHTML = ''; } catch (e) {}
           try {
             turnstile.render(el, params);
@@ -310,6 +327,7 @@
             }
           }
           el.dataset.rendered = 'true';
+          el.dataset.kitgenixRenderedAt = String(Date.now());
           try { el.setAttribute('data-rendered', 'true'); } catch (e) {}
           delete el.dataset.KitgenixCaptchaForCloudflareTurnstileRendering;
 
@@ -358,6 +376,21 @@
           });
         });
       }
+    },
+
+    // Properly unregister a widget from Cloudflare's internal registry before
+    // clearing/reusing its container. Just wiping the container's innerHTML
+    // (without calling turnstile.remove() first) leaves a stale widget ID
+    // behind; Cloudflare then logs "Cannot find Widget ..." and, after a few
+    // such cycles, can stop mounting a fresh widget into that container at
+    // all — the exact "renders once then silently stays blank" symptom.
+    // Safe to call even when no widget is registered (no-op, swallowed).
+    _safeRemoveWidget(el) {
+      try {
+        if (typeof turnstile !== 'undefined' && typeof turnstile.remove === 'function') {
+          turnstile.remove(el);
+        }
+      } catch (e) { /* ignore: nothing registered for this container yet */ }
     },
 
     // Reset a widget, clear token, disable submit, and show a small inline message.
@@ -429,6 +462,7 @@
           const visible = style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
           if (!visible) { setTimeout(renderWhenVisible, 120); return; }
 
+          KitgenixCaptchaForCloudflareTurnstile._safeRemoveWidget(el);
           try { el.innerHTML = ''; } catch (e) {}
           turnstile.render(el, params);
           el.dataset.rendered = 'true';
@@ -479,6 +513,7 @@
           const visible = style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
           if (!visible) { setTimeout(renderWhenVisibleF, 120); return; }
 
+          KitgenixCaptchaForCloudflareTurnstile._safeRemoveWidget(el);
           try { el.innerHTML = ''; } catch (e) {}
           turnstile.render(el, params);
           el.dataset.rendered = 'true';
@@ -528,6 +563,7 @@
           const visible = style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
           if (!visible) { setTimeout(renderWhenVisibleJ, 120); return; }
 
+          KitgenixCaptchaForCloudflareTurnstile._safeRemoveWidget(el);
           try { el.innerHTML = ''; } catch (e) {}
           turnstile.render(el, params);
           el.dataset.rendered = 'true';
@@ -582,6 +618,7 @@
           const visible = style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
           if (!visible) { setTimeout(renderWhenVisible, 120); return; }
           
+          KitgenixCaptchaForCloudflareTurnstile._safeRemoveWidget(el);
           try { el.innerHTML = ''; } catch (e) {}
           try {
             turnstile.render(el, params);
@@ -637,6 +674,7 @@
           const visible = style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
           if (!visible) { setTimeout(renderWhenVisible, 120); return; }
 
+          KitgenixCaptchaForCloudflareTurnstile._safeRemoveWidget(el);
           try { el.innerHTML = ''; } catch (e) {}
           turnstile.render(el, params);
           el.dataset.rendered = 'true';
@@ -912,7 +950,27 @@
           const checkoutRoot = document.querySelector('.wp-block-woocommerce-checkout, .wc-block-checkout, form.wc-block-checkout__form');
           if (!checkoutRoot) return; // not on a Blocks Checkout page
 
-          if (checkoutRoot.querySelector('.cf-turnstile')) return; // already present (PHP or a prior heal)
+          const existing = checkoutRoot.querySelector('.cf-turnstile');
+          if (existing) {
+            // Container survived (PHP or a prior heal), but a React re-render may
+            // have wiped its contents out while leaving the empty wrapper div
+            // behind — a "zombie": the gap is still there, nothing is rendered
+            // inside it. Give renderWidgets() a chance to heal it; it only
+            // actually re-renders once its own grace period confirms the
+            // container is truly stuck empty, so calling it here on every
+            // checkout re-render is safe and won't interrupt an in-flight or
+            // already-solved widget. Throttled purely to avoid scanning the
+            // page on every single DOM mutation during a busy checkout update.
+            if (existing.dataset.KitgenixCaptchaForCloudflareTurnstileRendering !== '1') {
+              const now = Date.now();
+              const last = parseInt(existing.dataset.kitgenixLastHealAttempt || '0', 10);
+              if (now - last > 1000) {
+                existing.dataset.kitgenixLastHealAttempt = String(now);
+                self.renderWidgets();
+              }
+            }
+            return;
+          }
 
           const anchor = findPlaceOrderAnchor(checkoutRoot);
           if (!anchor || !anchor.parentNode) return;
@@ -933,7 +991,24 @@
       const target = document.querySelector('.wp-block-woocommerce-checkout, .wc-block-checkout, form.wc-block-checkout__form');
       if (target) {
         let debounce = null;
-        new MutationObserver(function () {
+        new MutationObserver(function (mutations) {
+          // React can rip our container straight out of the DOM (rather than
+          // just emptying it). When that happens, tell Cloudflare so it drops
+          // the now-detached widget from its registry instead of leaving a
+          // stale ID behind for the rebuild to collide with later.
+          mutations.forEach(function (mutation) {
+            mutation.removedNodes && mutation.removedNodes.forEach(function (node) {
+              if (!node || node.nodeType !== 1) return;
+              if (node.classList && node.classList.contains('cf-turnstile')) {
+                self._safeRemoveWidget(node);
+              }
+              if (node.querySelectorAll) {
+                node.querySelectorAll('.cf-turnstile').forEach(function (child) {
+                  self._safeRemoveWidget(child);
+                });
+              }
+            });
+          });
           clearTimeout(debounce);
           debounce = setTimeout(ensureWidget, 150);
         }).observe(target, { childList: true, subtree: true });
@@ -1023,6 +1098,7 @@
             }
           };
           if (params.appearance === 'interaction-only') { el.classList.add('kitgenix-ts-collapsed'); }
+          KitgenixCaptchaForCloudflareTurnstile._safeRemoveWidget(el);
           try { el.innerHTML = ''; } catch (e) {}
           try {
             turnstile.render(el, params);
@@ -1110,6 +1186,7 @@
         };
           if (params.appearance === 'interaction-only') { el.classList.add('kitgenix-ts-collapsed'); }
           // Render without visibility guard here (Kadence blocks are typically visible), but keep logic consistent if needed
+          KitgenixCaptchaForCloudflareTurnstile._safeRemoveWidget(el);
           try { el.innerHTML = ''; } catch (e) {}
           turnstile.render(el, params);
         el.dataset.rendered = 'true';

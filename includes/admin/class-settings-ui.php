@@ -1059,6 +1059,37 @@ JS;
                     </div>
                 </div>
 
+                <!-- Reliability -->
+                <div class="kitgenix-card" id="section-reliability" data-section data-kitgenix-tab-panel="advanced">
+                    <div class="kitgenix-card-head">
+                        <div class="kitgenix-card-head-main">
+                            <div class="kitgenix-card-head-text">
+                                <h2><?php echo \esc_html( \__( 'Reliability', 'kitgenix-captcha-for-cloudflare-turnstile' ) ); ?></h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="kitgenix-card-body">
+                        <div class="kitgenix-settings-group">
+                        <div class="kitgenix-setting-row">
+                            <div class="kitgenix-setting-row-label">
+                                <label for="cf_failsafe_enabled"><?php echo \esc_html( \__( 'Cloudflare outage failsafe', 'kitgenix-captcha-for-cloudflare-turnstile' ) ); ?></label>
+                            </div>
+                            <div class="kitgenix-setting-row-control">
+                                <input type="hidden" name="kitgenix_captcha_for_cloudflare_turnstile_settings[cf_failsafe_enabled]" value="0" />
+                                <label class="kitgenix-toggle">
+                                    <input type="checkbox" class="kitgenix-toggle-input" id="cf_failsafe_enabled" name="kitgenix_captcha_for_cloudflare_turnstile_settings[cf_failsafe_enabled]" value="1" <?php checked( ! empty( $settings['cf_failsafe_enabled'] ) ); ?> />
+                                    <span class="kitgenix-toggle-track"><span class="kitgenix-toggle-thumb"></span></span>
+                                    <span class="kitgenix-toggle-label"><?php echo \esc_html__( 'If Cloudflare Turnstile becomes unreachable, let protected forms submit instead of blocking every visitor.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></span>
+                                </label>
+                                <p class="description kitgenix-captcha-for-cloudflare-turnstile-mt-6">
+                                    <?php echo \esc_html__( 'Off by default. When enabled, this plugin independently checks Cloudflare\'s own status (server-side, cached for 2 minutes) before bypassing verification — a visitor cannot trigger this themselves by simply omitting a token. While active, an alert appears on this settings page and submissions are logged distinctly so you can tell a genuine Cloudflare-verified pass apart from a failsafe bypass. Leave this off if you would rather block submissions entirely during a Cloudflare outage.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?>
+                                </p>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Security -->
                 <div class="kitgenix-card" id="section-security" data-section data-kitgenix-tab-panel="security">
                     <div class="kitgenix-card-head">

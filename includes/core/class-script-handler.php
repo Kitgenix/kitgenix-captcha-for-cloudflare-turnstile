@@ -214,8 +214,13 @@ class Script_Handler {
             : false;
 
         // --- Cloudflare Turnstile -----------------------------------------------------------
-        // Only enqueue api.js if we have a site key and the request isn't whitelisted.
-        if ( $site_key && ! $whitelisted ) {
+        // Only enqueue api.js if we have a site key, the request isn't whitelisted, and the
+        // outage failsafe isn't currently bypassing verification. When the failsafe is active,
+        // loading a script from a service we've just independently confirmed is unreachable
+        // would only leave every widget on the page stuck in a broken loading state; skipping
+        // it instead leaves the (inert) container harmlessly empty while Turnstile_Validator
+        // lets submissions through without a token. See Cloudflare_Health.
+        if ( $site_key && ! $whitelisted && ! Cloudflare_Health::failsafe_active() ) {
             $url = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=kitgenix_captcha_for_cloudflare_turnstile_TurnstileOnLoad'; // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- Cloudflare Turnstile's own official widget script, the plugin's core third-party CAPTCHA service; there is no self-hosted alternative.
             if ( ! empty( $settings['language'] ) && 'auto' !== $settings['language'] ) {
                 $url .= '&hl=' . rawurlencode( (string) $settings['language'] );
@@ -226,11 +231,15 @@ class Script_Handler {
                 ? [ 'in_footer' => true, 'strategy' => 'async' ]
                 : true;
 
+            // No $ver: this is Cloudflare's own CDN-hosted script, not a local asset —
+            // appending our plugin version as a `&ver=` query param pollutes their URL
+            // (Turnstile's own api.js logs "Unknown parameter ... ignoring" for it) and
+            // defeats Cloudflare's own cache headers for no benefit.
             \wp_register_script(
                 'kitgenix-captcha-for-cloudflare-turnstile',
                 $url,
                 [],
-                (string) constant( 'KitgenixCaptchaForCloudflareTurnstile_Version' ),
+                null,
                 $args
             );
 

@@ -204,6 +204,11 @@ class Admin_Options {
         // Dev mode (warn-only) – global, applies to every integration.
         $clean['dev_mode_warn_only'] = !empty($settings['dev_mode_warn_only']) ? 1 : 0;
 
+        // Cloudflare outage failsafe – off by default; an admin must opt in, since
+        // it trades verification for availability during a confirmed Cloudflare
+        // outage. See Cloudflare_Health.
+        $clean['cf_failsafe_enabled'] = !empty($settings['cf_failsafe_enabled']) ? 1 : 0;
+
         // Per-integration test mode: warn-only for specific integrations without putting the
         // whole site into warn-only mode. Stored as a list of canonical integration keys (see
         // Script_Handler::get_override_integration_keys()); anything not in that list is dropped.

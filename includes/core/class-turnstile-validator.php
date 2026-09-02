@@ -219,6 +219,24 @@ class Turnstile_Validator {
         \do_action('kitgenix_turnstile_dev_log', $what, $data);
     }
 
+    /**
+     * Let a submission through under the Cloudflare outage failsafe, without ever
+     * contacting Cloudflare or requiring a token. Recorded distinctly (not as a
+     * normal pass) so admins can tell "Cloudflare verified this" apart from
+     * "verification was bypassed because Cloudflare was unreachable" in analytics
+     * and the recent-events log – see Cloudflare_Health::failsafe_active() and
+     * get_active_alerts(), which also surfaces this as a live, current-state alert
+     * (not just a historical log entry) while it's happening.
+     */
+    private static function allow_via_failsafe(string $integration): bool {
+        self::$last_error_codes = ['cloudflare_failsafe_bypass'];
+        self::$last_error_msg   = '';
+        self::log_dev('cloudflare_failsafe_bypass', ['integration' => $integration]);
+        self::record_metrics('', true, $integration, self::$last_error_codes);
+        self::record_recent_event($integration, true, self::$last_error_codes);
+        return true;
+    }
+
     /* =========================
      * Replay protection
      * ========================= */
@@ -314,6 +332,13 @@ class Turnstile_Validator {
         self::$last_error_msg   = '';
         self::$last_response    = [];
         self::$last_latency_ms  = 0;
+
+        // Outage failsafe – independently, server-side confirmed Cloudflare is
+        // unreachable, and the admin has opted in to not let that permanently
+        // block every protected form on the site. See Cloudflare_Health.
+        if ( Cloudflare_Health::failsafe_active() ) {
+            return self::allow_via_failsafe($integration);
+        }
 
         // Honeypot (zero-JS fallback) – check first so a tripped trap skips the
         // Cloudflare API call entirely, not just the rest of this method's checks.
@@ -426,6 +451,10 @@ class Turnstile_Validator {
         self::$last_error_msg   = '';
         self::$last_response    = [];
         self::$last_latency_ms  = 0;
+
+        if ( Cloudflare_Health::failsafe_active() ) {
+            return self::allow_via_failsafe($integration);
+        }
 
         if ( self::is_honeypot_tripped() ) {
             self::$last_error_codes = ['honeypot_tripped'];
@@ -727,6 +756,20 @@ class Turnstile_Validator {
      * @return array<int,array<string,mixed>>
      */
     public static function get_active_alerts(): array {
+        $alerts = [];
+
+        // Live state, not a historical log scan: this reflects whether the
+        // failsafe is bypassing verification right now, for as long as
+        // Cloudflare_Health's cached probe keeps reporting Cloudflare down.
+        if ( Cloudflare_Health::failsafe_active() ) {
+            $alerts[] = [
+                'key'      => 'cloudflare-failsafe-active',
+                'severity' => 'error',
+                'title'    => __( 'Cloudflare outage failsafe is active', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+                'message'  => __( 'Cloudflare Turnstile appears unreachable, so this plugin is currently letting protected forms submit WITHOUT verification instead of blocking every visitor. This will clear automatically once Cloudflare is reachable again. Disable "Cloudflare outage failsafe" in Settings if you would rather block submissions during an outage.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            ];
+        }
+
         $window_seconds = self::get_alert_window_seconds();
         $cutoff         = time() - $window_seconds;
         $window_events  = [];
@@ -743,10 +786,8 @@ class Turnstile_Validator {
         }
 
         if ( empty( $window_events ) ) {
-            return [];
+            return $alerts;
         }
-
-        $alerts = [];
 
         $http_error_alert = self::build_http_error_alert( $window_events, $window_seconds );
         if ( null !== $http_error_alert ) {
@@ -1300,7 +1341,7 @@ class Turnstile_Validator {
         $args = [
             'timeout'   => (int) apply_filters('kitgenix_turnstile_siteverify_timeout', 10),
             'headers'   => [
-                'User-Agent' => 'kitgenix-captcha-for-cloudflare-turnstile/' . ( defined( 'KitgenixCaptchaForCloudflareTurnstile_Version' ) ? (string) constant( 'KitgenixCaptchaForCloudflareTurnstile_Version' ) : '2.0.1' ),
+                'User-Agent' => 'kitgenix-captcha-for-cloudflare-turnstile/' . ( defined( 'KitgenixCaptchaForCloudflareTurnstile_Version' ) ? (string) constant( 'KitgenixCaptchaForCloudflareTurnstile_Version' ) : '2.0.2' ),
                 'Accept'     => 'application/json',
             ],
             'body'      => $body,

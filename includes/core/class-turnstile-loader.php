@@ -19,6 +19,7 @@ class Turnstile_Loader {
      */
     private static function load_core() {
         require_once KitgenixCaptchaForCloudflareTurnstile_Includes_Path . 'core/class-client-ip.php';
+        require_once KitgenixCaptchaForCloudflareTurnstile_Includes_Path . 'core/class-cloudflare-health.php';
         require_once KitgenixCaptchaForCloudflareTurnstile_Includes_Path . 'core/class-turnstile-validator.php';
         require_once KitgenixCaptchaForCloudflareTurnstile_Includes_Path . 'core/class-script-handler.php';
         require_once KitgenixCaptchaForCloudflareTurnstile_Includes_Path . 'core/class-turnstile-shortcode.php';

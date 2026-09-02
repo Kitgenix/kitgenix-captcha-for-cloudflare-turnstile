@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.2 – 2 September 2026
+
+- **New:** Added an optional Cloudflare outage failsafe (Settings → Advanced → Reliability, off by default) that independently checks Cloudflare Turnstile's reachability server-side and, once enabled, lets protected forms submit instead of blocking every visitor during a confirmed Cloudflare outage. A visitor cannot trigger this bypass themselves; it only activates when the plugin's own probe confirms Cloudflare is unreachable.
+- **New:** Added a live "Cloudflare outage failsafe is active" alert on the Log tab and in Site Health for as long as the failsafe is bypassing verification, and failsafe bypasses are logged distinctly from genuine Cloudflare-verified passes in the recent events log and per-integration metrics.
+- **Fix:** Resolved an issue where the WooCommerce Blocks Checkout widget could stop rendering after the checkout block re-renders during a normal page load (cart totals, shipping rates and payment methods resolving in sequence). A container that was emptied out by one of these re-renders could be left behind still marked as already rendered, so it silently stayed blank instead of showing the widget. The self-healing recovery logic now recognises a genuinely emptied container and re-renders into it, gated by a grace period so it never interrupts a widget that is still loading or has already been solved.
+- **Fix:** The plugin now properly calls Cloudflare's `turnstile.remove()` before clearing and re-rendering any widget container, across every integration (WooCommerce, Elementor, Gravity Forms, Formidable Forms, Forminator, Jetpack Forms, Fluent Forms, Kadence Forms). Previously the container was cleared directly without unregistering the widget first, which could leave a stale widget reference behind and produce "Cannot find Widget" warnings after repeated re-renders.
+- **Fix:** The WooCommerce Blocks Checkout container-recovery observer now unregisters a widget from Cloudflare's script when the block's own re-render removes its container from the DOM, instead of leaving an orphaned widget reference behind for the replacement container to collide with.
+- **Fix:** Removed an unnecessary plugin-version query parameter that WordPress's automatic asset versioning was appending to Cloudflare's third-party `api.js` script URL. Turnstile's own script logged this as an unrecognised parameter; the URL now matches what Cloudflare's CDN expects.
+
 ## 2.0.0 – 22 August 2026
 
 - **New:** Redesigned the admin settings interface around the shared Kitgenix design system with a sticky topbar, cross-plugin branding, grouped navigation, an Advanced dropdown for Security, Advanced, and Portability, and a light/dark theme toggle that remembers the selected preference.
