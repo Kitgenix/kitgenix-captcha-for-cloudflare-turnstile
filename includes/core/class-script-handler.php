@@ -305,6 +305,18 @@ class Script_Handler {
             'modes'          => [
                 'woocommerce_blocks' => $settings['mode_woocommerce_blocks'] ?? 'auto',
             ],
+            // Effective per-integration widget attributes for WooCommerce Blocks Checkout.
+            // The Blocks checkout is a client-rendered React tree: on some page loads it
+            // re-renders the "Checkout Actions" area after our PHP-injected container has
+            // already been added, wiping it out before Turnstile ever mounts into it. The
+            // public JS uses this to rebuild the container on the client as a fallback so
+            // the widget shows up without requiring a page reload.
+            'wc_blocks'      => [
+                'theme'       => self::get_effective_theme( 'woocommerce_blocks' ),
+                'size'        => self::get_effective_size( 'woocommerce_blocks' ),
+                'appearance'  => self::get_effective_appearance(),
+                'language'    => self::get_effective_language_override( 'woocommerce_blocks' ),
+            ],
         ];
         \wp_add_inline_script(
             'kitgenix-captcha-for-cloudflare-turnstile-public',

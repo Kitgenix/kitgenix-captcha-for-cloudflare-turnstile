@@ -5,7 +5,7 @@ Tags: cloudflare turnstile, captcha, anti spam, woocommerce, form security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 2.0.0
+Stable tag: 2.0.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -360,10 +360,13 @@ More WordPress plugins and development resources are available from [Kitgenix](h
 
 == Upgrade Notice ==
 
-= 2.0.0 =
-Version 2.0.0 adds the redesigned Kitgenix admin experience, Ninja Forms support, per-integration display and test-mode controls, honeypot protection and protection-health diagnostics, while also including important server-side enforcement fixes across several integrations.
+= 2.0.1 =
+Version 2.0.1 is recommended for all sites.
 
 == Changelog ==
+
+= 2.0.1 (2 September 2026) =
+* Fix: Resolved an issue where the WooCommerce Block Checkout widget would not render consistently.
 
 = 2.0.0 (31 August 2026) =
 

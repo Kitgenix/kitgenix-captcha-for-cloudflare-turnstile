@@ -19,6 +19,8 @@
  * - Forminator – `renderForminatorWidgets()` + forminator events.
  * - Jetpack Forms – `renderJetpackFormsWidgets()` after their form HTML loads.
  * - Kadence Blocks Forms – `renderKadenceFormsWidgets()` when Kadence is present.
+ * - WooCommerce Blocks Checkout – `wooBlocksIntegration()` rebuilds the container
+ *   client-side if WooCommerce's React re-render wipes out the PHP-injected one.
  *
  * IMPORTANT INTEGRATION HOOK
  * ---------------------------------------------------------
@@ -859,6 +861,85 @@
       // during AJAX send. Resets are handled after success or on error elsewhere.
     },
     
+    /**
+     * GUIDE: WooCommerce Blocks Checkout – self-healing container.
+     * ---------------------------------------------------------
+     * The Blocks Checkout "Checkout Actions" area is a client-rendered React tree.
+     * Our PHP `render_block` filter injects a `.cf-turnstile` container into the very
+     * first HTML response, but on some loads WooCommerce Blocks re-renders that same
+     * area right after mount (e.g. once cart/checkout data resolves) and, because our
+     * container isn't part of its component tree, that re-render wipes it out before
+     * Turnstile ever gets a chance to mount into it — the widget silently never
+     * appears and checkout blocks on the missing token. A reload "fixes" it only when
+     * that particular re-render happens not to occur that time.
+     *
+     * Rather than depend on that timing, rebuild the container on the client whenever
+     * it's missing (never injected, or wiped by a re-render) and render Turnstile into
+     * it. Once present, subsequent React re-renders leave it alone (React only owns
+     * nodes it created), so this heals the page without any flicker for the shopper.
+     */
+    wooBlocksIntegration: function () {
+      const self = this;
+
+      function findPlaceOrderAnchor(root) {
+        root = root || document;
+        return root.querySelector('.wc-block-components-checkout-place-order-button__text')
+            || root.querySelector('.wc-block-components-checkout-place-order-button')
+            || root.querySelector('.wc-block-components-checkout-place-order')
+            || root.querySelector('.wc-block-components-checkout-actions')
+            || root.querySelector('form.wc-block-checkout__form button[type="submit"]');
+      }
+
+      function buildContainer() {
+        const wc = (self.config && self.config.wc_blocks) || {};
+        const el = document.createElement('div');
+        el.className = 'cf-turnstile';
+        el.setAttribute('data-kitgenix-captcha-for-cloudflare-turnstile-owner', 'woocommerce-blocks');
+        el.setAttribute('data-sitekey', self.config.site_key || '');
+        el.setAttribute('data-theme', wc.theme || self.config.theme || 'auto');
+        el.setAttribute('data-size', wc.size || self.config.size || 'normal');
+        el.setAttribute('data-appearance', wc.appearance || self.config.appearance || 'always');
+        if (wc.language) el.setAttribute('data-language', wc.language);
+        return el;
+      }
+
+      function ensureWidget() {
+        try {
+          if (!self.config || !self.config.site_key) return;
+          const modes = (self.config && self.config.modes) || {};
+          if (modes.woocommerce_blocks === 'shortcode') return;
+
+          const checkoutRoot = document.querySelector('.wp-block-woocommerce-checkout, .wc-block-checkout, form.wc-block-checkout__form');
+          if (!checkoutRoot) return; // not on a Blocks Checkout page
+
+          if (checkoutRoot.querySelector('.cf-turnstile')) return; // already present (PHP or a prior heal)
+
+          const anchor = findPlaceOrderAnchor(checkoutRoot);
+          if (!anchor || !anchor.parentNode) return;
+
+          anchor.parentNode.insertBefore(buildContainer(), anchor);
+          self.renderWidgets();
+        } catch (e) { if (window.console) console.error(e); }
+      }
+
+      // WC Blocks mounts asynchronously after DOMContentLoaded; poll briefly to catch it.
+      let attempts = 0;
+      (function poll() {
+        ensureWidget();
+        if (++attempts < 30) setTimeout(poll, 250); // ~7.5s window
+      })();
+
+      // Defensive: keep healing if a later re-render removes the container again.
+      const target = document.querySelector('.wp-block-woocommerce-checkout, .wc-block-checkout, form.wc-block-checkout__form');
+      if (target) {
+        let debounce = null;
+        new MutationObserver(function () {
+          clearTimeout(debounce);
+          debounce = setTimeout(ensureWidget, 150);
+        }).observe(target, { childList: true, subtree: true });
+      }
+    },
+
     // Global form guard: if Interaction Only has no token yet, surface UI immediately and block submit once.
     attachGlobalSubmitGuard: function () {
       if (this._globalSubmitGuardAttached) return;
@@ -1103,6 +1184,7 @@
     KitgenixCaptchaForCloudflareTurnstile.init();
     KitgenixCaptchaForCloudflareTurnstile.observeDOM();
     KitgenixCaptchaForCloudflareTurnstile.elementorIntegration();
+    KitgenixCaptchaForCloudflareTurnstile.wooBlocksIntegration();
     KitgenixCaptchaForCloudflareTurnstile.attachGlobalSubmitGuard();
     KitgenixCaptchaForCloudflareTurnstile.fluentFormsIntegration();
     KitgenixCaptchaForCloudflareTurnstile.renderGravityFormsWidgets();

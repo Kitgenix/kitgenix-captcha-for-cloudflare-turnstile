@@ -2,7 +2,7 @@
 # This file is distributed under the GPLv3 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Kitgenix CAPTCHA for Cloudflare Turnstile 2.0.0\n"
+"Project-Id-Version: Kitgenix CAPTCHA for Cloudflare Turnstile 2.0.1\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/kitgenix-captcha-for-cloudflare-turnstile\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"

@@ -1300,7 +1300,7 @@ class Turnstile_Validator {
         $args = [
             'timeout'   => (int) apply_filters('kitgenix_turnstile_siteverify_timeout', 10),
             'headers'   => [
-                'User-Agent' => 'kitgenix-captcha-for-cloudflare-turnstile/' . ( defined( 'KitgenixCaptchaForCloudflareTurnstile_Version' ) ? (string) constant( 'KitgenixCaptchaForCloudflareTurnstile_Version' ) : '2.0.0' ),
+                'User-Agent' => 'kitgenix-captcha-for-cloudflare-turnstile/' . ( defined( 'KitgenixCaptchaForCloudflareTurnstile_Version' ) ? (string) constant( 'KitgenixCaptchaForCloudflareTurnstile_Version' ) : '2.0.1' ),
                 'Accept'     => 'application/json',
             ],
             'body'      => $body,
