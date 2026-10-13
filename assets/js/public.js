@@ -319,17 +319,27 @@
           // Clean any stale children (defensive, in case of prior duplicate render attempts)
           KitgenixCaptchaForCloudflareTurnstile._safeRemoveWidget(el);
           try { el.innerHTML = ''; } catch (e) {}
+          let renderOk = true;
           try {
             turnstile.render(el, params);
           } catch (err) {
+            renderOk = false;
             if (window.console && window.console.error) {
               console.error('[KitgenixTurnstile] turnstile.render error', err);
             }
           }
+          delete el.dataset.KitgenixCaptchaForCloudflareTurnstileRendering;
+          if (!renderOk) {
+            // Do NOT mark as rendered: a thrown render() never mounted anything, so the
+            // zombie-detector in this function (the `el.dataset.rendered` check above) must
+            // keep treating this container as unrendered, or it will wait up to 8s before
+            // trying again — during which the container looks "there" in the HTML but stays
+            // permanently empty, which is exactly the reported "widget not rendering" symptom.
+            return;
+          }
           el.dataset.rendered = 'true';
           el.dataset.kitgenixRenderedAt = String(Date.now());
           try { el.setAttribute('data-rendered', 'true'); } catch (e) {}
-          delete el.dataset.KitgenixCaptchaForCloudflareTurnstileRendering;
 
           if (params.appearance === 'interaction-only') {
             this._scheduleRevealIfNoToken(el);
@@ -1013,6 +1023,28 @@
           debounce = setTimeout(ensureWidget, 150);
         }).observe(target, { childList: true, subtree: true });
       }
+
+      // Belt-and-braces: also subscribe directly to WooCommerce Blocks' own data stores.
+      // The MutationObserver above only finds out a re-render happened after React has
+      // already committed it to the DOM, then waits out its own debounce on top of that.
+      // wp.data.subscribe fires on the store update that *causes* the re-render, so it
+      // catches a wipe (and can rebuild/heal) a tick earlier — closing the small timing
+      // gap where a very fast subsequent re-render could otherwise wipe our rebuilt
+      // container again before the MutationObserver-driven heal has had a chance to run.
+      try {
+        if (typeof wp !== 'undefined' && wp.data && typeof wp.data.subscribe === 'function') {
+          let storeDebounce = null;
+          const onStoreChange = function () {
+            clearTimeout(storeDebounce);
+            storeDebounce = setTimeout(ensureWidget, 150);
+          };
+          // wp.data.subscribe(listener, storeName) just warns (does not throw) if the named
+          // store isn't registered yet, so it's safe to call before Woo Blocks has mounted —
+          // no need to (and no reliable public API to) check registration first.
+          try { wp.data.subscribe(onStoreChange, 'wc/store/cart'); } catch (e) {}
+          try { wp.data.subscribe(onStoreChange, 'wc/store/checkout'); } catch (e) {}
+        }
+      } catch (e) { if (window.console) console.error(e); }
     },
 
     // Global form guard: if Interaction Only has no token yet, surface UI immediately and block submit once.
@@ -1254,6 +1286,32 @@
   // (covers cases where WooCommerce replaces the checkout form HTML via AJAX)
   $(document.body).on('updated_checkout', function () {
     KitgenixCaptchaForCloudflareTurnstile.init();
+  });
+
+  // GUIDE: Back/forward-cache (bfcache) restore – e.g. a shopper places an order, then hits the
+  // browser Back button to return to Checkout for a second order. The browser can restore that
+  // page instantly from bfcache instead of re-requesting it: no PHP runs again, so every widget
+  // is exactly as it was at the moment of navigating away – already solved, and (for the ones
+  // that were actually submitted) already consumed server-side. Nothing else in this file
+  // listens for that restore, so previously nothing ever gave those containers a fresh token;
+  // the container looks "there" but never becomes usable again without a manual page refresh.
+  $(window).on('pageshow', function (e) {
+    var persisted = !!(e.originalEvent && e.originalEvent.persisted);
+    if (!persisted) return;
+    $('.cf-turnstile').each(function () {
+      var el = this;
+      try {
+        if (typeof turnstile !== 'undefined' && el.dataset.rendered) {
+          turnstile.reset(el);
+          KitgenixCaptchaForCloudflareTurnstile.setResponseInput(el, '');
+          return;
+        }
+      } catch (err) { /* fall through to a full re-render below */ }
+      try { delete el.dataset.rendered; } catch (err) {}
+      try { el.removeAttribute('data-rendered'); } catch (err) {}
+      try { delete el.dataset.KitgenixCaptchaForCloudflareTurnstileRendering; } catch (err) {}
+    });
+    try { KitgenixCaptchaForCloudflareTurnstile.renderWidgets(); } catch (err) { if (window.console) console.error(err); }
   });
 
   // Boot

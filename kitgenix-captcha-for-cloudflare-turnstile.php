@@ -8,7 +8,7 @@
  * Author Support URI: https://kitgenix.com/plugins/kitgenix-captcha-for-cloudflare-turnstile/support
  * Feature Request URI: https://kitgenix.com/plugins/kitgenix-captcha-for-cloudflare-turnstile/feature-request
  * Description:       Add Cloudflare Turnstile CAPTCHA to WordPress, WooCommerce, Elementor, and popular form plugins with privacy-first server-side verification.
- * Version:           2.0.2
+ * Version:           2.1.0
  * Requires at least: 6.0
  * Tested up to:      7.1
  * Requires PHP:      8.1
@@ -463,6 +463,14 @@ if ( ! function_exists( 'kitgenix_render_admin_page' ) ) {
                 'page'     => 'kitgenix-affiliate-link-manager',
                 'requires' => __( 'Manage affiliate short links, branded redirects, and click tracking from one WordPress dashboard.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
             ],
+            [
+                'id'       => 'database_cleaner',
+                'name'     => __( 'Database Cleaner', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+                'slug'     => 'kitgenix-database-cleaner',
+                'file'     => 'kitgenix-database-cleaner/kitgenix-database-cleaner.php',
+                'page'     => 'kitgenix-database-cleaner',
+                'requires' => __( 'Scan and clean your WordPress database safely, with plugin/theme attribution for every item found and a built-in recycle bin so nothing is ever deleted without a way back.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+            ],
         ];
 
         $slugs = [];
@@ -617,7 +625,17 @@ if ( ! function_exists( 'kitgenix_render_admin_page' ) ) {
                 . '</div>';
         }
 
-        echo '</div></div></div></div>';
+        echo '</div>'; // .kitgenix-hub-grid
+
+        echo '<div class="kitgenix-hub-feature-banner">'
+            . '<div class="kitgenix-hub-feature-banner-copy">'
+            . '<h2>' . esc_html__( 'Have an idea for a new feature?', 'kitgenix-captcha-for-cloudflare-turnstile' ) . '</h2>'
+            . '<p>' . esc_html__( 'Browse the roadmap, vote on ideas, and submit feature requests for any Kitgenix plugin.', 'kitgenix-captcha-for-cloudflare-turnstile' ) . '</p>'
+            . '</div>'
+            . '<a class="button button-primary" href="' . esc_url( 'https://roadmap.kitgenix.com' ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Request a Feature', 'kitgenix-captcha-for-cloudflare-turnstile' ) . '</a>'
+            . '</div>';
+
+        echo '</div></div></div>'; // .kitgenix-hub, .kitgenix-hub-wrap, .wrap
     }
 }
 
@@ -631,7 +649,7 @@ if ( ! function_exists( 'kitgenix_turnstile_register_admin_ui_style' ) ) {
             return;
         }
 
-        $ver      = defined( 'KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION' ) ? (string) KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION : '2.0.2';
+        $ver      = defined( 'KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION' ) ? (string) KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION : '2.1.0';
         $css_file = plugin_dir_path( __FILE__ ) . 'assets/css/kitgenix-admin-ui.css';
         $css_ver  = file_exists( $css_file ) ? (string) filemtime( $css_file ) : $ver;
 
@@ -658,7 +676,7 @@ function kitgenix_turnstile_enqueue_hub_assets( string $hook_suffix ): void {
         return;
     }
 
-    $ver = defined( 'KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION' ) ? (string) KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION : '2.0.2';
+    $ver = defined( 'KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION' ) ? (string) KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION : '2.1.0';
     wp_register_style( 'kitgenix-hub', plugins_url( 'assets/css/kitgenix-hub.css', __FILE__ ), [], $ver );
     wp_enqueue_style( 'kitgenix-hub' );
 
@@ -671,7 +689,7 @@ add_action( 'admin_enqueue_scripts', 'kitgenix_turnstile_enqueue_hub_assets' );
  * Constants (guarded)
  */
 if ( ! defined('KitgenixCaptchaForCloudflareTurnstile_Version') ) {
-    define('KitgenixCaptchaForCloudflareTurnstile_Version', '2.0.2');
+    define('KitgenixCaptchaForCloudflareTurnstile_Version', '2.1.0');
 }
 
 // Also expose a conventional uppercase version constant for shared Kitgenix hub assets.
@@ -805,6 +823,7 @@ add_action('admin_init', function () {
 register_deactivation_hook(__FILE__, 'kitgenix_captcha_for_cloudflare_turnstile_deactivate_plugin');
 function kitgenix_captcha_for_cloudflare_turnstile_deactivate_plugin() {
     delete_transient('kitgenix_captcha_for_cloudflare_turnstile_do_activation_redirect');
+    wp_clear_scheduled_hook('kitgenix_turnstile_prune_event_log');
 }
 
 /**

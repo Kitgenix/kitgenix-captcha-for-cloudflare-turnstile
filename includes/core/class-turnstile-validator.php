@@ -18,6 +18,11 @@ class Turnstile_Validator {
     private const RECENT_EVENT_LOG_OPTION = 'kitgenix_turnstile_recent_event_log';
     private const RECENT_EVENT_LOG_LIMIT  = 50;
 
+    /** WP option holding the configured log auto-delete window (in days). */
+    private const LOG_RETENTION_OPTION  = 'kitgenix_turnstile_log_retention_days';
+    private const LOG_RETENTION_DEFAULT = 30;
+    private const LOG_RETENTION_ALLOWED = [7, 14, 30];
+
     /** Store a small diagnostic snapshot of the last siteverify outcome. */
     private static function record_last_verify(bool $ok, array $codes = []): void {
         $payload = [
@@ -1090,6 +1095,64 @@ class Turnstile_Validator {
         return false;
     }
 
+    /**
+     * How many days recent-event-log entries are kept before being auto-deleted.
+     * Falls back to the default when the stored value isn't one of the allowed choices.
+     */
+    public static function get_log_retention_days(): int {
+        $days = (int) get_option(self::LOG_RETENTION_OPTION, self::LOG_RETENTION_DEFAULT);
+        return in_array($days, self::LOG_RETENTION_ALLOWED, true) ? $days : self::LOG_RETENTION_DEFAULT;
+    }
+
+    /**
+     * Persist the log auto-delete window, clamped to an allowed value.
+     *
+     * @param int $days Requested retention window in days.
+     * @return int The value actually saved.
+     */
+    public static function save_log_retention_days(int $days): int {
+        $days = in_array($days, self::LOG_RETENTION_ALLOWED, true) ? $days : self::LOG_RETENTION_DEFAULT;
+        \update_option(self::LOG_RETENTION_OPTION, $days, false);
+        return $days;
+    }
+
+    /** Delete every stored recent-event-log entry (manual "Clear log" action). */
+    public static function clear_event_log(): void {
+        \delete_option(self::RECENT_EVENT_LOG_OPTION);
+    }
+
+    /**
+     * Drop event-log entries older than the configured retention window.
+     *
+     * @param array<int,array<string,mixed>> $log
+     * @return array<int,array<string,mixed>>
+     */
+    private static function filter_log_by_retention(array $log): array {
+        $cutoff = time() - (self::get_log_retention_days() * DAY_IN_SECONDS);
+
+        return array_values(array_filter($log, static function ($entry) use ($cutoff): bool {
+            return is_array($entry) && (int) ($entry['time'] ?? 0) >= $cutoff;
+        }));
+    }
+
+    /**
+     * Prune event-log entries older than the configured retention window. Runs on a
+     * daily WP-Cron schedule (see Settings_UI::maybe_schedule_log_pruning()) so the
+     * log still decays on a quiet site, in addition to the age check already applied
+     * on every write in record_recent_event().
+     */
+    public static function prune_event_log(): void {
+        $log = get_option(self::RECENT_EVENT_LOG_OPTION, []);
+        if ( ! is_array($log) || empty($log) ) {
+            return;
+        }
+
+        $pruned = self::filter_log_by_retention($log);
+        if ( count($pruned) !== count($log) ) {
+            \update_option(self::RECENT_EVENT_LOG_OPTION, $pruned, false);
+        }
+    }
+
     public static function get_recent_event_log(): array {
         $log = get_option(self::RECENT_EVENT_LOG_OPTION, []);
         if ( ! is_array($log) ) {
@@ -1458,6 +1521,9 @@ class Turnstile_Validator {
             'codes'       => $codes,
             'latency_ms'  => self::$last_latency_ms,
         ];
+
+        // Age-based retention, in addition to the existing count cap below.
+        $log = self::filter_log_by_retention($log);
 
         if ( count($log) > self::RECENT_EVENT_LOG_LIMIT ) {
             $log = array_slice($log, -self::RECENT_EVENT_LOG_LIMIT);

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.0 – 13 October 2026
+
+- **New:** Added a "Clear log" button to remove all event log entries on demand.
+- **New:** Added a configurable log auto-delete setting (7/14/30 days) to automatically remove old event log entries.
+- **Fix:** Easy Digital Downloads login form widget could silently fail to render when the `edd_login_form` filter ran more than once in a single request (e.g. an `[edd_login]` widget alongside the dedicated Login page, or a page combining `[edd_login]` with `[edd_profile_editor]`). Only the first call was getting the Turnstile widget; every subsequent call on the same page was skipped.
+- **New:** Added a "Request a Feature" button to the Need Help? sidebar, linking directly to this plugin's page on the Kitgenix roadmap (https://roadmap.kitgenix.com).
+- **New:** Added a "Request a Feature" banner below the plugin grid on the Kitgenix Hub page, linking to the shared Kitgenix roadmap.
+
 ## 2.0.2 – 2 September 2026
 
 - **New:** Added an optional Cloudflare outage failsafe (Settings → Advanced → Reliability, off by default) that independently checks Cloudflare Turnstile's reachability server-side and, once enabled, lets protected forms submit instead of blocking every visitor during a confirmed Cloudflare outage. A visitor cannot trigger this bypass themselves; it only activates when the plugin's own probe confirms Cloudflare is unreachable.

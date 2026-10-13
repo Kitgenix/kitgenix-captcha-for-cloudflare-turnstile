@@ -27,6 +27,13 @@ class Turnstile_Loader {
 
         \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::init();
         \KitgenixCaptchaForCloudflareTurnstile\Core\Whitelist::init();
+
+        // Daily housekeeping: prune recent-event-log entries older than the
+        // configured retention window, even on quiet sites with no new events to
+        // trigger the write-path pruning in Turnstile_Validator::record_recent_event().
+        // Registered unconditionally (not just in wp-admin) so the scheduled event
+        // still has a callback to run when wp-cron.php executes it.
+        \add_action( 'kitgenix_turnstile_prune_event_log', [ \KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Validator::class, 'prune_event_log' ] );
     }
 
     /**

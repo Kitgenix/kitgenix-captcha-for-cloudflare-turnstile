@@ -75,8 +75,19 @@ class Easy_Digital_Downloads {
 
     /**
      * Render the Turnstile widget and hidden token field.
+     *
+     * @param bool $dedupe Guard against double-rendering the same action hook twice in one
+     *                     request. Only safe for hooks that `echo` straight into the page
+     *                     exactly once (checkout/register/profile editor). The `edd_login_form`
+     *                     filter is called more than once per request in common setups (e.g. a
+     *                     [edd_login] widget alongside the dedicated Login page, or an
+     *                     [edd_login]+[edd_profile_editor] combo page, or an SEO plugin
+     *                     re-running shortcodes for a meta description) — a request-wide "once
+     *                     per hook" flag would starve whichever call actually reaches the
+     *                     visible page. filter_login_form() already guards against duplicates
+     *                     within its own $html, so it passes false here.
      */
-    public static function render_widget() {
+    public static function render_widget( $dedupe = true ) {
         $settings = get_option('kitgenix_captcha_for_cloudflare_turnstile_settings', []);
         $site_key = $settings['site_key'] ?? '';
 
@@ -93,13 +104,15 @@ class Easy_Digital_Downloads {
             return;
         }
 
-        // Ensure we only render once per hook per request.
+        // Ensure we only render once per hook per request (action-hook callers only).
         static $rendered = [];
         $hook = function_exists('current_filter') ? current_filter() : 'global';
-        if ( isset($rendered[$hook]) ) {
-            return;
+        if ( $dedupe ) {
+            if ( isset($rendered[$hook]) ) {
+                return;
+            }
+            $rendered[$hook] = true;
         }
-        $rendered[$hook] = true;
 
         if ( function_exists('wp_nonce_field') ) {
             wp_nonce_field(
@@ -159,8 +172,11 @@ class Easy_Digital_Downloads {
         }
 
         // Build widget markup using the same renderer used for other EDD forms.
+        // Pass dedupe=false: the `edd_login_form` filter can legitimately fire more than
+        // once per request (see render_widget() docblock); the duplicate check just below,
+        // scoped to this specific $html, is what actually prevents double-injection here.
         ob_start();
-        self::render_widget();
+        self::render_widget(false);
         $widget = trim(ob_get_clean());
 
         if ( $widget === '' ) {

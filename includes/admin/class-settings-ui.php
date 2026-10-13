@@ -34,6 +34,19 @@ class Settings_UI {
         // AJAX: reveal stored secret on demand (never printed in HTML by default).
         \add_action( 'wp_ajax_kitgenix_turnstile_get_secret', [ __CLASS__, 'ajax_get_secret' ] );
         \add_action( 'admin_post_kitgenix_turnstile_export_analytics', [ __CLASS__, 'handle_export_analytics' ] );
+        \add_action( 'admin_post_kitgenix_turnstile_clear_event_log', [ __CLASS__, 'handle_clear_event_log' ] );
+        \add_action( 'admin_post_kitgenix_turnstile_save_log_retention', [ __CLASS__, 'handle_save_log_retention' ] );
+        \add_action( 'admin_init', [ __CLASS__, 'maybe_schedule_log_pruning' ] );
+    }
+
+    /**
+     * Keep the daily event-log pruning cron scheduled. Guarded by wp_next_scheduled()
+     * so it's only registered once, no matter how many admin requests run this.
+     */
+    public static function maybe_schedule_log_pruning(): void {
+        if ( ! \wp_next_scheduled( 'kitgenix_turnstile_prune_event_log' ) ) {
+            \wp_schedule_event( time(), 'daily', 'kitgenix_turnstile_prune_event_log' );
+        }
     }
 
     private static function is_settings_screen_now(): bool {
@@ -250,6 +263,16 @@ class Settings_UI {
             \settings_errors();
         }
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- redirect flag only, no state change performed here.
+        if ( isset( $_GET['kitgenix_log_cleared'] ) ) {
+            echo '<div class="notice notice-success is-dismissible"><p>' . \esc_html__( 'Event log cleared.', 'kitgenix-captcha-for-cloudflare-turnstile' ) . '</p></div>';
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- redirect flag only, no state change performed here.
+        if ( isset( $_GET['kitgenix_log_retention_saved'] ) ) {
+            echo '<div class="notice notice-success is-dismissible"><p>' . \esc_html__( 'Log auto-delete setting saved.', 'kitgenix-captcha-for-cloudflare-turnstile' ) . '</p></div>';
+        }
+
         $settings = Admin_Options::get_settings();
         if ( ! empty( $settings['dev_mode_warn_only'] ) ) {
             echo '<div class="notice notice-warning is-dismissible"><p><strong>'
@@ -338,6 +361,46 @@ class Settings_UI {
             ],
             self::build_integration_export_rows()
         );
+    }
+
+    /**
+     * Delete all recent-event-log entries on demand.
+     */
+    public static function handle_clear_event_log(): void {
+        if ( ! \current_user_can( 'manage_options' ) ) {
+            \wp_die( \esc_html__( 'Forbidden', 'kitgenix-captcha-for-cloudflare-turnstile' ) );
+        }
+
+        \check_admin_referer( 'kitgenix_turnstile_clear_event_log' );
+
+        Turnstile_Validator::clear_event_log();
+
+        \wp_safe_redirect(
+            \admin_url( 'admin.php?page=kitgenix-captcha-for-cloudflare-turnstile&tab=log&kitgenix_log_cleared=1' )
+        );
+        exit;
+    }
+
+    /**
+     * Save the log auto-delete (retention) window, clamped to an allowed value.
+     */
+    public static function handle_save_log_retention(): void {
+        if ( ! \current_user_can( 'manage_options' ) ) {
+            \wp_die( \esc_html__( 'Forbidden', 'kitgenix-captcha-for-cloudflare-turnstile' ) );
+        }
+
+        \check_admin_referer( 'kitgenix_turnstile_save_log_retention' );
+
+        $days = isset( $_POST['kitgenix_turnstile_log_retention_days'] )
+            ? (int) \wp_unslash( $_POST['kitgenix_turnstile_log_retention_days'] )
+            : 30;
+
+        Turnstile_Validator::save_log_retention_days( $days );
+
+        \wp_safe_redirect(
+            \admin_url( 'admin.php?page=kitgenix-captcha-for-cloudflare-turnstile&tab=log&kitgenix_log_retention_saved=1' )
+        );
+        exit;
     }
 
     /**
@@ -2428,6 +2491,28 @@ JS;
                                 <h3 class="kitgenix-support-subheading"><?php echo \esc_html__( 'Recent diagnostic log', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></h3>
                                 <p class="description"><?php echo \esc_html__( 'A privacy-safe record of recent Turnstile checks, with a plain-English note for each outcome. IP addresses, request URIs, and submitted values are never stored.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></p>
                             </div>
+                            <?php
+                            $kitgenix_captcha_for_cloudflare_turnstile_log_clear_url = \wp_nonce_url(
+                                \admin_url( 'admin-post.php?action=kitgenix_turnstile_clear_event_log' ),
+                                'kitgenix_turnstile_clear_event_log'
+                            );
+                            $kitgenix_captcha_for_cloudflare_turnstile_log_retention_days = Turnstile_Validator::get_log_retention_days();
+                            ?>
+                            <div class="kitgenix-support-actions">
+                                <a href="<?php echo \esc_url( $kitgenix_captcha_for_cloudflare_turnstile_log_clear_url ); ?>" class="button button-secondary" onclick="return confirm('<?php echo \esc_js( \__( 'Clear all log entries?', 'kitgenix-captcha-for-cloudflare-turnstile' ) ); ?>');"><?php echo \esc_html__( 'Clear log', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></a>
+                                <form method="post" action="<?php echo \esc_url( $admin_post_url ); ?>" style="display:inline-flex;align-items:center;gap:6px;">
+                                    <input type="hidden" name="action" value="kitgenix_turnstile_save_log_retention" />
+                                    <?php \wp_nonce_field( 'kitgenix_turnstile_save_log_retention' ); ?>
+                                    <label for="kitgenix-turnstile-log-retention-days"><?php echo \esc_html__( 'Auto-delete logs after', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></label>
+                                    <select id="kitgenix-turnstile-log-retention-days" name="kitgenix_turnstile_log_retention_days">
+                                        <option value="7" <?php selected( $kitgenix_captcha_for_cloudflare_turnstile_log_retention_days, 7 ); ?>><?php echo \esc_html__( '7 days', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></option>
+                                        <option value="14" <?php selected( $kitgenix_captcha_for_cloudflare_turnstile_log_retention_days, 14 ); ?>><?php echo \esc_html__( '14 days', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></option>
+                                        <option value="30" <?php selected( $kitgenix_captcha_for_cloudflare_turnstile_log_retention_days, 30 ); ?>><?php echo \esc_html__( '30 days', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></option>
+                                    </select>
+                                    <button type="submit" class="button button-secondary"><?php echo \esc_html__( 'Save', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></button>
+                                </form>
+                                <span class="description"><?php echo \esc_html__( 'Log entries older than the selected period are removed automatically.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></span>
+                            </div>
                             <?php if ( empty( $kitgenix_captcha_for_cloudflare_turnstile_recent_event_log ) ) : ?>
                                 <div class="kitgenix-empty-state">
                                     <h3 class="kitgenix-empty-state-title"><?php echo \esc_html__( 'No events logged yet', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></h3>
@@ -2822,6 +2907,7 @@ JS;
                     <div class="kitgenix-button-group kitgenix-button-group-stack">
                         <a class="button button-secondary" href="<?php echo esc_url( 'https://kitgenix.com/plugins/kitgenix-captcha-for-cloudflare-turnstile/documentation/' ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html__( 'Documentation', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></a>
                         <a class="button button-primary" href="<?php echo esc_url( 'https://wordpress.org/support/plugin/kitgenix-captcha-for-cloudflare-turnstile/' ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html__( 'Request Support', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></a>
+                        <a class="button button-secondary" href="<?php echo esc_url( 'https://roadmap.kitgenix.com/?product=captcha-for-cloudflare-turnstile' ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html__( 'Request a Feature', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></a>
                     </div>
                 </div>
             </div>
