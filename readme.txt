@@ -5,10 +5,10 @@ Tags: cloudflare turnstile, captcha, anti spam, woocommerce, form security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 2.1.0
+Stable tag: 2.1.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
-PluginScore Verification: pluginscore-verify-5d22ed2e8ebd8dafff04db8beb25e102
+PluginScore Verification: pluginscore-verify-8dacca2610cee9cd9f452b39d526a8cd
 
 Add Cloudflare Turnstile to WordPress, WooCommerce and popular forms with server-side verification and anti-spam controls.
 
@@ -361,10 +361,27 @@ More WordPress plugins and development resources are available from [Kitgenix](h
 
 == Upgrade Notice ==
 
-= 2.1.0 =
-Version 2.1.0 is recommended for all sites.
+= 2.1.4 =
+Adds Turnstile protection to the Easy Digital Downloads "Login Form" and "Registration Form" Gutenberg blocks, which previously showed no widget at all when used instead of the classic shortcodes. Recommended if you use EDD with these blocks.
 
 == Changelog ==
+
+= 2.1.4 (14 October 2026) =
+
+* New: Added Turnstile support for the Easy Digital Downloads "Login Form" and "Registration Form" Gutenberg blocks (`edd/login`, `edd/register`). These blocks render their own markup and never fire the classic `edd_login_form` filter or `edd_register_fields_after` action the plugin relied on, so no widget was ever shown when a site used the blocks instead of the `[edd_login]` / `[edd_register]` shortcodes. The existing "Login Form" and "Registration Form" toggles now cover both the shortcodes and the matching blocks automatically.
+
+= 2.1.3 (13 October 2026) =
+
+* Fix: Resolved an issue where clicking "Save Settings" on the plugin's settings screen could silently do nothing. A nested HTML form around the log auto-delete control was invalidly closing the main settings form early, leaving the Save Settings button detached from it.
+* Fix: Resolved a related issue where saving settings via the floating "Save now" bar could redirect to a blank `wp-admin/options.php` screen instead of back to the settings page with a confirmation notice.
+
+= 2.1.2 (13 October 2026) =
+
+* Fix: Bump version to 2.1.2 across the plugin.
+
+= 2.1.1 (13 October 2026) =
+
+* Fix: Updated PluginScore Verification code.
 
 = 2.1.0 (13 October 2026) =
 * New: Added a "Clear log" button to remove all event log entries on demand.

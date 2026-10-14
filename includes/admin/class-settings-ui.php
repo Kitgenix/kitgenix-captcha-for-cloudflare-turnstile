@@ -1523,7 +1523,7 @@ JS;
                     </div>
                     <div class="kitgenix-card-body">
                         <p class="description">
-                            <?php echo \esc_html__( 'Protects Easy Digital Downloads checkout and account-related forms (Login, Registration, Profile Editor) with Cloudflare Turnstile.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?>
+                            <?php echo \esc_html__( 'Protects Easy Digital Downloads checkout and account-related forms (Login, Registration, Profile Editor) with Cloudflare Turnstile. Each toggle below covers both the classic shortcode and the matching Gutenberg block (e.g. the [edd_login] shortcode and the Login Form block).', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?>
                         </p>
                         <div class="kitgenix-settings-group">
                         <div class="kitgenix-setting-row">
@@ -1545,7 +1545,7 @@ JS;
                         <div class="kitgenix-setting-row">
                             <div class="kitgenix-setting-row-label">
                                 <label for="edd_checkout_form"><?php echo \esc_html__( 'Checkout Form', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></label>
-                                <p class="kitgenix-setting-row-desc"><?php echo \esc_html__( 'Purchase form (Complete Purchase button) on EDD checkout.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></p>
+                                <p class="kitgenix-setting-row-desc"><?php echo \esc_html__( 'Purchase form (Complete Purchase button) on EDD checkout. Covers both the [download_checkout] shortcode and the Checkout block.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></p>
                             </div>
                             <div class="kitgenix-setting-row-control">
                                 <label class="kitgenix-toggle">
@@ -1557,7 +1557,7 @@ JS;
                         <div class="kitgenix-setting-row">
                             <div class="kitgenix-setting-row-label">
                                 <label for="edd_login_form"><?php echo \esc_html__( 'Login Form', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></label>
-                                <p class="kitgenix-setting-row-desc"><?php echo \esc_html__( 'EDD login form (including the checkout login area).', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></p>
+                                <p class="kitgenix-setting-row-desc"><?php echo \esc_html__( 'EDD login form (including the checkout login area). Covers both the [edd_login] shortcode and the Login Form block.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></p>
                             </div>
                             <div class="kitgenix-setting-row-control">
                                 <label class="kitgenix-toggle">
@@ -1569,7 +1569,7 @@ JS;
                         <div class="kitgenix-setting-row">
                             <div class="kitgenix-setting-row-label">
                                 <label for="edd_register_form"><?php echo \esc_html__( 'Registration Form', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></label>
-                                <p class="kitgenix-setting-row-desc"><?php echo \esc_html__( 'EDD registration form (standalone and at checkout).', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></p>
+                                <p class="kitgenix-setting-row-desc"><?php echo \esc_html__( 'EDD registration form (standalone and at checkout). Covers both the [edd_register] shortcode and the Registration Form block.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></p>
                             </div>
                             <div class="kitgenix-setting-row-control">
                                 <label class="kitgenix-toggle">
@@ -1581,7 +1581,7 @@ JS;
                         <div class="kitgenix-setting-row">
                             <div class="kitgenix-setting-row-label">
                                 <label for="edd_profile_form"><?php echo \esc_html__( 'Profile / Account Form', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></label>
-                                <p class="kitgenix-setting-row-desc"><?php echo \esc_html__( 'EDD Profile Editor (account details form).', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></p>
+                                <p class="kitgenix-setting-row-desc"><?php echo \esc_html__( 'EDD Profile Editor (account details form). Covers both the [edd_profile_editor] shortcode and the Profile Editor block.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></p>
                             </div>
                             <div class="kitgenix-setting-row-control">
                                 <label class="kitgenix-toggle">
@@ -2500,17 +2500,24 @@ JS;
                             ?>
                             <div class="kitgenix-support-actions">
                                 <a href="<?php echo \esc_url( $kitgenix_captcha_for_cloudflare_turnstile_log_clear_url ); ?>" class="button button-secondary" onclick="return confirm('<?php echo \esc_js( \__( 'Clear all log entries?', 'kitgenix-captcha-for-cloudflare-turnstile' ) ); ?>');"><?php echo \esc_html__( 'Clear log', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></a>
-                                <form method="post" action="<?php echo \esc_url( $admin_post_url ); ?>" style="display:inline-flex;align-items:center;gap:6px;">
-                                    <input type="hidden" name="action" value="kitgenix_turnstile_save_log_retention" />
-                                    <?php \wp_nonce_field( 'kitgenix_turnstile_save_log_retention' ); ?>
+                                <!-- Not a real <form>: HTML forbids nested forms, and this control lives inside
+                                     the main settings <form action="options.php"> below. A nested <form> here
+                                     would make the browser close the outer form early, silently breaking the
+                                     real "Save Settings" button. It also carries no raw <input name="action">
+                                     or nonce field of its own: those would collide by name with the main
+                                     form's own action/nonce fields now that there is no <form> boundary between
+                                     them, confusing options.php into misreading the main save as this action.
+                                     admin.js builds a detached, standalone form on click instead, taking the
+                                     action/nonce from data attributes (see [data-kitgenix-detached-submit]). -->
+                                <span class="kitgenix-detached-form" data-kitgenix-detached-form="<?php echo \esc_url( $admin_post_url ); ?>" data-kitgenix-detached-action="kitgenix_turnstile_save_log_retention" data-kitgenix-detached-nonce="<?php echo \esc_attr( \wp_create_nonce( 'kitgenix_turnstile_save_log_retention' ) ); ?>" style="display:inline-flex;align-items:center;gap:6px;">
                                     <label for="kitgenix-turnstile-log-retention-days"><?php echo \esc_html__( 'Auto-delete logs after', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></label>
                                     <select id="kitgenix-turnstile-log-retention-days" name="kitgenix_turnstile_log_retention_days">
                                         <option value="7" <?php selected( $kitgenix_captcha_for_cloudflare_turnstile_log_retention_days, 7 ); ?>><?php echo \esc_html__( '7 days', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></option>
                                         <option value="14" <?php selected( $kitgenix_captcha_for_cloudflare_turnstile_log_retention_days, 14 ); ?>><?php echo \esc_html__( '14 days', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></option>
                                         <option value="30" <?php selected( $kitgenix_captcha_for_cloudflare_turnstile_log_retention_days, 30 ); ?>><?php echo \esc_html__( '30 days', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></option>
                                     </select>
-                                    <button type="submit" class="button button-secondary"><?php echo \esc_html__( 'Save', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></button>
-                                </form>
+                                    <button type="button" class="button button-secondary" data-kitgenix-detached-submit><?php echo \esc_html__( 'Save', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></button>
+                                </span>
                                 <span class="description"><?php echo \esc_html__( 'Log entries older than the selected period are removed automatically.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></span>
                             </div>
                             <?php if ( empty( $kitgenix_captcha_for_cloudflare_turnstile_recent_event_log ) ) : ?>

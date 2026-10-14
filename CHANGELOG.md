@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.4 – 14 October 2026
+
+- **New:** Added Turnstile support for the Easy Digital Downloads "Login Form" and "Registration Form" Gutenberg blocks (`edd/login`, `edd/register`). These blocks render their own markup and never fire the classic `edd_login_form` filter or `edd_register_fields_after` action the plugin relied on, so no widget was ever shown when a site used the blocks instead of the `[edd_login]` / `[edd_register]` shortcodes. The existing "Login Form" and "Registration Form" toggles now cover both the shortcodes and the matching blocks automatically.
+
 ## 2.1.0 – 13 October 2026
 
 - **New:** Added a "Clear log" button to remove all event log entries on demand.

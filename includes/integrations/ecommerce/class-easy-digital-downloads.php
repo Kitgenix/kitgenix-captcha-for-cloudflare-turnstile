@@ -63,6 +63,26 @@ class Easy_Digital_Downloads {
             add_action('edd_process_register_form', [__CLASS__, 'validate_generic']);
         }
 
+        // Login Form block (Gutenberg "edd/login" block). This block renders its own
+        // markup directly via EDD\Blocks\Forms\login() and never calls edd_login_form()/
+        // apply_filters('edd_login_form', ...) — so filter_login_form() below (hooked to
+        // that filter, used by the [edd_login] shortcode) never runs for it. Server-side
+        // validation already works unmodified: the block still submits the same
+        // 'edd_login_nonce' field that validate_login() checks for, through the same
+        // core `authenticate` filter. Only rendering needs a separate injection path.
+        if ( ! empty($settings['edd_login_form']) ) {
+            add_filter('render_block_edd/login', [__CLASS__, 'blocks_inject_login']);
+        }
+
+        // Registration Form block (Gutenberg "edd/register" block) — same reasoning as the
+        // Login block above. Validation already works unmodified: the block's submit button
+        // still posts 'edd_register_submit', dispatched through the same edd_user_register ->
+        // edd_process_register_form() -> 'edd_process_register_form' action validate_generic()
+        // hooks into.
+        if ( ! empty($settings['edd_register_form']) ) {
+            add_filter('render_block_edd/register', [__CLASS__, 'blocks_inject_register']);
+        }
+
         // Profile editor / account form (optional; only when enabled).
         if ( ! empty($settings['edd_profile_form']) ) {
             // Place the widget inside the profile form, just before the submit button fieldset.
@@ -233,5 +253,83 @@ class Easy_Digital_Downloads {
         if ( ! Turnstile_Validator::is_valid_submission( true, 'edd-account' ) ) {
             edd_set_error('turnstile_failed', Turnstile_Validator::get_error_message('edd'));
         }
+    }
+
+    /**
+     * Gutenberg "edd/login" block: splice the widget in just before the submit button.
+     *
+     * @param string $content Rendered block HTML.
+     * @return string
+     */
+    public static function blocks_inject_login( $content ) {
+        return self::blocks_inject_before_submit_group( $content );
+    }
+
+    /**
+     * Gutenberg "edd/register" block: splice the widget in just before the submit button.
+     *
+     * @param string $content Rendered block HTML.
+     * @return string
+     */
+    public static function blocks_inject_register( $content ) {
+        return self::blocks_inject_before_submit_group( $content );
+    }
+
+    /**
+     * Shared injector for the Login/Registration blocks.
+     *
+     * Both blocks (views/forms/login.php, views/forms/registration.php) wrap their submit
+     * button in a `<div class="edd-blocks-form__group-submit ...">` wrapper, so the widget is
+     * spliced in immediately before that wrapper — mirroring how WooCommerce::blocks_inject_before_submit()
+     * splices into the Blocks checkout markup via the same render_block_* filter mechanism.
+     *
+     * @param string $content Rendered block HTML.
+     * @return string
+     */
+    private static function blocks_inject_before_submit_group( $content ) {
+        if ( ! is_string($content) || $content === '' ) {
+            return $content;
+        }
+
+        $settings = get_option('kitgenix_captcha_for_cloudflare_turnstile_settings', []);
+        $site_key = $settings['site_key'] ?? '';
+        if ( ! $site_key ) {
+            return $content;
+        }
+
+        // Respect per-integration mode: allow shortcode-only placement.
+        $mode = $settings['mode_edd'] ?? 'auto';
+        if ( $mode === 'shortcode' ) {
+            return $content;
+        }
+
+        // Avoid duplicates if a widget/shortcode is already present in the block content.
+        if ( strpos($content, 'class="cf-turnstile"') !== false
+            || \KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Shortcode::has_shortcode_in( $content, false ) ) {
+            return $content;
+        }
+
+        ob_start();
+        if ( function_exists('wp_nonce_field') ) {
+            wp_nonce_field(
+                'kitgenix_captcha_for_cloudflare_turnstile_action',
+                'kitgenix_captcha_for_cloudflare_turnstile_nonce'
+            );
+        }
+        // Hidden token field consumed by Turnstile_Validator::is_valid_submission().
+        echo '<input type="hidden" name="cf-turnstile-response" value="" />';
+        echo \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::render_honeypot_field(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
+        echo '<div class="cf-turnstile"'
+           . ' data-hook="edd-blocks"'
+           . \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::get_widget_data_attributes( 'edd', $site_key ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped markup from Script_Handler.
+           . ' data-kitgenix-captcha-for-cloudflare-turnstile-owner="edd"></div>';
+        $injection = ob_get_clean();
+
+        if ( preg_match('/(<div[^>]*class=["\'][^"\']*edd-blocks-form__group-submit[^"\']*["\'][^>]*>)/i', $content) ) {
+            return preg_replace('/(<div[^>]*class=["\'][^"\']*edd-blocks-form__group-submit[^"\']*["\'][^>]*>)/i', $injection . '$1', $content, 1);
+        }
+
+        // Fallback: prepend at the start of the block content.
+        return $injection . $content;
     }
 }

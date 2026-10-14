@@ -317,6 +317,42 @@
       }
     });
     /* ------------------------------------------------------------------
+       Detached-form submit
+       Some inline controls (e.g. the log retention "Save" button) must
+       post to admin-post.php from inside the main settings <form>, but
+       HTML forbids nesting a <form> inside another <form> — the browser
+       would silently close the outer form early and break the real
+       "Save Settings" button. Markup for these controls uses a plain
+       <span data-kitgenix-detached-form="..."> instead of <form>; on
+       click we build a real, detached <form> on the fly, populate it
+       from the span's fields, and submit that.
+    ------------------------------------------------------------------ */
+    $(document).on('click', '[data-kitgenix-detached-submit]', function(e){
+      e.preventDefault();
+      const $container = $(this).closest('[data-kitgenix-detached-form]');
+      if (!$container.length) return;
+      const actionUrl = $container.attr('data-kitgenix-detached-form');
+      if (!actionUrl) return;
+      const $form = $('<form>', { method: 'post', action: actionUrl }).css('display', 'none');
+      const actionName = $container.attr('data-kitgenix-detached-action');
+      const nonce = $container.attr('data-kitgenix-detached-nonce');
+      if (actionName) { $('<input>', { type: 'hidden', name: 'action', value: actionName }).appendTo($form); }
+      if (nonce) { $('<input>', { type: 'hidden', name: '_wpnonce', value: nonce }).appendTo($form); }
+      // Only fields declared inside the control itself (e.g. the retention-days
+      // <select>) are carried over; the action/nonce above come from data
+      // attributes specifically so they never collide with the main settings
+      // form's own same-named fields when both sit in the same document.
+      $container.find('input[name], select[name], textarea[name]').each(function(){
+        const $field = $(this);
+        const name = $field.attr('name');
+        if (!name) return;
+        $('<input>', { type: 'hidden', name: name, value: $field.val() }).appendTo($form);
+      });
+      $form.appendTo('body');
+      $form.get(0).submit();
+    });
+
+    /* ------------------------------------------------------------------
        Unsaved changes bar
     ------------------------------------------------------------------ */
     const $form = $('#kitgenix-settings-content form[action="options.php"]').first();
