@@ -145,4 +145,156 @@
     document.querySelectorAll('.elementor-form-fields-wrapper').forEach(ensureContainer);
   });
 
+  /**
+   * GUIDE: Elementor Atomic Forms (Editor V4 `e-form`)
+   * -----------------------------------------
+   * Atomic Forms are Alpine-driven: Elementor's handler builds a FormData from the
+   * form's own fields (only inputs carrying `data-interaction-id`) and POSTs it with
+   * fetch() to `elementor_pro_atomic_forms_send_form`. Our hidden input is therefore
+   * never sent on its own, and it stays out of emails/submissions. This bridge:
+   * - injects a `.cf-turnstile` container (+ hidden input/honeypot) before the submit button,
+   * - blocks the submit (capture phase, before Alpine) while there is no token,
+   * - appends the token/honeypot to Elementor's FormData,
+   * - resets the widget after each response (tokens are single-use).
+   * Server-side validation lives in Elementor::validate_atomic_form().
+   */
+  var ATOMIC_FORM_SELECTOR = '[data-element_type="e-form"]';
+  var ATOMIC_FORMS_ACTION = 'elementor_pro_atomic_forms_send_form';
+  var atomicCfg = window.KitgenixCaptchaForCloudflareTurnstileElementorConfig || {};
+  var lastAtomicForm = null;
+
+  function isElementorEditMode() {
+    try {
+      return !!(window.elementorFrontend && typeof elementorFrontend.isEditMode === 'function' && elementorFrontend.isEditMode());
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function ensureAtomicContainer(form) {
+    if (!form || isElementorEditMode()) return;
+
+    ensureHiddenInput($(form));
+
+    // A container placed manually (shortcode) is used as-is.
+    if (form.querySelector('.cf-turnstile')) return;
+    if (atomicCfg.mode === 'shortcode' || !atomicCfg.site_key) return;
+
+    if (atomicCfg.honeypot_field && !form.querySelector('input[name="' + atomicCfg.honeypot_field + '"]')) {
+      $('<input>', {
+        type: 'text',
+        name: atomicCfg.honeypot_field,
+        value: '',
+        tabindex: -1,
+        autocomplete: 'off',
+        'aria-hidden': 'true',
+        'class': 'kitgenix-captcha-for-cloudflare-turnstile-hp-wrap'
+      }).appendTo(form);
+    }
+
+    var container = document.createElement('div');
+    container.className = 'cf-turnstile';
+    container.setAttribute('data-sitekey', String(atomicCfg.site_key));
+    if (atomicCfg.theme)      container.setAttribute('data-theme', String(atomicCfg.theme));
+    if (atomicCfg.size)       container.setAttribute('data-size', String(atomicCfg.size));
+    if (atomicCfg.appearance) container.setAttribute('data-appearance', String(atomicCfg.appearance));
+    if (atomicCfg.language)   container.setAttribute('data-language', String(atomicCfg.language));
+    container.setAttribute('data-kitgenix-captcha-for-cloudflare-turnstile-owner', 'elementor-atomic');
+
+    var submit = form.querySelector('button[type="submit"], input[type="submit"]');
+    if (submit && submit.parentNode) {
+      submit.parentNode.insertBefore(container, submit);
+    } else {
+      form.appendChild(container);
+    }
+
+    try {
+      document.dispatchEvent(new CustomEvent('KitgenixCaptchaForCloudflareTurnstile:turnstile-containers-added', { detail: { source: 'elementor-atomic' } }));
+    } catch (e) {}
+  }
+
+  function scanAtomicForms(root) {
+    (root || document).querySelectorAll(ATOMIC_FORM_SELECTOR).forEach(ensureAtomicContainer);
+  }
+
+  function findAtomicForm(formId) {
+    if (lastAtomicForm && lastAtomicForm.getAttribute('data-id') === formId && document.contains(lastAtomicForm)) {
+      return lastAtomicForm;
+    }
+    var id = window.CSS && CSS.escape ? CSS.escape(formId) : formId;
+    return document.querySelector(ATOMIC_FORM_SELECTOR + '[data-id="' + id + '"]');
+  }
+
+  function resetAtomicWidget(form) {
+    var el = form.querySelector('.cf-turnstile');
+    var api = window.KitgenixCaptchaForCloudflareTurnstile;
+    if (el && api && typeof api.setResponseInput === 'function') {
+      api.setResponseInput(el, '');
+    } else {
+      $(form).find('input[name="cf-turnstile-response"]').val('');
+    }
+    try {
+      if (el && window.turnstile && el.dataset.rendered) turnstile.reset(el);
+    } catch (e) {}
+  }
+
+  // Capture phase on document runs before the form's own Alpine `x-on:submit`
+  // handler, so a token-less submission never reaches Elementor's fetch().
+  document.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (!form || !form.matches || !form.matches(ATOMIC_FORM_SELECTOR)) return;
+    lastAtomicForm = form;
+
+    // WebMCP agent submissions: let Elementor send them so the agent gets the
+    // server's rejection instead of a request that never resolves.
+    if (e.agentInvoked) return;
+
+    var el = form.querySelector('.cf-turnstile');
+    if (!el) return;
+    var input = form.querySelector('input[name="cf-turnstile-response"]');
+    if (input && input.value) return;
+
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    el.classList.remove('kitgenix-ts-collapsed');
+    try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (err) {}
+  }, true);
+
+  // Attach the token to Elementor's Atomic Forms request.
+  if (window.fetch && typeof FormData !== 'undefined') {
+    var nativeFetch = window.fetch;
+    window.fetch = function (input, init) {
+      var form = null;
+      try {
+        var body = init && init.body;
+        if (body instanceof FormData && body.get('action') === ATOMIC_FORMS_ACTION && !body.has('cf-turnstile-response')) {
+          form = findAtomicForm(String(body.get('form_id') || ''));
+          if (form) {
+            var input = form.querySelector('input[name="cf-turnstile-response"]');
+            body.append('cf-turnstile-response', input ? input.value : '');
+            if (atomicCfg.honeypot_field) {
+              var hp = form.querySelector('input[name="' + atomicCfg.honeypot_field + '"]');
+              if (hp) body.append(atomicCfg.honeypot_field, hp.value);
+            }
+          }
+        }
+      } catch (e) {
+        form = null;
+      }
+
+      var request = nativeFetch.apply(this, arguments);
+      if (form) {
+        var reset = function () { resetAtomicWidget(form); };
+        request.then(reset, reset);
+      }
+      return request;
+    };
+  }
+
+  $(function () { scanAtomicForms(document); });
+  $(window).on('elementor/frontend/init', function () { scanAtomicForms(document); });
+  $(document).on('elementor/popup/show', function () {
+    document.querySelectorAll('.elementor-popup-modal').forEach(scanAtomicForms);
+  });
+
 })(jQuery);

@@ -8,7 +8,7 @@
 
 **Estimated runtime:** 15 to 17 minutes (about 2,750 spoken words at a relaxed tutorial pace). For a cut of about 13 minutes, drop Section 9 (Tips) into the description and shorten the form-builder list in Section 6.
 
-**Plugin version covered:** 2.1.0 (requires WordPress 6.0+ and PHP 8.1+)
+**Plugin version covered:** 2.2.0 (requires WordPress 6.0+ and PHP 8.2+)
 
 **Recording notes:** Record on a staging site with WooCommerce, WPForms and at least one or two other form plugins active so the Integrations tab shows several cards. Log out (or use a private window) for every front-end demo, because logged-in whitelisting would otherwise hide the widget. Seed the Log tab with a few passes and failures before recording section 8.
 
@@ -164,7 +164,7 @@ Open the **Advanced** dropdown and choose **Security**.
 
 [ON SCREEN: The Whitelist Settings card.]
 
-Under **Whitelist Settings**: **Skip for Logged-in Users** is useful for membership sites and intranets. The **IP Address Whitelist** takes exact IPs, `*` wildcards or CIDR ranges, one per line. The **User Agent Whitelist** supports wildcards too, but use it carefully, because user agents are easy to fake. Whitelisted visitors don't even load the Turnstile script.
+Under **Whitelist Settings**: **Skip for Logged-in Users** is useful for membership sites and intranets. The **IP Address Whitelist** takes exact IPs, `*` wildcards or CIDR ranges, one per line. The **User Agent Whitelist** supports wildcards too. Because user agents are easy to fake, it only stops the widget loading on page views, for things like uptime monitors and crawlers; it never lets a form submission skip verification. Whitelisted visitors don't even load the Turnstile script.
 
 [ON SCREEN: The Reverse Proxy card, with "Trust Cloudflare/Proxy Headers" and "Trusted Proxy IPs".]
 

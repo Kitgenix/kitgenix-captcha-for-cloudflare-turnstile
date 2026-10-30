@@ -97,8 +97,7 @@ class Setup_Verification {
             return $settings;
         }
 
-        $status = self::get_status();
-        if ( empty( $status['gate_active'] ) ) {
+        if ( ! self::is_gate_active() ) {
             return $settings;
         }
 
@@ -109,6 +108,33 @@ class Setup_Verification {
         }
 
         return $settings;
+    }
+
+    /**
+     * Whether login-sensitive settings should currently be gated off.
+     *
+     * Deliberately avoids building any translated strings: this runs on the
+     * pre_option_{option} filter, which fires on every get_option() call for
+     * our settings (including ones made during `plugins_loaded`, well before
+     * `init`). Calling __() here would trigger WordPress 6.7's "translation
+     * loaded too early" notice on every request.
+     */
+    private static function is_gate_active(): bool {
+        [ $site_key, $secret ] = self::get_effective_keys();
+        $keys_hash = self::keys_hash( $site_key, $secret );
+
+        if ( '' === $keys_hash ) {
+            return false;
+        }
+
+        $stored = \get_option( self::OPTION_NAME, [] );
+        $stored = \is_array( $stored ) ? $stored : [];
+
+        if ( empty( $stored['keys_hash'] ) || ! \hash_equals( (string) $stored['keys_hash'], $keys_hash ) ) {
+            return true;
+        }
+
+        return empty( $stored['verified'] );
     }
 
     public static function is_any_auth_flow_enabled( ?array $settings = null ): bool {

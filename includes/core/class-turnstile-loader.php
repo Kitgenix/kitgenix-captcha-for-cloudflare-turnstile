@@ -24,9 +24,25 @@ class Turnstile_Loader {
         require_once KitgenixCaptchaForCloudflareTurnstile_Includes_Path . 'core/class-script-handler.php';
         require_once KitgenixCaptchaForCloudflareTurnstile_Includes_Path . 'core/class-turnstile-shortcode.php';
         require_once KitgenixCaptchaForCloudflareTurnstile_Includes_Path . 'core/class-whitelist.php';
+        require_once KitgenixCaptchaForCloudflareTurnstile_Includes_Path . 'core/class-login-lockout.php';
+        require_once KitgenixCaptchaForCloudflareTurnstile_Includes_Path . 'core/class-enumeration-guard.php';
 
         \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::init();
         \KitgenixCaptchaForCloudflareTurnstile\Core\Whitelist::init();
+        \KitgenixCaptchaForCloudflareTurnstile\Core\Login_Lockout::init();
+        \KitgenixCaptchaForCloudflareTurnstile\Core\Enumeration_Guard::init();
+
+        // XML-RPC brute-force / amplification hardening (roadmap §3): disables the
+        // xmlrpc.php endpoint entirely, gated by its own opt-in setting since some
+        // sites still rely on it (the Jetpack/WordPress mobile app's legacy auth, some
+        // pingback/trackback setups). Login_Lockout above already rate-limits any
+        // authentication attempt that DOES go through – including XML-RPC and
+        // Application Password logins, since both ultimately call wp_authenticate()
+        // – so sites that need XML-RPC left on are still covered.
+        $settings = \function_exists('get_option') ? (array) \get_option('kitgenix_captcha_for_cloudflare_turnstile_settings', []) : [];
+        if ( ! empty( $settings['disable_xmlrpc'] ) ) {
+            \add_filter( 'xmlrpc_enabled', '__return_false' );
+        }
 
         // Daily housekeeping: prune recent-event-log entries older than the
         // configured retention window, even on quiet sites with no new events to
@@ -34,6 +50,7 @@ class Turnstile_Loader {
         // Registered unconditionally (not just in wp-admin) so the scheduled event
         // still has a callback to run when wp-cron.php executes it.
         \add_action( 'kitgenix_turnstile_prune_event_log', [ \KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Validator::class, 'prune_event_log' ] );
+        \add_action( 'kitgenix_turnstile_prune_event_log', [ \KitgenixCaptchaForCloudflareTurnstile\Core\Turnstile_Validator::class, 'prune_performance' ] );
     }
 
     /**
@@ -219,16 +236,5 @@ class Turnstile_Loader {
                 \KitgenixCaptchaForCloudflareTurnstile\Integrations\Forums\BbPress::init();
             }
         }
-
-        // Kitgenix Plugin Score – custom auth forms (login, register, forgot-password).
-        $kgps_present = defined( 'KGPS_VERSION' ) || class_exists( 'KGPS_Plugin' ) || in_array( 'kitgenix-plugin-score/kitgenix-plugin-score.php', (array) get_option( 'active_plugins', [] ), true );
-        if ( ! empty( $settings['enable_kitgenix_plugin_score'] ) && $kgps_present ) {
-            require_once KitgenixCaptchaForCloudflareTurnstile_Includes_Path . 'integrations/kitgenix/class-plugin-score.php';
-            if ( class_exists( \KitgenixCaptchaForCloudflareTurnstile\Integrations\Kitgenix\Plugin_Score::class ) ) {
-                \KitgenixCaptchaForCloudflareTurnstile\Integrations\Kitgenix\Plugin_Score::init();
-            }
-        }
-
-        
     }
 }

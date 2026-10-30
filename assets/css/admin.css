@@ -326,6 +326,81 @@
 .kitgenix-captcha-for-cloudflare-turnstile-actions-row { display: flex; gap: 10px; flex-wrap: wrap; }
 
 /* ----------------------------------------------------------------
+   Challenge performance (Log tab)
+----------------------------------------------------------------- */
+.kitgenix-turnstile-perf-periods {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kitgenix-turnstile-perf-panel[hidden] {
+  display: none;
+}
+
+.kitgenix-turnstile-perf-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--kitgenix-space-4);
+  margin: var(--kitgenix-space-4) 0;
+}
+
+.kitgenix-turnstile-perf-figure {
+  margin: 0;
+  padding: var(--kitgenix-space-3) var(--kitgenix-space-4);
+  border: 1px solid var(--kitgenix-border-color);
+  border-radius: var(--kitgenix-radius-md);
+  background: var(--kitgenix-bg-white);
+}
+
+.kitgenix-turnstile-perf-figure figcaption {
+  margin-bottom: var(--kitgenix-space-2);
+  color: var(--kitgenix-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.kitgenix-turnstile-perf-chart {
+  display: block;
+  width: 100%;
+  height: 120px;
+  overflow: visible;
+}
+
+.kitgenix-turnstile-perf-chart__axis {
+  stroke: var(--kitgenix-border-color);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.kitgenix-turnstile-perf-chart__hit {
+  fill: transparent;
+}
+
+.kitgenix-turnstile-perf-chart__bar {
+  fill: var(--kitgenix-brand);
+  transition: opacity var(--kitgenix-transition);
+}
+
+.kitgenix-turnstile-perf-chart:hover .kitgenix-turnstile-perf-chart__bar {
+  opacity: 0.45;
+}
+
+.kitgenix-turnstile-perf-chart .kitgenix-turnstile-perf-chart__day:hover .kitgenix-turnstile-perf-chart__bar {
+  opacity: 1;
+}
+
+.kitgenix-turnstile-perf-chart .kitgenix-turnstile-perf-chart__day:hover .kitgenix-turnstile-perf-chart__hit {
+  fill: var(--kitgenix-brand-subtle);
+}
+
+@media (forced-colors: active) {
+  .kitgenix-turnstile-perf-chart__bar {
+    fill: CanvasText;
+  }
+}
+
+/* ----------------------------------------------------------------
    Responsive
 ----------------------------------------------------------------- */
 @media (max-width: 782px) {

@@ -23,6 +23,28 @@ class Turnstile_Validator {
     private const LOG_RETENTION_DEFAULT = 30;
     private const LOG_RETENTION_ALLOWED = [7, 14, 30];
 
+    /**
+     * Daily, per-integration challenge performance aggregates (counts, siteverify
+     * response times, Cloudflare error-code tallies). Holds no tokens, IPs, user
+     * agents or submitted form values – only integration keys, dates and numbers.
+     */
+    private const PERFORMANCE_OPTION = 'kitgenix_turnstile_performance';
+
+    /** Days of performance history kept (twice the longest report period, for comparisons). */
+    private const PERFORMANCE_RETENTION_DAYS = 60;
+
+    /** Report periods offered on the Log tab. */
+    public const PERFORMANCE_PERIODS = [7, 14, 30];
+
+    /** Upper bounds (ms) of the response-time histogram buckets; anything slower lands in 'gt'. */
+    private const PERFORMANCE_LATENCY_BUCKETS = [250, 500, 1000, 2000, 5000];
+
+    /** A siteverify round trip slower than this (ms) is reported as slow. Must be one of the bucket bounds. */
+    public const PERFORMANCE_SLOW_MS = 2000;
+
+    /** Max distinct error codes tallied per integration per day (bounds option size). */
+    private const PERFORMANCE_MAX_CODES = 10;
+
     /** Store a small diagnostic snapshot of the last siteverify outcome. */
     private static function record_last_verify(bool $ok, array $codes = []): void {
         $payload = [
@@ -39,6 +61,14 @@ class Turnstile_Validator {
 
     /** @var array<string,bool> In-request cache of recent diagnostic events already stored. */
     private static $logged_events = [];
+
+    /**
+     * Max diagnostic writes (record_metrics + record_recent_event) allowed per
+     * integration+outcome per rolling minute. Protects wp_options from unbounded
+     * write load during a bot flood; see flood_guard_allow().
+     */
+    private const FLOOD_GUARD_MAX_PER_MINUTE           = 20;
+    private const FLOOD_GUARD_HONEYPOT_MAX_PER_MINUTE  = 1;
 
     /**
      * Return normalized stored metrics.
@@ -163,6 +193,432 @@ class Turnstile_Validator {
         $metrics['integrations'][ $integration ] = $integration_metrics;
 
         \update_option('kitgenix_captcha_for_cloudflare_turnstile_metrics', $metrics, false);
+
+        self::record_performance($integration, $ok, $is_retry, $codes);
+    }
+
+    /**
+     * Rate-limit a bucket of diagnostic writes to at most $max_per_minute per rolling
+     * minute. Uses wp_cache_incr() (no DB write at all) when an external object cache
+     * is present, otherwise a capped transient (at most $max_per_minute DB writes per
+     * minute per bucket, instead of one write per request) so a bot flood can't turn
+     * every failed check into an options write. See T2 in ROADMAP.md.
+     */
+    private static function flood_guard_allow(string $bucket, int $max_per_minute): bool {
+        $minute = (int) floor(time() / 60);
+        // Must start with 'kitgenix_turnstile_' – uninstall.php's transient cleanup
+        // matches on that prefix, so a different prefix here would leave orphaned
+        // wp_options rows behind after uninstall.
+        $key    = 'kitgenix_turnstile_flood_' . md5($bucket) . '_' . $minute;
+
+        if (function_exists('wp_using_ext_object_cache') && \wp_using_ext_object_cache() && function_exists('wp_cache_add')) {
+            $group = 'kitgenix_turnstile';
+            if (\wp_cache_add($key, 1, $group, 90)) {
+                return true; // first write this minute for this bucket
+            }
+            $count = (int) \wp_cache_incr($key, 1, $group);
+            return $count <= $max_per_minute;
+        }
+
+        $count = (int) \get_transient($key);
+        if ($count >= $max_per_minute) {
+            return false;
+        }
+        \set_transient($key, $count + 1, 90);
+        return true;
+    }
+
+    /**
+     * Single entry point for persisting a verification outcome (last-verify snapshot +
+     * metrics/performance + recent-event log). Centralizing it here is what lets a bot
+     * flood be rate-limited in one place: failed checks beyond the per-minute cap for
+     * their integration are skipped entirely (no options write at all), and a tripped
+     * honeypot is capped even tighter since a flood trips it identically every time.
+     * Successful checks are never rate-limited.
+     */
+    private static function record_outcome(string $integration, bool $ok, array $codes = [], string $token = ''): void {
+        if ( ! $ok ) {
+            $bucket = in_array('honeypot_tripped', $codes, true) ? 'honeypot:' . $integration : 'fail:' . $integration;
+            $cap    = in_array('honeypot_tripped', $codes, true)
+                ? (int) apply_filters('kitgenix_turnstile_flood_guard_honeypot_max_per_minute', self::FLOOD_GUARD_HONEYPOT_MAX_PER_MINUTE)
+                : (int) apply_filters('kitgenix_turnstile_flood_guard_max_per_minute', self::FLOOD_GUARD_MAX_PER_MINUTE);
+
+            if ( ! self::flood_guard_allow($bucket, max(1, $cap)) ) {
+                return;
+            }
+        }
+
+        self::record_last_verify($ok, $codes);
+        self::record_metrics($token, $ok, $integration, $codes);
+        self::record_recent_event($integration, $ok, $codes, $token);
+    }
+
+    /* =========================
+     * Challenge performance reporting
+     * ========================= */
+
+    /**
+     * Add one check to today's performance aggregates. Called from record_metrics(),
+     * so it inherits that method's once-per-token/event de-duplication.
+     *
+     * self::$last_latency_ms is only non-zero when verify_with_site() actually
+     * reached out to Cloudflare this request, so honeypot/nonce/missing-token
+     * short-circuits and failsafe passes count as checks without skewing the
+     * response-time figures.
+     *
+     * @param string   $integration Normalized integration key.
+     * @param string[] $codes
+     */
+    private static function record_performance(string $integration, bool $ok, bool $is_retry, array $codes): void {
+        $store = self::get_performance_store();
+        $day   = self::performance_day_key(time());
+
+        if ( ! isset($store[ $day ]) ) {
+            $store[ $day ] = [ 'buckets' => [], 'integrations' => [] ];
+        }
+
+        $row = $store[ $day ]['integrations'][ $integration ] ?? [];
+        $row = self::normalize_performance_row(is_array($row) ? $row : []);
+
+        $row['checks']++;
+        if ($ok) {
+            $row['passed']++;
+        } elseif ($is_retry) {
+            $row['retries']++;
+        } else {
+            $row['failed']++;
+        }
+
+        if ( ! $ok ) {
+            foreach ($codes as $code) {
+                $code = substr(\sanitize_key((string) $code), 0, 64);
+                if ($code === '') {
+                    continue;
+                }
+                if ( ! isset($row['codes'][ $code ]) && count($row['codes']) >= self::PERFORMANCE_MAX_CODES ) {
+                    continue;
+                }
+                $row['codes'][ $code ] = (int) ($row['codes'][ $code ] ?? 0) + 1;
+            }
+        }
+
+        $latency = max(0, (int) self::$last_latency_ms);
+        if ($latency > 0) {
+            $row['lat_sum'] += $latency;
+            $row['lat_n']++;
+            $row['lat_max'] = max($row['lat_max'], $latency);
+
+            $bucket = self::performance_bucket_key($latency);
+            $store[ $day ]['buckets'][ $bucket ] = (int) ($store[ $day ]['buckets'][ $bucket ] ?? 0) + 1;
+        }
+
+        $store[ $day ]['integrations'][ $integration ] = $row;
+
+        \update_option(self::PERFORMANCE_OPTION, self::filter_performance_by_retention($store), false);
+    }
+
+    /**
+     * @return array<string,array<string,mixed>> Day key (Y-m-d, site timezone) => day aggregates.
+     */
+    private static function get_performance_store(): array {
+        $store = get_option(self::PERFORMANCE_OPTION, []);
+        if ( ! is_array($store) ) {
+            return [];
+        }
+
+        $clean = [];
+        foreach ($store as $day => $data) {
+            if ( ! is_string($day) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $day) || ! is_array($data) ) {
+                continue;
+            }
+            $clean[ $day ] = [
+                'buckets'      => isset($data['buckets']) && is_array($data['buckets']) ? array_map('intval', $data['buckets']) : [],
+                'integrations' => isset($data['integrations']) && is_array($data['integrations']) ? $data['integrations'] : [],
+            ];
+        }
+
+        return $clean;
+    }
+
+    /**
+     * @param array<string,mixed> $row
+     * @return array{checks:int,passed:int,failed:int,retries:int,lat_sum:int,lat_n:int,lat_max:int,codes:array<string,int>}
+     */
+    private static function normalize_performance_row(array $row): array {
+        $codes = isset($row['codes']) && is_array($row['codes']) ? $row['codes'] : [];
+
+        return [
+            'checks'  => max(0, (int) ($row['checks'] ?? 0)),
+            'passed'  => max(0, (int) ($row['passed'] ?? 0)),
+            'failed'  => max(0, (int) ($row['failed'] ?? 0)),
+            'retries' => max(0, (int) ($row['retries'] ?? 0)),
+            'lat_sum' => max(0, (int) ($row['lat_sum'] ?? 0)),
+            'lat_n'   => max(0, (int) ($row['lat_n'] ?? 0)),
+            'lat_max' => max(0, (int) ($row['lat_max'] ?? 0)),
+            'codes'   => array_map('intval', $codes),
+        ];
+    }
+
+    private static function performance_day_key(int $timestamp): string {
+        return function_exists('wp_date') ? (string) \wp_date('Y-m-d', $timestamp) : gmdate('Y-m-d', $timestamp);
+    }
+
+    private static function performance_bucket_key(int $latency_ms): string {
+        foreach (self::PERFORMANCE_LATENCY_BUCKETS as $bound) {
+            if ($latency_ms <= $bound) {
+                return 'le' . $bound;
+            }
+        }
+        return 'gt';
+    }
+
+    /**
+     * @param array<string,array<string,mixed>> $store
+     * @return array<string,array<string,mixed>>
+     */
+    private static function filter_performance_by_retention(array $store): array {
+        $cutoff = self::performance_day_key(time() - ((self::PERFORMANCE_RETENTION_DAYS - 1) * DAY_IN_SECONDS));
+
+        foreach (array_keys($store) as $day) {
+            if ( strcmp((string) $day, $cutoff) < 0 ) {
+                unset($store[ $day ]);
+            }
+        }
+        ksort($store);
+
+        return $store;
+    }
+
+    /** Drop performance days older than the retention window (daily cron, see prune_event_log()). */
+    public static function prune_performance(): void {
+        $store  = self::get_performance_store();
+        $pruned = self::filter_performance_by_retention($store);
+        if ( count($pruned) !== count($store) ) {
+            \update_option(self::PERFORMANCE_OPTION, $pruned, false);
+        }
+    }
+
+    /** Delete all stored performance aggregates (manual "Reset performance data" action). */
+    public static function clear_performance(): void {
+        \delete_option(self::PERFORMANCE_OPTION);
+    }
+
+    /**
+     * Build the challenge performance report for the last $days days (today included),
+     * compared against the $days days before that.
+     *
+     * @return array{
+     *     days:int,
+     *     summary:array<string,mixed>,
+     *     daily:array<int,array<string,mixed>>,
+     *     integrations:array<int,array<string,mixed>>,
+     *     buckets:array<string,int>
+     * }
+     */
+    public static function get_performance_report(int $days = 7): array {
+        $days  = in_array($days, self::PERFORMANCE_PERIODS, true) ? $days : self::PERFORMANCE_PERIODS[0];
+        $store = self::get_performance_store();
+        $now   = time();
+
+        $current_days  = [];
+        $previous_days = [];
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $current_days[] = self::performance_day_key($now - ($i * DAY_IN_SECONDS));
+        }
+        for ($i = (2 * $days) - 1; $i >= $days; $i--) {
+            $previous_days[] = self::performance_day_key($now - ($i * DAY_IN_SECONDS));
+        }
+
+        $buckets = [];
+        foreach (self::PERFORMANCE_LATENCY_BUCKETS as $bound) {
+            $buckets[ 'le' . $bound ] = 0;
+        }
+        $buckets['gt'] = 0;
+
+        $totals   = self::normalize_performance_row([]);
+        $per_form = [];
+        $daily    = [];
+        $slow     = 0;
+
+        foreach ($current_days as $day) {
+            $day_data  = $store[ $day ] ?? [ 'buckets' => [], 'integrations' => [] ];
+            $day_total = self::normalize_performance_row([]);
+
+            foreach ((array) $day_data['buckets'] as $bucket => $count) {
+                if (isset($buckets[ $bucket ])) {
+                    $buckets[ $bucket ] += max(0, (int) $count);
+                }
+            }
+
+            foreach ((array) $day_data['integrations'] as $integration => $row) {
+                $integration = self::normalize_integration((string) $integration);
+                $row         = self::normalize_performance_row(is_array($row) ? $row : []);
+
+                if ( ! isset($per_form[ $integration ]) ) {
+                    $per_form[ $integration ] = self::normalize_performance_row([]);
+                }
+                self::merge_performance_row($per_form[ $integration ], $row);
+
+                self::merge_performance_row($day_total, $row);
+            }
+
+            self::merge_performance_row($totals, $day_total);
+
+            $daily[] = [
+                'date'         => $day,
+                'checks'       => $day_total['checks'],
+                'failed'       => $day_total['failed'],
+                'retries'      => $day_total['retries'],
+                'failure_rate' => self::calculate_rate($day_total['failed'] + $day_total['retries'], $day_total['checks']),
+                'avg_ms'       => $day_total['lat_n'] > 0 ? (int) round($day_total['lat_sum'] / $day_total['lat_n']) : 0,
+                'max_ms'       => $day_total['lat_max'],
+                'samples'      => $day_total['lat_n'],
+            ];
+        }
+
+        foreach ($buckets as $bucket => $count) {
+            if ('gt' === $bucket || (int) substr($bucket, 2) > self::PERFORMANCE_SLOW_MS) {
+                $slow += $count;
+            }
+        }
+
+        $previous       = self::normalize_performance_row([]);
+        $previous_forms = [];
+        foreach ($previous_days as $day) {
+            foreach ((array) ($store[ $day ]['integrations'] ?? []) as $integration => $row) {
+                $integration = self::normalize_integration((string) $integration);
+                $row         = self::normalize_performance_row(is_array($row) ? $row : []);
+                if ( ! isset($previous_forms[ $integration ]) ) {
+                    $previous_forms[ $integration ] = self::normalize_performance_row([]);
+                }
+                self::merge_performance_row($previous_forms[ $integration ], $row);
+                self::merge_performance_row($previous, $row);
+            }
+        }
+
+        $integrations = [];
+        foreach ($per_form as $integration => $row) {
+            if ($row['checks'] <= 0) {
+                continue;
+            }
+
+            $prev         = $previous_forms[ $integration ] ?? self::normalize_performance_row([]);
+            $failure_rate = self::calculate_rate($row['failed'] + $row['retries'], $row['checks']);
+            $prev_rate    = $prev['checks'] > 0 ? self::calculate_rate($prev['failed'] + $prev['retries'], $prev['checks']) : null;
+
+            arsort($row['codes']);
+
+            $integrations[] = [
+                'integration'       => $integration,
+                'label'             => self::get_integration_label($integration),
+                'checks'            => $row['checks'],
+                'passed'            => $row['passed'],
+                'failed'            => $row['failed'],
+                'retries'           => $row['retries'],
+                'failure_rate'      => $failure_rate,
+                'prev_checks'       => $prev['checks'],
+                'prev_failure_rate' => $prev_rate,
+                'trend'             => self::performance_trend($failure_rate, $prev_rate),
+                'avg_ms'            => $row['lat_n'] > 0 ? (int) round($row['lat_sum'] / $row['lat_n']) : 0,
+                'max_ms'            => $row['lat_max'],
+                'samples'           => $row['lat_n'],
+                'top_codes'         => array_slice($row['codes'], 0, 3, true),
+            ];
+        }
+
+        usort($integrations, static function (array $left, array $right): int {
+            if ($left['failure_rate'] !== $right['failure_rate']) {
+                return $right['failure_rate'] <=> $left['failure_rate'];
+            }
+            return $right['checks'] <=> $left['checks'];
+        });
+
+        $failure_rate = self::calculate_rate($totals['failed'] + $totals['retries'], $totals['checks']);
+        $prev_rate    = $previous['checks'] > 0 ? self::calculate_rate($previous['failed'] + $previous['retries'], $previous['checks']) : null;
+
+        return [
+            'days'    => $days,
+            'summary' => [
+                'checks'            => $totals['checks'],
+                'passed'            => $totals['passed'],
+                'failed'            => $totals['failed'],
+                'retries'           => $totals['retries'],
+                'samples'           => $totals['lat_n'],
+                'avg_ms'            => $totals['lat_n'] > 0 ? (int) round($totals['lat_sum'] / $totals['lat_n']) : 0,
+                'max_ms'            => $totals['lat_max'],
+                'p95'               => self::performance_percentile_bucket($buckets, 0.95),
+                'slow'              => $slow,
+                'slow_rate'         => self::calculate_rate($slow, $totals['lat_n']),
+                'failure_rate'      => $failure_rate,
+                'prev_checks'       => $previous['checks'],
+                'prev_failure_rate' => $prev_rate,
+                'trend'             => self::performance_trend($failure_rate, $prev_rate),
+            ],
+            'daily'        => $daily,
+            'integrations' => $integrations,
+            'buckets'      => $buckets,
+        ];
+    }
+
+    /**
+     * @param array<string,mixed> $into
+     * @param array<string,mixed> $row Normalized performance row.
+     */
+    private static function merge_performance_row(array &$into, array $row): void {
+        foreach (['checks', 'passed', 'failed', 'retries', 'lat_sum', 'lat_n'] as $field) {
+            $into[ $field ] += (int) $row[ $field ];
+        }
+        $into['lat_max'] = max((int) $into['lat_max'], (int) $row['lat_max']);
+        foreach ((array) $row['codes'] as $code => $count) {
+            $into['codes'][ $code ] = (int) ($into['codes'][ $code ] ?? 0) + (int) $count;
+        }
+    }
+
+    /**
+     * Failure-rate direction versus the previous period. A change of under five
+     * percentage points is treated as noise ('steady').
+     *
+     * @return string 'worse' | 'better' | 'steady' | 'new'
+     */
+    private static function performance_trend(float $current, ?float $previous): string {
+        if (null === $previous) {
+            return 'new';
+        }
+        $delta = $current - $previous;
+        if ($delta >= 5.0) {
+            return 'worse';
+        }
+        if ($delta <= -5.0) {
+            return 'better';
+        }
+        return 'steady';
+    }
+
+    /**
+     * Resolve which histogram bucket a percentile falls in. Only bucket counts are
+     * stored (never individual timings), so the result is an upper bound.
+     *
+     * @param array<string,int> $buckets
+     * @return array{upper_ms:int,over:bool}|null upper_ms is the bucket's bound; over=true means slower than the largest bound.
+     */
+    private static function performance_percentile_bucket(array $buckets, float $percentile): ?array {
+        $total = array_sum($buckets);
+        if ($total <= 0) {
+            return null;
+        }
+
+        $target  = (int) ceil($total * $percentile);
+        $running = 0;
+        foreach ($buckets as $bucket => $count) {
+            $running += $count;
+            if ($running >= $target) {
+                return 'gt' === $bucket
+                    ? [ 'upper_ms' => (int) max(self::PERFORMANCE_LATENCY_BUCKETS), 'over' => true ]
+                    : [ 'upper_ms' => (int) substr($bucket, 2), 'over' => false ];
+            }
+        }
+
+        return null;
     }
 
     /** @var array<string,bool> In-request cache of verified tokens to avoid double verification */
@@ -185,6 +641,12 @@ class Turnstile_Validator {
      * short-circuits), not "Cloudflare responded instantly".
      */
     private static $last_latency_ms = 0;
+
+    /**
+     * @var string[] Non-blocking notice codes (e.g. 'action_mismatch', 'hostname_mismatch')
+     * found on the most recent *successful* siteverify response. See evaluate_action_hostname().
+     */
+    private static $last_notice_codes = [];
 
     /* =========================
      * Dev mode (warn-only)
@@ -225,6 +687,46 @@ class Turnstile_Validator {
     }
 
     /**
+     * Integrations where a stale/missing WP nonce is kept as a hard requirement even
+     * on a page-cached site, because they gate an authenticated action or account
+     * security (login, registration, password reset, account changes). Everything
+     * else (comments, checkout, newsletter/contact forms…) is a "public form" where
+     * the roadmap's T3 fix lets the Turnstile token stand on its own instead. See
+     * is_valid_submission()'s nonce block and page_caching_detected().
+     *
+     * @return bool
+     */
+    private static function nonce_is_soft_checked(string $integration): bool {
+        $critical = (array) apply_filters('kitgenix_turnstile_nonce_critical_integrations', [
+            'wordpress-login',
+            'wordpress-register',
+            'wordpress-lostpassword',
+            'wordpress-resetpassword',
+            'woocommerce-login',
+            'woocommerce-account',
+            'memberpress',
+            'memberpress-signup',
+            'paid-memberships-pro',
+            'paid-memberships-pro-checkout',
+            'ultimate-member',
+            'buddypress',
+            'setup-check',
+        ]);
+
+        return ! in_array(self::normalize_integration($integration), array_map([ self::class, 'normalize_integration' ], $critical), true);
+    }
+
+    /**
+     * Whether this request is likely served from a page cache (so a WP nonce embedded
+     * in the cached HTML can be stale for a real visitor even though nothing is wrong).
+     * Deliberately simple/conservative: only the `WP_CACHE` constant most page-cache
+     * plugins define, so non-cached sites see no behavior change at all.
+     */
+    private static function page_caching_detected(): bool {
+        return (bool) apply_filters('kitgenix_turnstile_page_caching_detected', defined('WP_CACHE') && WP_CACHE);
+    }
+
+    /**
      * Let a submission through under the Cloudflare outage failsafe, without ever
      * contacting Cloudflare or requiring a token. Recorded distinctly (not as a
      * normal pass) so admins can tell "Cloudflare verified this" apart from
@@ -258,6 +760,24 @@ class Turnstile_Validator {
         return array_key_exists('replay_protection', $settings) ? !empty($settings['replay_protection']) : true;
     }
 
+    /**
+     * Whether our own replay-protection transient is worth storing. Without an external
+     * object cache, set_transient()/get_transient() fall back to a wp_options row per
+     * successful check, which duplicates Cloudflare's own single-use enforcement
+     * (a reused token already fails siteverify with timeout-or-duplicate) for a DB
+     * write that mostly just restates what Cloudflare already guarantees. With an
+     * object cache present, the same transient costs nothing extra, so it stays on –
+     * it still catches a reused token faster (no round trip to Cloudflare needed) and
+     * covers the edge case of a token replayed after its own TTL but within ours.
+     * See T5 in ROADMAP.md.
+     */
+    private static function replay_storage_available(): bool {
+        return (bool) apply_filters(
+            'kitgenix_turnstile_replay_storage_available',
+            function_exists('wp_using_ext_object_cache') && \wp_using_ext_object_cache()
+        );
+    }
+
     private static function replay_ttl(): int {
         $ttl = (int) apply_filters('kitgenix_turnstile_replay_ttl', 10 * MINUTE_IN_SECONDS);
         return $ttl > 0 ? $ttl : 10 * MINUTE_IN_SECONDS;
@@ -272,7 +792,7 @@ class Turnstile_Validator {
     }
 
     private static function is_replay(string $token): bool {
-        if ( ! self::replay_enabled() ) {
+        if ( ! self::replay_enabled() || ! self::replay_storage_available() ) {
             return false;
         }
         $h = self::token_hash($token);
@@ -280,7 +800,7 @@ class Turnstile_Validator {
     }
 
     private static function mark_used(string $token): void {
-        if ( ! self::replay_enabled() ) {
+        if ( ! self::replay_enabled() || ! self::replay_storage_available() ) {
             return;
         }
         $h   = self::token_hash($token);
@@ -351,34 +871,36 @@ class Turnstile_Validator {
             self::$last_error_codes[] = 'honeypot_tripped';
             self::$last_error_msg     = __('Submission blocked.', 'kitgenix-captcha-for-cloudflare-turnstile');
             self::log_dev('honeypot_tripped');
-            self::record_last_verify(false, self::$last_error_codes);
-            self::record_metrics('', false, $integration, self::$last_error_codes);
-            self::record_recent_event($integration, false, self::$last_error_codes);
+            self::record_outcome($integration, false, self::$last_error_codes);
             return self::dev_mode_enabled($integration);
         }
 
-        // Nonce
+        // Nonce. The Turnstile token itself already proves freshness (short-lived) and
+        // single use (Cloudflare + our own replay check), so a stale/missing WP nonce
+        // alone is not treated as fatal on a page-caching site for integrations that
+        // aren't login/account-security sensitive – see nonce_is_soft_checked() and T3
+        // in ROADMAP.md. Authenticated/security-sensitive integrations always keep the
+        // hard nonce requirement, on cached pages or not.
+        $nonce_soft = $require_nonce && self::nonce_is_soft_checked($integration) && self::page_caching_detected();
+        $nonce_ok   = true;
         if ( $require_nonce ) {
             $nonce = isset($_POST['kitgenix_captcha_for_cloudflare_turnstile_nonce'])
                 ? sanitize_text_field( wp_unslash( $_POST['kitgenix_captcha_for_cloudflare_turnstile_nonce'] ) )
                 : '';
-            if ( '' === $nonce ) {
-                self::$last_error_codes[] = 'nonce_invalid';
-                self::$last_error_msg     = __('Security check failed. Please refresh and try again.', 'kitgenix-captcha-for-cloudflare-turnstile');
-                self::log_dev('nonce_invalid');
-                self::record_last_verify(false, self::$last_error_codes);
-                self::record_metrics('', false, $integration, self::$last_error_codes);
-                self::record_recent_event($integration, false, self::$last_error_codes);
-                return self::dev_mode_enabled($integration);
-            }
-            if ( ! wp_verify_nonce( $nonce, 'kitgenix_captcha_for_cloudflare_turnstile_action' ) ) {
-                self::$last_error_codes[] = 'nonce_invalid';
-                self::$last_error_msg     = __('Security check failed. Please refresh and try again.', 'kitgenix-captcha-for-cloudflare-turnstile');
-                self::log_dev('nonce_invalid');
-                self::record_last_verify(false, self::$last_error_codes);
-                self::record_metrics('', false, $integration, self::$last_error_codes);
-                self::record_recent_event($integration, false, self::$last_error_codes);
-                return self::dev_mode_enabled($integration);
+            $nonce_ok = '' !== $nonce && wp_verify_nonce( $nonce, 'kitgenix_captcha_for_cloudflare_turnstile_action' );
+
+            if ( ! $nonce_ok ) {
+                if ( ! $nonce_soft ) {
+                    self::$last_error_codes[] = 'nonce_invalid';
+                    self::$last_error_msg     = __('Security check failed. Please refresh and try again.', 'kitgenix-captcha-for-cloudflare-turnstile');
+                    self::log_dev('nonce_invalid');
+                    self::record_outcome($integration, false, self::$last_error_codes);
+                    return self::dev_mode_enabled($integration);
+                }
+
+                // Soft path: page caching detected on a non-sensitive integration – log
+                // and fall through to let the Turnstile token stand on its own.
+                self::log_dev('nonce_invalid_soft_bypass', ['integration' => $integration]);
             }
         }
 
@@ -389,14 +911,12 @@ class Turnstile_Validator {
             self::$last_error_codes[] = 'token_missing';
             self::$last_error_msg     = __('Please complete the Turnstile challenge.', 'kitgenix-captcha-for-cloudflare-turnstile');
             self::log_dev('token_missing');
-            self::record_last_verify(false, self::$last_error_codes);
-            self::record_metrics('', false, $integration, self::$last_error_codes);
-            self::record_recent_event($integration, false, self::$last_error_codes);
+            self::record_outcome($integration, false, self::$last_error_codes);
             return self::dev_mode_enabled($integration);
         }
 
         // Cloudflare verify (memoized)
-        $ok = self::verify_with_site($response);
+        $ok = self::verify_with_site($response, $integration);
 
         if ( ! $ok ) {
             if (self::$last_error_msg === '') {
@@ -408,9 +928,7 @@ class Turnstile_Validator {
                 'message' => self::$last_error_msg,
                 'resp'    => self::$last_response,
             ]);
-            self::record_last_verify(false, self::$last_error_codes);
-            self::record_metrics($response, false, $integration, self::$last_error_codes);
-            self::record_recent_event($integration, false, self::$last_error_codes, $response);
+            self::record_outcome($integration, false, self::$last_error_codes, $response);
             return self::dev_mode_enabled($integration);
         }
 
@@ -420,9 +938,7 @@ class Turnstile_Validator {
             self::$last_error_msg     = __('Verification expired. Please try again.', 'kitgenix-captcha-for-cloudflare-turnstile');
             self::log_dev('replay_detected');
             self::flag_replay_frontend();
-            self::record_last_verify(false, self::$last_error_codes);
-            self::record_metrics($response, false, $integration, self::$last_error_codes);
-            self::record_recent_event($integration, false, self::$last_error_codes, $response);
+            self::record_outcome($integration, false, self::$last_error_codes, $response);
             return self::dev_mode_enabled($integration);
         }
 
@@ -432,9 +948,8 @@ class Turnstile_Validator {
             self::mark_used( $response );
         }
 
-        self::record_last_verify(true, []);
-        self::record_metrics($response, true, $integration, []);
-        self::record_recent_event($integration, true, [], $response);
+        $notice_codes = $nonce_soft && ! $nonce_ok ? array_merge(self::$last_notice_codes, ['nonce_invalid_soft_bypass']) : self::$last_notice_codes;
+        self::record_outcome($integration, true, $notice_codes, $response);
         return true;
     }
 
@@ -465,9 +980,7 @@ class Turnstile_Validator {
             self::$last_error_codes = ['honeypot_tripped'];
             self::$last_error_msg   = __('Submission blocked.', 'kitgenix-captcha-for-cloudflare-turnstile');
             self::log_dev('honeypot_tripped');
-            self::record_last_verify(false, self::$last_error_codes);
-            self::record_metrics('', false, $integration, self::$last_error_codes);
-            self::record_recent_event($integration, false, self::$last_error_codes);
+            self::record_outcome($integration, false, self::$last_error_codes);
             return self::dev_mode_enabled($integration);
         }
 
@@ -475,20 +988,16 @@ class Turnstile_Validator {
         if ($token === '') {
             self::$last_error_codes = ['missing-input-response'];
             self::$last_error_msg   = __('Please complete the Turnstile challenge.', 'kitgenix-captcha-for-cloudflare-turnstile');
-            self::record_last_verify(false, self::$last_error_codes);
-            self::record_metrics('', false, $integration, self::$last_error_codes);
-            self::record_recent_event($integration, false, self::$last_error_codes);
+            self::record_outcome($integration, false, self::$last_error_codes);
             return self::dev_mode_enabled($integration);
         }
 
-        $ok = self::verify_with_site($token);
+        $ok = self::verify_with_site($token, $integration);
         if ( ! $ok ) {
             if (self::$last_error_msg === '') {
                 self::$last_error_msg = self::message_from_error_codes(self::$last_error_codes, '');
             }
-            self::record_last_verify(false, self::$last_error_codes);
-            self::record_metrics($token, false, $integration, self::$last_error_codes);
-            self::record_recent_event($integration, false, self::$last_error_codes, $token);
+            self::record_outcome($integration, false, self::$last_error_codes, $token);
             return self::dev_mode_enabled($integration);
         }
 
@@ -497,9 +1006,7 @@ class Turnstile_Validator {
             self::$last_error_msg     = __('Verification expired. Please try again.', 'kitgenix-captcha-for-cloudflare-turnstile');
             self::log_dev('replay_detected');
             self::flag_replay_frontend();
-            self::record_last_verify(false, self::$last_error_codes);
-            self::record_metrics($token, false, $integration, self::$last_error_codes);
-            self::record_recent_event($integration, false, self::$last_error_codes, $token);
+            self::record_outcome($integration, false, self::$last_error_codes, $token);
             return self::dev_mode_enabled($integration);
         }
 
@@ -508,9 +1015,7 @@ class Turnstile_Validator {
             self::mark_used( $token );
         }
 
-        self::record_last_verify(true, []);
-        self::record_metrics($token, true, $integration, []);
-        self::record_recent_event($integration, true, [], $token);
+        self::record_outcome($integration, true, self::$last_notice_codes, $token);
         return true;
     }
 
@@ -570,7 +1075,7 @@ class Turnstile_Validator {
             ];
         }
 
-        $ok = self::verify_with_site($token);
+        $ok = self::verify_with_site($token, 'setup-check');
         if ( ! $ok ) {
             if (self::$last_error_msg === '') {
                 self::$last_error_msg = self::message_from_error_codes(self::$last_error_codes, 'setup_check');
@@ -832,9 +1337,6 @@ class Turnstile_Validator {
             'jetformbuilder'                => __('JetFormBuilder', 'kitgenix-captcha-for-cloudflare-turnstile'),
             'jetpackforms'                  => __('Jetpack Forms', 'kitgenix-captcha-for-cloudflare-turnstile'),
             'kadenceforms'                  => __('Kadence Forms', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'kgps-login'                    => __('Kitgenix Plugin Score login', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'kgps-register'                 => __('Kitgenix Plugin Score registration', 'kitgenix-captcha-for-cloudflare-turnstile'),
-            'kgps-lostpassword'             => __('Kitgenix Plugin Score lost password', 'kitgenix-captcha-for-cloudflare-turnstile'),
             'mailpoet'                      => __('MailPoet', 'kitgenix-captcha-for-cloudflare-turnstile'),
             'ninjaforms'                    => __('Ninja Forms', 'kitgenix-captcha-for-cloudflare-turnstile'),
             'memberpress'                   => __('MemberPress', 'kitgenix-captcha-for-cloudflare-turnstile'),
@@ -846,6 +1348,7 @@ class Turnstile_Validator {
             'woocommerce-account'           => __('WooCommerce My Account', 'kitgenix-captcha-for-cloudflare-turnstile'),
             'woocommerce-checkout'          => __('WooCommerce checkout', 'kitgenix-captcha-for-cloudflare-turnstile'),
             'woocommerce-login'             => __('WooCommerce login', 'kitgenix-captcha-for-cloudflare-turnstile'),
+            'woocommerce-pay-order'         => __('WooCommerce pay for order', 'kitgenix-captcha-for-cloudflare-turnstile'),
             'woocommerce-review'            => __('WooCommerce reviews', 'kitgenix-captcha-for-cloudflare-turnstile'),
             'woocommerce-blocks-checkout'   => __('WooCommerce Blocks checkout', 'kitgenix-captcha-for-cloudflare-turnstile'),
             'wordpress-comment'             => __('WordPress comments', 'kitgenix-captcha-for-cloudflare-turnstile'),
@@ -1194,6 +1697,23 @@ class Turnstile_Validator {
      */
     public static function get_event_category_and_note( array $codes, string $outcome ): array {
         if ( $outcome === 'success' ) {
+            // Non-blocking T1/T3 notices still ride along on a successful event (see
+            // record_outcome()); surface them instead of the blanket "passed" note so
+            // admins can see, e.g., a token whose action/hostname didn't match what was
+            // expected even though it still passed Cloudflare's own check.
+            if ( in_array( 'action_mismatch', $codes, true ) || in_array( 'hostname_mismatch', $codes, true ) ) {
+                return [
+                    'category' => 'action-hostname-mismatch',
+                    'note'     => __( 'Passed Cloudflare verification, but the action or hostname Cloudflare echoed back did not match what this form should have sent. Currently logged only (not blocked) – see "Harden verification" in the roadmap.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+                ];
+            }
+            if ( in_array( 'nonce_invalid_soft_bypass', $codes, true ) ) {
+                return [
+                    'category' => 'nonce-soft-bypass',
+                    'note'     => __( 'Passed on the Turnstile token alone; the WP security nonce was stale or missing, which is expected on a page-cached form and was not treated as a failure.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+                ];
+            }
+
             return [
                 'category' => 'passed',
                 'note'     => __( 'Challenge verified by Cloudflare – legitimate submission.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
@@ -1372,11 +1892,16 @@ class Turnstile_Validator {
 
     /**
      * Perform the siteverify call with memoization and robust HTTP args.
+     *
+     * @param string $token
+     * @param string $integration Integration context, used for the T1 action/hostname check.
      */
-    private static function verify_with_site(string $token): bool {
+    private static function verify_with_site(string $token, string $integration = ''): bool {
         if (array_key_exists($token, self::$verified_tokens)) {
             return self::$verified_tokens[$token];
         }
+
+        self::$last_notice_codes = [];
 
         $settings = get_option('kitgenix_captcha_for_cloudflare_turnstile_settings', []);
         $secret   = $settings['secret_key'] ?? '';
@@ -1392,9 +1917,15 @@ class Turnstile_Validator {
         $remoteip     = apply_filters('kitgenix_turnstile_remote_ip', $remoteip);
         $send_remoteip = apply_filters('kitgenix_turnstile_send_remoteip', true);
 
+        // Idempotency key: identical for every attempt of THIS verification call, so a
+        // network-level retry after Cloudflare already recorded success is recognized as
+        // the same request instead of failing as timeout-or-duplicate. See T4 in ROADMAP.md.
+        $idempotency_key = function_exists('wp_generate_uuid4') ? wp_generate_uuid4() : self::token_hash($token . microtime());
+
         $body = [
-            'secret'   => $secret,
-            'response' => $token,
+            'secret'         => $secret,
+            'response'       => $token,
+            'idempotency_key' => $idempotency_key,
         ];
         if ($send_remoteip && $remoteip) {
             $body['remoteip'] = $remoteip;
@@ -1404,7 +1935,7 @@ class Turnstile_Validator {
         $args = [
             'timeout'   => (int) apply_filters('kitgenix_turnstile_siteverify_timeout', 10),
             'headers'   => [
-                'User-Agent' => 'kitgenix-captcha-for-cloudflare-turnstile/' . ( defined( 'KitgenixCaptchaForCloudflareTurnstile_Version' ) ? (string) constant( 'KitgenixCaptchaForCloudflareTurnstile_Version' ) : '2.0.2' ),
+                'User-Agent' => 'kitgenix-captcha-for-cloudflare-turnstile/' . ( defined( 'KitgenixCaptchaForCloudflareTurnstile_Version' ) ? (string) constant( 'KitgenixCaptchaForCloudflareTurnstile_Version' ) : '2.2.0' ),
                 'Accept'     => 'application/json',
             ],
             'body'      => $body,
@@ -1412,11 +1943,21 @@ class Turnstile_Validator {
         ];
         $args = apply_filters('kitgenix_turnstile_siteverify_http_args', $args, $token);
 
-        $request_start = microtime(true);
-        $resp = wp_remote_post($url, $args);
-        self::$last_latency_ms = (int) round((microtime(true) - $request_start) * 1000);
+        // One retry on a transport-level failure only (timeout, DNS, connection reset –
+        // never on a well-formed Cloudflare response, even an unsuccessful one). Reusing
+        // the same idempotency_key means a retry that lands after the first attempt
+        // actually succeeded server-side is recognized as a duplicate of that success,
+        // not rejected. See T4 in ROADMAP.md.
+        $attempts = 0;
+        do {
+            $attempts++;
+            $request_start = microtime(true);
+            $resp = wp_remote_post($url, $args);
+            self::$last_latency_ms = (int) round((microtime(true) - $request_start) * 1000);
+            $transport_failed = ! $resp || is_wp_error($resp);
+        } while ( $transport_failed && $attempts < 2 );
 
-        if ( ! $resp || is_wp_error($resp) ) {
+        if ( $transport_failed ) {
             $msg = $resp && is_wp_error($resp) ? $resp->get_error_message() : 'no-response';
             self::$last_response    = ['http_error' => $msg];
             self::$last_error_codes = ['http_error'];
@@ -1439,9 +1980,78 @@ class Turnstile_Validator {
             self::record_last_verify(false, self::$last_error_codes);
         } else {
             // success recorded after replay check in callers
+            self::$last_notice_codes = self::evaluate_action_hostname($integration, self::$last_response);
+
+            if ( ! empty(self::$last_notice_codes) && apply_filters('kitgenix_turnstile_enforce_action_hostname', false, $integration, self::$last_notice_codes) ) {
+                self::$last_error_codes = self::$last_notice_codes;
+                self::$last_error_msg   = __('Verification failed. Please try again.', 'kitgenix-captcha-for-cloudflare-turnstile');
+                self::record_last_verify(false, self::$last_error_codes);
+                $ok = false;
+            }
         }
 
         return self::$verified_tokens[$token] = (bool) $ok;
+    }
+
+    /**
+     * T1 hardening: check the `action` and `hostname` fields Cloudflare's siteverify
+     * echoes back against what this integration's widget should have sent (see
+     * Script_Handler::get_widget_data_attributes()) and against a filterable hostname
+     * allowlist (default: this site's own host). A mismatch means the token may have
+     * been solved on a different form, or on another site/staging copy sharing the same
+     * site key, and is replayed here.
+     *
+     * Ships in LOG-ONLY mode: mismatches are recorded as non-blocking notice codes (and
+     * fired via the `kitgenix_turnstile_action_hostname_mismatch` action) but never fail
+     * verification, unless a site/integrator opts in via the
+     * `kitgenix_turnstile_enforce_action_hostname` filter – at which point this becomes
+     * authoritative and the caller MUST block (see verify_with_site()). Planned to
+     * default to enforced in a later release once sites have had a chance to review the
+     * log-only data (see ROADMAP.md).
+     *
+     * @return string[] Notice codes ('action_mismatch' / 'hostname_mismatch'), empty when clean.
+     */
+    private static function evaluate_action_hostname(string $integration, array $response): array {
+        $integration = self::normalize_integration($integration);
+        $group_map   = Script_Handler::get_integration_analytics_key_map();
+        $expected    = $group_map[ $integration ] ?? '';
+
+        // No widget-attribute group for this context (e.g. 'general', 'setup-check',
+        // or a REST/API integration that never rendered our widget markup) – nothing to compare.
+        if ( '' === $expected ) {
+            return [];
+        }
+
+        $notices = [];
+
+        $actual_action = isset($response['action']) ? (string) $response['action'] : '';
+        if ( '' !== $actual_action && $actual_action !== $expected ) {
+            $notices[] = 'action_mismatch';
+        }
+
+        $actual_host = isset($response['hostname']) ? strtolower((string) $response['hostname']) : '';
+        if ( '' !== $actual_host ) {
+            $home_host      = (string) \wp_parse_url( \home_url(), PHP_URL_HOST );
+            $allowed_hosts  = (array) apply_filters( 'kitgenix_turnstile_allowed_hostnames', array_filter( [ $home_host ] ), $integration );
+            $allowed_hosts  = array_map( 'strtolower', array_map( 'strval', $allowed_hosts ) );
+
+            if ( ! empty($allowed_hosts) && ! in_array($actual_host, $allowed_hosts, true) ) {
+                $notices[] = 'hostname_mismatch';
+            }
+        }
+
+        if ( ! empty($notices) ) {
+            self::log_dev('action_hostname_mismatch', [
+                'integration'    => $integration,
+                'expected_action'=> $expected,
+                'actual_action'  => $actual_action,
+                'actual_host'    => $actual_host,
+                'notices'        => $notices,
+            ]);
+            \do_action('kitgenix_turnstile_action_hostname_mismatch', $integration, $notices, $response);
+        }
+
+        return $notices;
     }
 
     /* =========================

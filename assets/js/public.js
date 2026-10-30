@@ -163,6 +163,37 @@
       } catch (e) { /* ignore */ }
     },
 
+    // Lazy render (T6, see ROADMAP.md): when enabled, defer the actual
+    // turnstile.render() call – the part that pulls in Cloudflare's iframe and
+    // causes layout shift – until a container is within `rootMargin` of the
+    // viewport, instead of mounting every widget on the page immediately.
+    // Everything else about a widget's setup (hidden input, event listeners)
+    // still happens right away; only the expensive mount is deferred.
+    _whenNearViewport(el, cb) {
+      try {
+        if (!this.config.lazy_render || typeof IntersectionObserver === 'undefined') {
+          cb();
+          return;
+        }
+        if (el.dataset.kitgenixLazyVisible === '1' || el.__kitgenixLazyObserver) {
+          if (el.dataset.kitgenixLazyVisible === '1') cb();
+          return;
+        }
+        const obs = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              el.dataset.kitgenixLazyVisible = '1';
+              obs.disconnect();
+              delete el.__kitgenixLazyObserver;
+              cb();
+            }
+          });
+        }, { rootMargin: '200px 0px' });
+        el.__kitgenixLazyObserver = obs;
+        obs.observe(el);
+      } catch (e) { cb(); }
+    },
+
     // Deduplicate extra containers in Elementor popups: keep only the first per form
     _dedupeElementorContainers(scope) {
       try {
@@ -199,11 +230,11 @@
         if (el.dataset.KitgenixCaptchaForCloudflareTurnstileRendering === '1') return;
         // A "rendered" container isn't necessarily healthy: WooCommerce Blocks'
         // React tree can wipe a container's children out while leaving the
-        // wrapper div itself in place — the CSS gap stays, but nothing is
+        // wrapper div itself in place 2.2.0 – 30 October 2026 the CSS gap stays, but nothing is
         // actually rendered inside it. Detect that *conservatively*: only
         // treat it as a zombie once the container has had zero child elements
         // for a while (well past how long Turnstile normally takes to mount),
-        // never immediately — checking too eagerly (or checking specifically
+        // never immediately 2.2.0 – 30 October 2026 checking too eagerly (or checking specifically
         // for an <iframe>, which isn't guaranteed to be a direct, queryable
         // child) wipes and restarts widgets that are still loading or already
         // solved, which repeatedly interrupts verification.
@@ -333,7 +364,7 @@
             // Do NOT mark as rendered: a thrown render() never mounted anything, so the
             // zombie-detector in this function (the `el.dataset.rendered` check above) must
             // keep treating this container as unrendered, or it will wait up to 8s before
-            // trying again — during which the container looks "there" in the HTML but stays
+            // trying again 2.2.0 – 30 October 2026 during which the container looks "there" in the HTML but stays
             // permanently empty, which is exactly the reported "widget not rendering" symptom.
             return;
           }
@@ -351,13 +382,15 @@
         // missing the visibility window, else fall back to visibility guard.
         const owner = el.getAttribute('data-kitgenix-captcha-for-cloudflare-turnstile-owner') || '';
         if (owner === 'woocommerce-blocks') {
+          // Always eager: Blocks Checkout's "Checkout Actions" area is already
+          // the form's submit step, never meaningfully below the fold.
           renderNow();
         } else {
           const renderWhenVisible = () => {
             const style = window.getComputedStyle(el);
             const visible = style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
             if (!visible) { setTimeout(renderWhenVisible, 120); return; }
-            renderNow();
+            this._whenNearViewport(el, renderNow);
           };
           renderWhenVisible();
         }
@@ -393,7 +426,7 @@
     // (without calling turnstile.remove() first) leaves a stale widget ID
     // behind; Cloudflare then logs "Cannot find Widget ..." and, after a few
     // such cycles, can stop mounting a fresh widget into that container at
-    // all — the exact "renders once then silently stays blank" symptom.
+    // all 2.2.0 – 30 October 2026 the exact "renders once then silently stays blank" symptom.
     // Safe to call even when no widget is registered (no-op, swallowed).
     _safeRemoveWidget(el) {
       try {
@@ -472,6 +505,7 @@
           const visible = style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
           if (!visible) { setTimeout(renderWhenVisible, 120); return; }
 
+          this._whenNearViewport(el, () => {
           KitgenixCaptchaForCloudflareTurnstile._safeRemoveWidget(el);
           try { el.innerHTML = ''; } catch (e) {}
           turnstile.render(el, params);
@@ -485,6 +519,7 @@
             // Do not auto-uncollapse on size changes; only reveal explicitly on need
             KitgenixCaptchaForCloudflareTurnstile._scheduleRevealIfNoToken(el);
           }
+          });
         };
         renderWhenVisible();
       });
@@ -523,6 +558,7 @@
           const visible = style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
           if (!visible) { setTimeout(renderWhenVisibleF, 120); return; }
 
+          this._whenNearViewport(el, () => {
           KitgenixCaptchaForCloudflareTurnstile._safeRemoveWidget(el);
           try { el.innerHTML = ''; } catch (e) {}
           turnstile.render(el, params);
@@ -535,6 +571,7 @@
             // Do not auto-uncollapse on size changes; only reveal explicitly on need
             KitgenixCaptchaForCloudflareTurnstile._scheduleRevealIfNoToken(el);
           }
+          });
         };
         renderWhenVisibleF();
       });
@@ -573,6 +610,7 @@
           const visible = style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
           if (!visible) { setTimeout(renderWhenVisibleJ, 120); return; }
 
+          this._whenNearViewport(el, () => {
           KitgenixCaptchaForCloudflareTurnstile._safeRemoveWidget(el);
           try { el.innerHTML = ''; } catch (e) {}
           turnstile.render(el, params);
@@ -585,6 +623,7 @@
             // Do not auto-uncollapse on size changes; only reveal explicitly on need
             KitgenixCaptchaForCloudflareTurnstile._scheduleRevealIfNoToken(el);
           }
+          });
         };
         renderWhenVisibleJ();
       });
@@ -627,7 +666,8 @@
           const style = window.getComputedStyle(el);
           const visible = style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
           if (!visible) { setTimeout(renderWhenVisible, 120); return; }
-          
+
+          this._whenNearViewport(el, () => {
           KitgenixCaptchaForCloudflareTurnstile._safeRemoveWidget(el);
           try { el.innerHTML = ''; } catch (e) {}
           try {
@@ -639,14 +679,15 @@
           }
           el.dataset.rendered = 'true';
           try { el.setAttribute('data-rendered', 'true'); } catch (e) {}
-          
+
           if (this.config.disable_submit && (params.appearance !== 'interaction-only')) this.disableSubmit(el);
           this._scheduleIdleReset(el);
           delete el.dataset.KitgenixCaptchaForCloudflareTurnstileRendering;
-          
+
           if (params.appearance === 'interaction-only') {
             KitgenixCaptchaForCloudflareTurnstile._scheduleRevealIfNoToken(el);
           }
+          });
         };
         renderWhenVisible();
       });
@@ -684,6 +725,7 @@
           const visible = style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
           if (!visible) { setTimeout(renderWhenVisible, 120); return; }
 
+          this._whenNearViewport(el, () => {
           KitgenixCaptchaForCloudflareTurnstile._safeRemoveWidget(el);
           try { el.innerHTML = ''; } catch (e) {}
           turnstile.render(el, params);
@@ -704,6 +746,7 @@
             } catch (e) {}
             KitgenixCaptchaForCloudflareTurnstile._scheduleRevealIfNoToken(el);
           }
+          });
         };
         renderWhenVisible();
       });
@@ -917,7 +960,7 @@
      * first HTML response, but on some loads WooCommerce Blocks re-renders that same
      * area right after mount (e.g. once cart/checkout data resolves) and, because our
      * container isn't part of its component tree, that re-render wipes it out before
-     * Turnstile ever gets a chance to mount into it — the widget silently never
+     * Turnstile ever gets a chance to mount into it 2.2.0 – 30 October 2026 the widget silently never
      * appears and checkout blocks on the missing token. A reload "fixes" it only when
      * that particular re-render happens not to occur that time.
      *
@@ -964,7 +1007,7 @@
           if (existing) {
             // Container survived (PHP or a prior heal), but a React re-render may
             // have wiped its contents out while leaving the empty wrapper div
-            // behind — a "zombie": the gap is still there, nothing is rendered
+            // behind 2.2.0 – 30 October 2026 a "zombie": the gap is still there, nothing is rendered
             // inside it. Give renderWidgets() a chance to heal it; it only
             // actually re-renders once its own grace period confirms the
             // container is truly stuck empty, so calling it here on every
@@ -1028,7 +1071,7 @@
       // The MutationObserver above only finds out a re-render happened after React has
       // already committed it to the DOM, then waits out its own debounce on top of that.
       // wp.data.subscribe fires on the store update that *causes* the re-render, so it
-      // catches a wipe (and can rebuild/heal) a tick earlier — closing the small timing
+      // catches a wipe (and can rebuild/heal) a tick earlier 2.2.0 – 30 October 2026 closing the small timing
       // gap where a very fast subsequent re-render could otherwise wipe our rebuilt
       // container again before the MutationObserver-driven heal has had a chance to run.
       try {
@@ -1039,7 +1082,7 @@
             storeDebounce = setTimeout(ensureWidget, 150);
           };
           // wp.data.subscribe(listener, storeName) just warns (does not throw) if the named
-          // store isn't registered yet, so it's safe to call before Woo Blocks has mounted —
+          // store isn't registered yet, so it's safe to call before Woo Blocks has mounted 2.2.0 – 30 October 2026
           // no need to (and no reliable public API to) check registration first.
           try { wp.data.subscribe(onStoreChange, 'wc/store/cart'); } catch (e) {}
           try { wp.data.subscribe(onStoreChange, 'wc/store/checkout'); } catch (e) {}

@@ -46,8 +46,12 @@ class Whitelist {
             }
         }
 
-        // 3) User-Agent whitelist (substring or "*" wildcard, case-insensitive)
-        if (!empty($settings['whitelist_user_agents']) && !empty($_SERVER['HTTP_USER_AGENT'])) {
+        // 3) User-Agent whitelist (substring or "*" wildcard, case-insensitive).
+        // The User-Agent header is fully client-controlled, so it is only honoured
+        // for read-only page loads (GET/HEAD: e.g. uptime monitors, crawlers,
+        // Lighthouse) to skip loading the widget. It never exempts a submission,
+        // otherwise any bot could bypass verification by spoofing a listed UA.
+        if (!empty($settings['whitelist_user_agents']) && !empty($_SERVER['HTTP_USER_AGENT']) && self::is_read_only_request()) {
             $ua       = strtolower(\sanitize_text_field(\wp_unslash($_SERVER['HTTP_USER_AGENT'])));
             $patterns = array_map('strtolower', self::split_lines((string) $settings['whitelist_user_agents']));
             foreach ($patterns as $pattern) {
@@ -61,6 +65,17 @@ class Whitelist {
         }
 
         return self::cache_and_filter(false, 'none');
+    }
+
+    /**
+     * Whether the current request is a read-only page load (GET/HEAD).
+     */
+    private static function is_read_only_request(): bool {
+        $method = isset($_SERVER['REQUEST_METHOD'])
+            ? strtoupper(\sanitize_text_field(\wp_unslash($_SERVER['REQUEST_METHOD'])))
+            : 'GET';
+
+        return in_array($method, ['GET', 'HEAD'], true);
     }
 
     /**

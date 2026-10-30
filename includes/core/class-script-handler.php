@@ -231,7 +231,7 @@ class Script_Handler {
                 ? [ 'in_footer' => true, 'strategy' => 'async' ]
                 : true;
 
-            // No $ver: this is Cloudflare's own CDN-hosted script, not a local asset —
+            // No $ver: this is Cloudflare's own CDN-hosted script, not a local asset 2.2.0 – 30 October 2026
             // appending our plugin version as a `&ver=` query param pollutes their URL
             // (Turnstile's own api.js logs "Unknown parameter ... ignoring" for it) and
             // defeats Cloudflare's own cache headers for no benefit.
@@ -239,7 +239,7 @@ class Script_Handler {
                 'kitgenix-captcha-for-cloudflare-turnstile',
                 $url,
                 [],
-                null,
+                null, // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- intentional null version; see comment above.
                 $args
             );
 
@@ -301,6 +301,9 @@ class Script_Handler {
             'theme'          => $settings['theme'] ?? 'auto',
             'extra_message'  => $settings['extra_message'] ?? '',
             'debug'          => defined('WP_DEBUG') && WP_DEBUG,
+            // Lazy render: defer mounting until a widget's container is near the
+            // viewport. See T6 in ROADMAP.md and KitgenixCaptchaForCloudflareTurnstile._whenNearViewport() in public.js.
+            'lazy_render'    => ! empty( $settings['lazy_render_widgets'] ),
             // NEW:
             'dev_mode'       => ! empty( $settings['dev_mode_warn_only'] ),
             'annotate_dev'   => \current_user_can( 'manage_options' ), // only show inline warnings to admins
@@ -540,13 +543,12 @@ class Script_Handler {
             'paidmembershipspro'   => \__( 'Paid Memberships Pro', 'kitgenix-captcha-for-cloudflare-turnstile' ),
             'ultimatemember'       => \__( 'Ultimate Member', 'kitgenix-captcha-for-cloudflare-turnstile' ),
             'wpdiscuz'             => \__( 'wpDiscuz', 'kitgenix-captcha-for-cloudflare-turnstile' ),
-            'kitgenix_plugin_score' => \__( 'Kitgenix Plugin Score', 'kitgenix-captcha-for-cloudflare-turnstile' ),
         ];
     }
 
     /**
      * Map each fine-grained `Turnstile_Validator` analytics/diagnostics integration
-     * key (e.g. 'woocommerce-checkout', 'kgps-login') to the coarser top-level
+     * key (e.g. 'woocommerce-checkout', 'wordpress-login') to the coarser top-level
      * integration key used by settings (`enable_{key}` / `mode_{key}`) and by
      * get_override_integration_keys() above. Used by the admin Integration Health
      * Matrix to show each analytics row's actual Enabled/Mode state without
@@ -570,9 +572,6 @@ class Script_Handler {
             'jetformbuilder'                 => 'jetformbuilder',
             'jetpackforms'                   => 'jetpackforms',
             'kadenceforms'                   => 'kadenceforms',
-            'kgps-login'                     => 'kitgenix_plugin_score',
-            'kgps-register'                  => 'kitgenix_plugin_score',
-            'kgps-lostpassword'              => 'kitgenix_plugin_score',
             'mailpoet'                       => 'mailpoet',
             'ninjaforms'                     => 'ninjaforms',
             'memberpress'                    => 'memberpress',
@@ -584,6 +583,7 @@ class Script_Handler {
             'woocommerce-account'            => 'woocommerce',
             'woocommerce-checkout'           => 'woocommerce',
             'woocommerce-login'              => 'woocommerce',
+            'woocommerce-pay-order'          => 'woocommerce',
             'woocommerce-review'             => 'woocommerce',
             'woocommerce-blocks-checkout'    => 'woocommerce_blocks',
             'wordpress-comment'              => 'wordpress',
@@ -689,16 +689,29 @@ class Script_Handler {
     }
 
     /**
-     * Build the shared data-sitekey/data-theme/data-size/data-appearance (+ optional
-     * data-language) attribute string used by every integration's Turnstile widget markup.
-     * Centralizing this means a per-integration override (or any future shared attribute)
-     * only needs to change here instead of in every integration file.
+     * Build the shared data-sitekey/data-theme/data-size/data-appearance/data-action
+     * (+ optional data-language) attribute string used by every integration's Turnstile
+     * widget markup. Centralizing this means a per-integration override (or any future
+     * shared attribute) only needs to change here instead of in every integration file.
+     *
+     * The `$key` override group (e.g. 'wordpress', 'woocommerce', 'wpforms'…) doubles as
+     * the Turnstile `action` – Cloudflare echoes it back in the siteverify response, and
+     * Turnstile_Validator::evaluate_action_hostname() compares it against the same group
+     * derived from the fine-grained integration key used at verification time (via
+     * get_integration_analytics_key_map()), so a token solved against one integration's
+     * widget can't be silently replayed against another's form. See T1 in ROADMAP.md.
      */
     public static function get_widget_data_attributes( string $key, string $site_key ): string {
+        $action = \sanitize_key( $key );
+
         $attrs = ' data-sitekey="' . \esc_attr( $site_key ) . '"'
             . ' data-theme="' . \esc_attr( self::get_effective_theme( $key ) ) . '"'
             . ' data-size="' . \esc_attr( self::get_effective_size( $key ) ) . '"'
             . ' data-appearance="' . \esc_attr( self::get_effective_appearance() ) . '"';
+
+        if ( '' !== $action ) {
+            $attrs .= ' data-action="' . \esc_attr( substr( $action, 0, 32 ) ) . '"';
+        }
 
         $language_override = self::get_effective_language_override( $key );
         if ( '' !== $language_override ) {

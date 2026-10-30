@@ -24,6 +24,11 @@ use function is_object;
 
 class Elementor {
 
+    /**
+     * admin-ajax action Elementor Pro uses to submit Atomic Forms.
+     */
+    const ATOMIC_FORMS_ACTION = 'elementor_pro_atomic_forms_send_form';
+
     public static function init() {
         if ( ! defined( 'ELEMENTOR_VERSION' ) ) {
             return;
@@ -43,6 +48,13 @@ class Elementor {
 
         // Elementor Pro forms (server-side validation)
         add_action( 'elementor_pro/forms/validation', [ __CLASS__, 'validate_turnstile' ], 10, 2 );
+
+        // Elementor Atomic Forms (Editor V4 `e-form`, server-side validation).
+        // Priority 1 runs before Elementor Pro's own handler (priority 10), so a failed
+        // check is rejected before any uploads are stored or actions (email/webhook/
+        // collect submissions) run.
+        add_action( 'wp_ajax_' . self::ATOMIC_FORMS_ACTION, [ __CLASS__, 'validate_atomic_form' ], 1 );
+        add_action( 'wp_ajax_nopriv_' . self::ATOMIC_FORMS_ACTION, [ __CLASS__, 'validate_atomic_form' ], 1 );
 
         // Keep the Elementor JS *container* helper only (no rendering here)
         add_action( 'wp_enqueue_scripts', [ __CLASS__, 'enqueue_scripts' ] );
@@ -284,6 +296,57 @@ class Elementor {
         }
     }
 
+    /**
+     * Server-side validation for Elementor Atomic Forms (AJAX).
+     *
+     * Atomic Forms post via fetch() with only their own `form_fields[...]` payload, so
+     * elementor.js appends `cf-turnstile-response` (and the honeypot, when enabled) to
+     * that request. Runs before Elementor Pro's handler; on failure it ends the request
+     * with the same `{ success: false, data: { message } }` shape Elementor uses, which
+     * puts the form into its error state.
+     */
+    public static function validate_atomic_form() {
+        // Deliberately unconditional (see validate_turnstile()): every request that reaches
+        // Elementor's Atomic Forms handler must carry a valid token.
+        $token = '';
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Elementor verifies its own nonce; this is the Turnstile check.
+        if ( isset( $_POST['cf-turnstile-response'] ) ) {
+            $token = sanitize_text_field( wp_unslash( $_POST['cf-turnstile-response'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        }
+
+        // Fallback to header token (custom fetch flows)
+        if ( $token === '' && isset( $_SERVER['HTTP_X_TURNSTILE_TOKEN'] ) ) {
+            $token = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_TURNSTILE_TOKEN'] ) );
+        }
+
+        if ( Turnstile_Validator::validate_token( $token, 'elementor' ) ) {
+            return;
+        }
+
+        wp_send_json_error( [
+            'message' => Turnstile_Validator::get_error_message( 'elementor' ),
+        ] );
+    }
+
+    /**
+     * Effective widget settings for Atomic Forms, read by elementor.js when it injects
+     * a container into an `e-form` (Atomic Forms have no PHP render hook to use).
+     */
+    private static function get_atomic_forms_config(): array {
+        $settings = get_option( 'kitgenix_captcha_for_cloudflare_turnstile_settings', [] );
+
+        return [
+            'site_key'       => (string) ( $settings['site_key'] ?? '' ),
+            'mode'           => (string) ( $settings['mode_elementor'] ?? 'auto' ),
+            'theme'          => \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::get_effective_theme( 'elementor' ),
+            'size'           => \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::get_effective_size( 'elementor' ),
+            'appearance'     => \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::get_effective_appearance(),
+            'language'       => \KitgenixCaptchaForCloudflareTurnstile\Core\Script_Handler::get_effective_language_override( 'elementor' ),
+            'honeypot_field' => ! empty( $settings['honeypot_enabled'] ) ? Turnstile_Validator::honeypot_field_name() : '',
+        ];
+    }
+
     public static function enqueue_scripts() {
         // Do NOT load the Cloudflare API here; it is loaded once globally by the public script.
         // Guard enqueuing to frontend page loads that have a valid global $post. Elementor's
@@ -310,6 +373,12 @@ class Elementor {
             [ 'jquery', 'elementor-frontend' ],
             KitgenixCaptchaForCloudflareTurnstile_Version,
             true
+        );
+
+        wp_add_inline_script(
+            'kitgenix-captcha-for-cloudflare-turnstile-elementor',
+            'window.KitgenixCaptchaForCloudflareTurnstileElementorConfig=' . wp_json_encode( self::get_atomic_forms_config() ) . ';',
+            'before'
         );
     }
 }

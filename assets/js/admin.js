@@ -320,7 +320,7 @@
        Detached-form submit
        Some inline controls (e.g. the log retention "Save" button) must
        post to admin-post.php from inside the main settings <form>, but
-       HTML forbids nesting a <form> inside another <form> — the browser
+       HTML forbids nesting a <form> inside another <form> 2.2.0 – 30 October 2026 the browser
        would silently close the outer form early and break the real
        "Save Settings" button. Markup for these controls uses a plain
        <span data-kitgenix-detached-form="..."> instead of <form>; on
@@ -502,6 +502,21 @@
         reader.readAsText(file);
       });
     }
+
+    // Challenge performance (Log tab): switch between the pre-rendered period panels.
+    $('[data-kitgenix-perf]').each(function () {
+      const $section = $(this);
+      $section.on('click', '[data-kitgenix-perf-period]', function () {
+        const period = String($(this).data('kitgenix-perf-period'));
+        $section.find('[data-kitgenix-perf-period]').each(function () {
+          const active = String($(this).data('kitgenix-perf-period')) === period;
+          $(this).toggleClass('button-primary', active).attr('aria-pressed', active ? 'true' : 'false');
+        });
+        $section.find('[data-kitgenix-perf-panel]').each(function () {
+          $(this).prop('hidden', String($(this).data('kitgenix-perf-panel')) !== period);
+        });
+      });
+    });
 
     } catch(err){ if(window.console) console.error('[Kitgenix Admin UI]', err); }
   });

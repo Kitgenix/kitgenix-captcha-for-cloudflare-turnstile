@@ -65,7 +65,7 @@ class Easy_Digital_Downloads {
 
         // Login Form block (Gutenberg "edd/login" block). This block renders its own
         // markup directly via EDD\Blocks\Forms\login() and never calls edd_login_form()/
-        // apply_filters('edd_login_form', ...) — so filter_login_form() below (hooked to
+        // apply_filters('edd_login_form', ...) 2.2.0 – 30 October 2026 so filter_login_form() below (hooked to
         // that filter, used by the [edd_login] shortcode) never runs for it. Server-side
         // validation already works unmodified: the block still submits the same
         // 'edd_login_nonce' field that validate_login() checks for, through the same
@@ -74,7 +74,7 @@ class Easy_Digital_Downloads {
             add_filter('render_block_edd/login', [__CLASS__, 'blocks_inject_login']);
         }
 
-        // Registration Form block (Gutenberg "edd/register" block) — same reasoning as the
+        // Registration Form block (Gutenberg "edd/register" block) 2.2.0 – 30 October 2026 same reasoning as the
         // Login block above. Validation already works unmodified: the block's submit button
         // still posts 'edd_register_submit', dispatched through the same edd_user_register ->
         // edd_process_register_form() -> 'edd_process_register_form' action validate_generic()
@@ -102,7 +102,7 @@ class Easy_Digital_Downloads {
      *                     filter is called more than once per request in common setups (e.g. a
      *                     [edd_login] widget alongside the dedicated Login page, or an
      *                     [edd_login]+[edd_profile_editor] combo page, or an SEO plugin
-     *                     re-running shortcodes for a meta description) — a request-wide "once
+     *                     re-running shortcodes for a meta description) 2.2.0 – 30 October 2026 a request-wide "once
      *                     per hook" flag would starve whichever call actually reaches the
      *                     visible page. filter_login_form() already guards against duplicates
      *                     within its own $html, so it passes false here.
@@ -280,7 +280,7 @@ class Easy_Digital_Downloads {
      *
      * Both blocks (views/forms/login.php, views/forms/registration.php) wrap their submit
      * button in a `<div class="edd-blocks-form__group-submit ...">` wrapper, so the widget is
-     * spliced in immediately before that wrapper — mirroring how WooCommerce::blocks_inject_before_submit()
+     * spliced in immediately before that wrapper 2.2.0 – 30 October 2026 mirroring how WooCommerce::blocks_inject_before_submit()
      * splices into the Blocks checkout markup via the same render_block_* filter mechanism.
      *
      * @param string $content Rendered block HTML.

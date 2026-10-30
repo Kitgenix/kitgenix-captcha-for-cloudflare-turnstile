@@ -35,6 +35,7 @@ class Settings_UI {
         \add_action( 'wp_ajax_kitgenix_turnstile_get_secret', [ __CLASS__, 'ajax_get_secret' ] );
         \add_action( 'admin_post_kitgenix_turnstile_export_analytics', [ __CLASS__, 'handle_export_analytics' ] );
         \add_action( 'admin_post_kitgenix_turnstile_clear_event_log', [ __CLASS__, 'handle_clear_event_log' ] );
+        \add_action( 'admin_post_kitgenix_turnstile_clear_performance', [ __CLASS__, 'handle_clear_performance' ] );
         \add_action( 'admin_post_kitgenix_turnstile_save_log_retention', [ __CLASS__, 'handle_save_log_retention' ] );
         \add_action( 'admin_init', [ __CLASS__, 'maybe_schedule_log_pruning' ] );
     }
@@ -269,6 +270,11 @@ class Settings_UI {
         }
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- redirect flag only, no state change performed here.
+        if ( isset( $_GET['kitgenix_performance_cleared'] ) ) {
+            echo '<div class="notice notice-success is-dismissible"><p>' . \esc_html__( 'Challenge performance data reset.', 'kitgenix-captcha-for-cloudflare-turnstile' ) . '</p></div>';
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- redirect flag only, no state change performed here.
         if ( isset( $_GET['kitgenix_log_retention_saved'] ) ) {
             echo '<div class="notice notice-success is-dismissible"><p>' . \esc_html__( 'Log auto-delete setting saved.', 'kitgenix-captcha-for-cloudflare-turnstile' ) . '</p></div>';
         }
@@ -328,6 +334,31 @@ class Settings_UI {
             ? \sanitize_key( \wp_unslash( $_GET['export'] ) )
             : 'integrations';
 
+        if ( 'performance' === $export ) {
+            $days = isset( $_GET['days'] ) ? \absint( \wp_unslash( $_GET['days'] ) ) : 7;
+
+            self::stream_csv_download(
+                'kitgenix-turnstile-challenge-performance-' . gmdate( 'Ymd-His' ) . '.csv',
+                [
+                    'period_days',
+                    'integration_key',
+                    'integration_label',
+                    'checks',
+                    'passed',
+                    'failed',
+                    'retries',
+                    'failure_rate',
+                    'previous_failure_rate',
+                    'trend',
+                    'avg_response_ms',
+                    'max_response_ms',
+                    'response_samples',
+                    'top_error_codes',
+                ],
+                self::build_performance_export_rows( $days )
+            );
+        }
+
         if ( 'recent-log' === $export ) {
             self::stream_csv_download(
                 'kitgenix-turnstile-recent-log-' . gmdate( 'Ymd-His' ) . '.csv',
@@ -382,6 +413,24 @@ class Settings_UI {
     }
 
     /**
+     * Delete all challenge performance aggregates on demand.
+     */
+    public static function handle_clear_performance(): void {
+        if ( ! \current_user_can( 'manage_options' ) ) {
+            \wp_die( \esc_html__( 'Forbidden', 'kitgenix-captcha-for-cloudflare-turnstile' ) );
+        }
+
+        \check_admin_referer( 'kitgenix_turnstile_clear_performance' );
+
+        Turnstile_Validator::clear_performance();
+
+        \wp_safe_redirect(
+            \admin_url( 'admin.php?page=kitgenix-captcha-for-cloudflare-turnstile&tab=log&kitgenix_performance_cleared=1' )
+        );
+        exit;
+    }
+
+    /**
      * Save the log auto-delete (retention) window, clamped to an allowed value.
      */
     public static function handle_save_log_retention(): void {
@@ -392,7 +441,7 @@ class Settings_UI {
         \check_admin_referer( 'kitgenix_turnstile_save_log_retention' );
 
         $days = isset( $_POST['kitgenix_turnstile_log_retention_days'] )
-            ? (int) \wp_unslash( $_POST['kitgenix_turnstile_log_retention_days'] )
+            ? \absint( \wp_unslash( $_POST['kitgenix_turnstile_log_retention_days'] ) )
             : 30;
 
         Turnstile_Validator::save_log_retention_days( $days );
@@ -988,6 +1037,18 @@ JS;
                         </div>
                         <div class="kitgenix-setting-row">
                             <div class="kitgenix-setting-row-label">
+                                <label for="lazy_render_widgets"><?php echo \esc_html__( 'Lazy Render Widgets', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></label>
+                                <p class="kitgenix-setting-row-desc"><?php echo \esc_html__( 'Only load and render a widget once its form scrolls near the viewport, instead of every widget on the page immediately. Reduces the Cloudflare script\'s up-front cost and layout shift on pages with below-the-fold forms.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></p>
+                            </div>
+                            <div class="kitgenix-setting-row-control">
+                                <label class="kitgenix-toggle">
+                                    <input type="checkbox" class="kitgenix-toggle-input" id="lazy_render_widgets" name="kitgenix_captcha_for_cloudflare_turnstile_settings[lazy_render_widgets]" value="1" <?php checked( ! empty( $settings['lazy_render_widgets'] ) ); ?> />
+                                    <span class="kitgenix-toggle-track"><span class="kitgenix-toggle-thumb"></span></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="kitgenix-setting-row">
+                            <div class="kitgenix-setting-row-label">
                                 <label for="error_message"><?php echo \esc_html__( 'Custom Error Message', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></label>
                             </div>
                             <div class="kitgenix-setting-row-control">
@@ -1145,7 +1206,7 @@ JS;
                                     <span class="kitgenix-toggle-label"><?php echo \esc_html__( 'If Cloudflare Turnstile becomes unreachable, let protected forms submit instead of blocking every visitor.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></span>
                                 </label>
                                 <p class="description kitgenix-captcha-for-cloudflare-turnstile-mt-6">
-                                    <?php echo \esc_html__( 'Off by default. When enabled, this plugin independently checks Cloudflare\'s own status (server-side, cached for 2 minutes) before bypassing verification — a visitor cannot trigger this themselves by simply omitting a token. While active, an alert appears on this settings page and submissions are logged distinctly so you can tell a genuine Cloudflare-verified pass apart from a failsafe bypass. Leave this off if you would rather block submissions entirely during a Cloudflare outage.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?>
+                                    <?php echo \esc_html__( 'Off by default. When enabled, this plugin independently checks Cloudflare\'s own status (server-side, cached for 2 minutes) before bypassing verification 2.2.0 – 30 October 2026 a visitor cannot trigger this themselves by simply omitting a token. While active, an alert appears on this settings page and submissions are logged distinctly so you can tell a genuine Cloudflare-verified pass apart from a failsafe bypass. Leave this off if you would rather block submissions entirely during a Cloudflare outage.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?>
                                 </p>
                             </div>
                         </div>
@@ -1194,6 +1255,78 @@ JS;
                     </div>
                 </div>
 
+                <!-- Account & Login Security -->
+                <div class="kitgenix-card" id="section-login-security" data-section data-kitgenix-tab-panel="security">
+                    <div class="kitgenix-card-head">
+                        <div class="kitgenix-card-head-main">
+                            <div class="kitgenix-card-head-text">
+                                <h2><?php echo \esc_html( \__( 'Account & Login Security', 'kitgenix-captcha-for-cloudflare-turnstile' ) ); ?></h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="kitgenix-card-body">
+                        <div class="kitgenix-settings-group">
+                        <div class="kitgenix-setting-row">
+                            <div class="kitgenix-setting-row-label">
+                                <label for="login_lockout_enabled"><?php echo \esc_html( \__( 'Login Lockout', 'kitgenix-captcha-for-cloudflare-turnstile' ) ); ?></label>
+                                <p class="kitgenix-setting-row-desc"><?php echo \esc_html( \__( 'Temporarily blocks further login attempts from an IP address or against a username after too many failures in a row (wrong password or failed Turnstile). Also rate-limits XML-RPC and Application Password logins, which use the same underlying check.', 'kitgenix-captcha-for-cloudflare-turnstile' ) ); ?></p>
+                            </div>
+                            <div class="kitgenix-setting-row-control">
+                                <input type="hidden" name="kitgenix_captcha_for_cloudflare_turnstile_settings[login_lockout_enabled]" value="0" />
+                                <label class="kitgenix-toggle">
+                                    <input type="checkbox" class="kitgenix-toggle-input" id="login_lockout_enabled" name="kitgenix_captcha_for_cloudflare_turnstile_settings[login_lockout_enabled]" value="1" <?php checked( ! empty( $settings['login_lockout_enabled'] ) ); ?> />
+                                    <span class="kitgenix-toggle-track"><span class="kitgenix-toggle-thumb"></span></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="kitgenix-setting-row">
+                            <div class="kitgenix-setting-row-label">
+                                <label for="login_lockout_max_attempts"><?php echo \esc_html( \__( 'Max Failed Attempts', 'kitgenix-captcha-for-cloudflare-turnstile' ) ); ?></label>
+                                <p class="kitgenix-setting-row-desc"><?php echo \esc_html( \__( 'Number of failures allowed (per IP and per username) before locking out further attempts.', 'kitgenix-captcha-for-cloudflare-turnstile' ) ); ?></p>
+                            </div>
+                            <div class="kitgenix-setting-row-control">
+                                <input type="number" min="3" max="20" step="1" id="login_lockout_max_attempts" name="kitgenix_captcha_for_cloudflare_turnstile_settings[login_lockout_max_attempts]" value="<?php echo \esc_attr( (string) ( $settings['login_lockout_max_attempts'] ?? 5 ) ); ?>" class="small-text" />
+                            </div>
+                        </div>
+                        <div class="kitgenix-setting-row">
+                            <div class="kitgenix-setting-row-label">
+                                <label for="login_lockout_minutes"><?php echo \esc_html( \__( 'Lockout Duration (minutes)', 'kitgenix-captcha-for-cloudflare-turnstile' ) ); ?></label>
+                                <p class="kitgenix-setting-row-desc"><?php echo \esc_html( \__( 'How long an IP address or username stays locked out once the limit above is reached.', 'kitgenix-captcha-for-cloudflare-turnstile' ) ); ?></p>
+                            </div>
+                            <div class="kitgenix-setting-row-control">
+                                <input type="number" min="1" max="1440" step="1" id="login_lockout_minutes" name="kitgenix_captcha_for_cloudflare_turnstile_settings[login_lockout_minutes]" value="<?php echo \esc_attr( (string) ( $settings['login_lockout_minutes'] ?? 15 ) ); ?>" class="small-text" />
+                            </div>
+                        </div>
+                        <div class="kitgenix-setting-row">
+                            <div class="kitgenix-setting-row-label">
+                                <label for="disable_xmlrpc"><?php echo \esc_html( \__( 'Disable XML-RPC', 'kitgenix-captcha-for-cloudflare-turnstile' ) ); ?></label>
+                                <p class="kitgenix-setting-row-desc"><?php echo \esc_html( \__( 'Turns off the xmlrpc.php endpoint entirely. Leave this off if you use the Jetpack or WordPress mobile app, or another service that relies on XML-RPC 2.2.0 – 30 October 2026 Login Lockout above still rate-limits any login attempt that comes through it.', 'kitgenix-captcha-for-cloudflare-turnstile' ) ); ?></p>
+                            </div>
+                            <div class="kitgenix-setting-row-control">
+                                <input type="hidden" name="kitgenix_captcha_for_cloudflare_turnstile_settings[disable_xmlrpc]" value="0" />
+                                <label class="kitgenix-toggle">
+                                    <input type="checkbox" class="kitgenix-toggle-input" id="disable_xmlrpc" name="kitgenix_captcha_for_cloudflare_turnstile_settings[disable_xmlrpc]" value="1" <?php checked( ! empty( $settings['disable_xmlrpc'] ) ); ?> />
+                                    <span class="kitgenix-toggle-track"><span class="kitgenix-toggle-thumb"></span></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="kitgenix-setting-row">
+                            <div class="kitgenix-setting-row-label">
+                                <label for="block_user_enumeration"><?php echo \esc_html( \__( 'Block User Enumeration', 'kitgenix-captcha-for-cloudflare-turnstile' ) ); ?></label>
+                                <p class="kitgenix-setting-row-desc"><?php echo \esc_html( \__( 'Blocks two common ways to discover valid usernames without logging in: the REST API\'s users list/endpoint, and the legacy "?author=&lt;id&gt;" link. Logged-in requests are never affected. Leave this off if you intentionally expose author pages or rely on the users REST route from a logged-out context (e.g. a headless frontend).', 'kitgenix-captcha-for-cloudflare-turnstile' ) ); ?></p>
+                            </div>
+                            <div class="kitgenix-setting-row-control">
+                                <input type="hidden" name="kitgenix_captcha_for_cloudflare_turnstile_settings[block_user_enumeration]" value="0" />
+                                <label class="kitgenix-toggle">
+                                    <input type="checkbox" class="kitgenix-toggle-input" id="block_user_enumeration" name="kitgenix_captcha_for_cloudflare_turnstile_settings[block_user_enumeration]" value="1" <?php checked( ! empty( $settings['block_user_enumeration'] ) ); ?> />
+                                    <span class="kitgenix-toggle-track"><span class="kitgenix-toggle-thumb"></span></span>
+                                </label>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Whitelist -->
                 <div class="kitgenix-card" id="section-whitelist" data-section data-kitgenix-tab-panel="security">
                     <div class="kitgenix-card-head">
@@ -1232,7 +1365,7 @@ JS;
                             </div>
                             <div class="kitgenix-setting-row-control">
                                 <textarea id="whitelist_user_agents" name="kitgenix_captcha_for_cloudflare_turnstile_settings[whitelist_user_agents]" rows="2" class="large-text code"><?php echo \esc_textarea( $settings['whitelist_user_agents'] ?? '' ); ?></textarea><br />
-                                        <span class="description"><?php echo \esc_html__( 'One per line. Supports * wildcards. Use cautiously–UAs can be spoofed.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></span>
+                                        <span class="description"><?php echo \esc_html__( 'One per line. Supports * wildcards. Matching agents skip loading the widget on page views (e.g. uptime monitors, crawlers). Because user agents can be spoofed, this never exempts a form submission from verification.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></span>
                             </div>
                         </div>
                     </div>
@@ -1436,77 +1569,6 @@ JS;
                 </div>
                 <?php endif; ?>
 
-                <?php
-                // Kitgenix Plugin Score – match the same presence signals as Turnstile_Loader.
-                $is_kgps = defined( 'KGPS_VERSION' )
-                    || class_exists( 'KGPS_Plugin' )
-                    || in_array( 'kitgenix-plugin-score/kitgenix-plugin-score.php', $active_plugins, true );
-                ?>
-                <?php if ( $is_kgps ) : ?>
-                <div class="kitgenix-card" id="section-integrations-kgps" data-section data-kitgenix-tab-panel="integrations">
-                    <div class="kitgenix-card-head">
-                        <div class="kitgenix-card-head-main">
-                            <div class="kitgenix-card-head-text">
-                                <h2><?php echo \esc_html__( 'Kitgenix Plugin Score Integration', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></h2>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="kitgenix-card-body">
-                        <p class="description"><?php echo \esc_html__( 'Protects the Plugin Score Login, Register, and Forgot Password forms with Cloudflare Turnstile. Widgets are injected automatically – no changes to Plugin Score files are required.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></p>
-                        <div class="kitgenix-settings-group">
-                        <div class="kitgenix-setting-row">
-                            <div class="kitgenix-setting-row-label">
-                                <label for="enable_kitgenix_plugin_score"><?php echo \esc_html__( 'Enable for Plugin Score', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></label>
-                            </div>
-                            <div class="kitgenix-setting-row-control">
-                                <label class="kitgenix-toggle">
-                                    <input type="checkbox" class="kitgenix-toggle-input" id="enable_kitgenix_plugin_score" name="kitgenix_captcha_for_cloudflare_turnstile_settings[enable_kitgenix_plugin_score]" value="1" <?php checked( ! empty( $settings['enable_kitgenix_plugin_score'] ) ); ?> />
-                                    <span class="kitgenix-toggle-track"><span class="kitgenix-toggle-thumb"></span></span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                        <div class="kitgenix-settings-group">
-                        <div class="kitgenix-setting-row">
-                            <div class="kitgenix-setting-row-label">
-                                <label for="kgps_login_form"><?php echo \esc_html__( 'Login Form', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></label>
-                                <p class="kitgenix-setting-row-desc"><?php echo \esc_html__( 'Plugin Score custom login page (/login/).', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></p>
-                            </div>
-                            <div class="kitgenix-setting-row-control">
-                                <label class="kitgenix-toggle">
-                                    <input type="checkbox" class="kitgenix-toggle-input" id="kgps_login_form" name="kitgenix_captcha_for_cloudflare_turnstile_settings[kgps_login_form]" value="1" <?php checked( ! empty( $settings['kgps_login_form'] ) ); ?> />
-                                    <span class="kitgenix-toggle-track"><span class="kitgenix-toggle-thumb"></span></span>
-                                </label>
-                            </div>
-                        </div>
-                        <div class="kitgenix-setting-row">
-                            <div class="kitgenix-setting-row-label">
-                                <label for="kgps_register_form"><?php echo \esc_html__( 'Register Form', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></label>
-                                <p class="kitgenix-setting-row-desc"><?php echo \esc_html__( 'Plugin Score custom register page (/register/).', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></p>
-                            </div>
-                            <div class="kitgenix-setting-row-control">
-                                <label class="kitgenix-toggle">
-                                    <input type="checkbox" class="kitgenix-toggle-input" id="kgps_register_form" name="kitgenix_captcha_for_cloudflare_turnstile_settings[kgps_register_form]" value="1" <?php checked( ! empty( $settings['kgps_register_form'] ) ); ?> />
-                                    <span class="kitgenix-toggle-track"><span class="kitgenix-toggle-thumb"></span></span>
-                                </label>
-                            </div>
-                        </div>
-                        <div class="kitgenix-setting-row">
-                            <div class="kitgenix-setting-row-label">
-                                <label for="kgps_lostpassword_form"><?php echo \esc_html__( 'Forgot Password Form', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></label>
-                                <p class="kitgenix-setting-row-desc"><?php echo \esc_html__( 'Plugin Score custom forgot-password page (/forgot-password/).', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></p>
-                            </div>
-                            <div class="kitgenix-setting-row-control">
-                                <label class="kitgenix-toggle">
-                                    <input type="checkbox" class="kitgenix-toggle-input" id="kgps_lostpassword_form" name="kitgenix_captcha_for_cloudflare_turnstile_settings[kgps_lostpassword_form]" value="1" <?php checked( ! empty( $settings['kgps_lostpassword_form'] ) ); ?> />
-                                    <span class="kitgenix-toggle-track"><span class="kitgenix-toggle-thumb"></span></span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                    </div>
-                </div>
-                <?php endif; ?>
 
 
 
@@ -1709,6 +1771,23 @@ JS;
                             <label class="kitgenix-captcha-for-cloudflare-turnstile-radio-inline"><input type="radio" name="kitgenix_captcha_for_cloudflare_turnstile_settings[mode_woocommerce]" value="auto" <?php checked( $settings['mode_woocommerce'] ?? 'auto', 'auto' ); ?> /> <?php echo esc_html__( 'Auto-inject (default)', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></label>
                             <label><input type="radio" name="kitgenix_captcha_for_cloudflare_turnstile_settings[mode_woocommerce]" value="shortcode" <?php checked( $settings['mode_woocommerce'] ?? 'auto', 'shortcode' ); ?> /> <?php echo esc_html__( 'Shortcode only', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></label>
                         </p>
+                        <hr class="kitgenix-captcha-for-cloudflare-turnstile-divider kitgenix-captcha-for-cloudflare-turnstile-divider--lg" />
+                        <h3 class="kitgenix-captcha-for-cloudflare-turnstile-h3-tight">&nbsp;<?php echo \esc_html__( 'WooCommerce Pay for Order', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></h3>
+                        <p class="description">&nbsp;<?php echo \esc_html__( 'Order-payment links (Orders → Customer payment page, and failed or pending payment retries). Controlled separately from checkout.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></p>
+                        <div class="kitgenix-settings-group">
+                        <div class="kitgenix-setting-row">
+                            <div class="kitgenix-setting-row-label">
+                                <label for="wc_pay_order_form"><?php echo \esc_html__( 'Pay for Order Form', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></label>
+                                <p class="kitgenix-setting-row-desc"><?php echo \esc_html__( 'Places the widget before the “Pay for order” button and verifies it before the payment gateway is contacted, helping stop card-testing through shared payment links. Works whether the checkout toggles above are on or off, and is always auto-injected because the payment page has no editable content for a shortcode.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></p>
+                            </div>
+                            <div class="kitgenix-setting-row-control">
+                                <label class="kitgenix-toggle">
+                                    <input type="checkbox" class="kitgenix-toggle-input" id="wc_pay_order_form" name="kitgenix_captcha_for_cloudflare_turnstile_settings[wc_pay_order_form]" value="1" <?php checked( ! empty( $settings['wc_pay_order_form'] ) ); ?> />
+                                    <span class="kitgenix-toggle-track"><span class="kitgenix-toggle-thumb"></span></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
                         <hr class="kitgenix-captcha-for-cloudflare-turnstile-divider kitgenix-captcha-for-cloudflare-turnstile-divider--lg" />
                         <h3 class="kitgenix-captcha-for-cloudflare-turnstile-h3-tight">&nbsp;<?php echo \esc_html__( 'WooCommerce Blocks (Store API)', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></h3>
                         <p class="description">&nbsp;<?php echo \esc_html__( 'Blocks Checkout is supported via a JS bridge that attaches the token to Store API requests, with validation via REST pre-dispatch.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></p>
@@ -2395,6 +2474,197 @@ JS;
                             </div>
                         </section>
 
+                        <section class="kitgenix-support-section kitgenix-support-section--full" id="kitgenix-turnstile-performance" data-kitgenix-perf>
+                            <div class="kitgenix-support-section__header">
+                                <h3 class="kitgenix-support-subheading"><?php echo \esc_html__( 'Challenge performance', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></h3>
+                                <p class="description"><?php echo \esc_html__( 'How long Cloudflare takes to answer each server-side verification, and which forms are seeing more unsuccessful checks than before. Only daily counts, response times and Cloudflare error codes are kept – never tokens, IP addresses or anything a visitor typed – and data older than 60 days is deleted automatically.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></p>
+                            </div>
+                            <div class="kitgenix-support-actions">
+                                <div class="kitgenix-turnstile-perf-periods" role="group" aria-label="<?php echo \esc_attr__( 'Report period', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?>">
+                                    <?php foreach ( Turnstile_Validator::PERFORMANCE_PERIODS as $kitgenix_captcha_for_cloudflare_turnstile_perf_period ) : ?>
+                                        <button type="button" class="button<?php echo 7 === $kitgenix_captcha_for_cloudflare_turnstile_perf_period ? ' button-primary' : ''; ?>" data-kitgenix-perf-period="<?php echo \esc_attr( (string) $kitgenix_captcha_for_cloudflare_turnstile_perf_period ); ?>" aria-pressed="<?php echo 7 === $kitgenix_captcha_for_cloudflare_turnstile_perf_period ? 'true' : 'false'; ?>">
+                                            <?php
+                                            /* translators: %d: number of days in the report period. */
+                                            echo \esc_html( sprintf( \_n( 'Last %d day', 'Last %d days', $kitgenix_captcha_for_cloudflare_turnstile_perf_period, 'kitgenix-captcha-for-cloudflare-turnstile' ), $kitgenix_captcha_for_cloudflare_turnstile_perf_period ) );
+                                            ?>
+                                        </button>
+                                    <?php endforeach; ?>
+                                </div>
+                                <?php
+                                $kitgenix_captcha_for_cloudflare_turnstile_perf_reset_url = \wp_nonce_url(
+                                    \admin_url( 'admin-post.php?action=kitgenix_turnstile_clear_performance' ),
+                                    'kitgenix_turnstile_clear_performance'
+                                );
+                                ?>
+                                <a href="<?php echo \esc_url( $kitgenix_captcha_for_cloudflare_turnstile_perf_reset_url ); ?>" class="button button-secondary" onclick="return confirm('<?php echo \esc_js( \__( 'Reset all challenge performance data?', 'kitgenix-captcha-for-cloudflare-turnstile' ) ); ?>');"><?php echo \esc_html__( 'Reset performance data', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></a>
+                            </div>
+
+                            <?php foreach ( Turnstile_Validator::PERFORMANCE_PERIODS as $kitgenix_captcha_for_cloudflare_turnstile_perf_period ) : ?>
+                                <?php
+                                $kitgenix_captcha_for_cloudflare_turnstile_perf         = Turnstile_Validator::get_performance_report( $kitgenix_captcha_for_cloudflare_turnstile_perf_period );
+                                $kitgenix_captcha_for_cloudflare_turnstile_perf_summary = $kitgenix_captcha_for_cloudflare_turnstile_perf['summary'];
+                                $kitgenix_captcha_for_cloudflare_turnstile_perf_export  = \wp_nonce_url(
+                                    \admin_url( 'admin-post.php?action=kitgenix_turnstile_export_analytics&export=performance&days=' . $kitgenix_captcha_for_cloudflare_turnstile_perf_period ),
+                                    'kitgenix_turnstile_export_analytics'
+                                );
+                                $kitgenix_captcha_for_cloudflare_turnstile_perf_p95 = $kitgenix_captcha_for_cloudflare_turnstile_perf_summary['p95'];
+                                if ( null === $kitgenix_captcha_for_cloudflare_turnstile_perf_p95 ) {
+                                    $kitgenix_captcha_for_cloudflare_turnstile_perf_p95_text = '2.2.0 – 30 October 2026';
+                                } elseif ( $kitgenix_captcha_for_cloudflare_turnstile_perf_p95['over'] ) {
+                                    /* translators: %s: duration in milliseconds. */
+                                    $kitgenix_captcha_for_cloudflare_turnstile_perf_p95_text = sprintf( \__( 'Over %s ms', 'kitgenix-captcha-for-cloudflare-turnstile' ), \number_format_i18n( (int) $kitgenix_captcha_for_cloudflare_turnstile_perf_p95['upper_ms'] ) );
+                                } else {
+                                    /* translators: %s: duration in milliseconds. */
+                                    $kitgenix_captcha_for_cloudflare_turnstile_perf_p95_text = sprintf( \__( 'Under %s ms', 'kitgenix-captcha-for-cloudflare-turnstile' ), \number_format_i18n( (int) $kitgenix_captcha_for_cloudflare_turnstile_perf_p95['upper_ms'] ) );
+                                }
+                                $kitgenix_captcha_for_cloudflare_turnstile_perf_trend = self::get_performance_trend_badge( (string) $kitgenix_captcha_for_cloudflare_turnstile_perf_summary['trend'] );
+                                $kitgenix_captcha_for_cloudflare_turnstile_perf_table = 'kitgenix-turnstile-perf-table-' . $kitgenix_captcha_for_cloudflare_turnstile_perf_period;
+                                ?>
+                                <div class="kitgenix-turnstile-perf-panel" data-kitgenix-perf-panel="<?php echo \esc_attr( (string) $kitgenix_captcha_for_cloudflare_turnstile_perf_period ); ?>"<?php echo 7 === $kitgenix_captcha_for_cloudflare_turnstile_perf_period ? '' : ' hidden'; ?>>
+                                    <?php if ( (int) $kitgenix_captcha_for_cloudflare_turnstile_perf_summary['checks'] <= 0 ) : ?>
+                                        <p class="description"><?php echo \esc_html__( 'No Turnstile checks recorded in this period yet. Figures appear here as soon as a protected form is submitted.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></p>
+                                    <?php else : ?>
+                                        <div class="kitgenix-stat-grid">
+                                            <div class="kitgenix-stat-tile">
+                                                <div class="kitgenix-stat-tile-head"><span class="kitgenix-stat-tile-label"><?php echo \esc_html__( 'Average response time', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></span></div>
+                                                <div class="kitgenix-stat-tile-value"><?php echo \esc_html( self::format_ms( (int) $kitgenix_captcha_for_cloudflare_turnstile_perf_summary['avg_ms'] ) ); ?></div>
+                                                <p class="description">
+                                                    <?php
+                                                    /* translators: %s: number of timed Cloudflare verification calls. */
+                                                    echo \esc_html( sprintf( \__( 'Mean Cloudflare siteverify round trip across %s timed checks.', 'kitgenix-captcha-for-cloudflare-turnstile' ), \number_format_i18n( (int) $kitgenix_captcha_for_cloudflare_turnstile_perf_summary['samples'] ) ) );
+                                                    ?>
+                                                </p>
+                                            </div>
+                                            <div class="kitgenix-stat-tile">
+                                                <div class="kitgenix-stat-tile-head"><span class="kitgenix-stat-tile-label"><?php echo \esc_html__( '95% of responses', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></span></div>
+                                                <div class="kitgenix-stat-tile-value"><?php echo \esc_html( $kitgenix_captcha_for_cloudflare_turnstile_perf_p95_text ); ?></div>
+                                                <p class="description"><?php echo \esc_html__( 'The time 95% of verifications finished within, from grouped timings.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></p>
+                                            </div>
+                                            <div class="kitgenix-stat-tile">
+                                                <div class="kitgenix-stat-tile-head"><span class="kitgenix-stat-tile-label"><?php echo \esc_html__( 'Slow responses', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></span></div>
+                                                <div class="kitgenix-stat-tile-value"><?php echo \esc_html( \number_format_i18n( (int) $kitgenix_captcha_for_cloudflare_turnstile_perf_summary['slow'] ) ); ?></div>
+                                                <p class="description">
+                                                    <?php
+                                                    /* translators: 1: slow threshold in milliseconds, 2: percentage of timed checks, 3: slowest response in milliseconds. */
+                                                    echo \esc_html( sprintf( \__( 'Took longer than %1$s ms (%2$s%% of timed checks). Slowest: %3$s.', 'kitgenix-captcha-for-cloudflare-turnstile' ), \number_format_i18n( Turnstile_Validator::PERFORMANCE_SLOW_MS ), \number_format_i18n( (float) $kitgenix_captcha_for_cloudflare_turnstile_perf_summary['slow_rate'], 1 ), self::format_ms( (int) $kitgenix_captcha_for_cloudflare_turnstile_perf_summary['max_ms'] ) ) );
+                                                    ?>
+                                                </p>
+                                            </div>
+                                            <div class="kitgenix-stat-tile">
+                                                <div class="kitgenix-stat-tile-head">
+                                                    <span class="kitgenix-stat-tile-label"><?php echo \esc_html__( 'Unsuccessful checks', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></span>
+                                                    <span class="kitgenix-badge <?php echo \esc_attr( $kitgenix_captcha_for_cloudflare_turnstile_perf_trend['class'] ); ?>"><?php echo \esc_html( $kitgenix_captcha_for_cloudflare_turnstile_perf_trend['label'] ); ?></span>
+                                                </div>
+                                                <div class="kitgenix-stat-tile-value"><?php echo \esc_html( \number_format_i18n( (float) $kitgenix_captcha_for_cloudflare_turnstile_perf_summary['failure_rate'], 1 ) ); ?>%</div>
+                                                <p class="description">
+                                                    <?php
+                                                    if ( null === $kitgenix_captcha_for_cloudflare_turnstile_perf_summary['prev_failure_rate'] ) {
+                                                        echo \esc_html__( 'Failures plus retries, as a share of all checks. No earlier period to compare against yet.', 'kitgenix-captcha-for-cloudflare-turnstile' );
+                                                    } else {
+                                                        /* translators: %s: failure rate percentage in the previous period. */
+                                                        echo \esc_html( sprintf( \__( 'Failures plus retries, as a share of all checks. Previous period: %s%%.', 'kitgenix-captcha-for-cloudflare-turnstile' ), \number_format_i18n( (float) $kitgenix_captcha_for_cloudflare_turnstile_perf_summary['prev_failure_rate'], 1 ) ) );
+                                                    }
+                                                    ?>
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div class="kitgenix-turnstile-perf-charts">
+                                            <figure class="kitgenix-turnstile-perf-figure">
+                                                <figcaption><?php echo \esc_html__( 'Average response time per day', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></figcaption>
+                                                <?php
+                                                echo self::render_performance_bars( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG built from numeric values; text nodes/attributes escaped inside render_performance_bars().
+                                                    $kitgenix_captcha_for_cloudflare_turnstile_perf['daily'],
+                                                    'avg_ms',
+                                                    static function ( array $day ): string { // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- string returned to render_performance_bars(), not echoed directly.
+                                                        return (int) $day['samples'] > 0
+                                                            /* translators: 1: average duration in milliseconds, 2: number of timed checks. */
+                                                            ? sprintf( \__( '%1$s ms average (%2$s checks)', 'kitgenix-captcha-for-cloudflare-turnstile' ), \number_format_i18n( (int) $day['avg_ms'] ), \number_format_i18n( (int) $day['samples'] ) ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- string returned to render_performance_bars(), not echoed directly.
+                                                            : \__( 'No timed checks', 'kitgenix-captcha-for-cloudflare-turnstile' );
+                                                    },
+                                                    \__( 'Average Cloudflare response time per day', 'kitgenix-captcha-for-cloudflare-turnstile' )
+                                                );
+                                                ?>
+                                            </figure>
+                                            <figure class="kitgenix-turnstile-perf-figure">
+                                                <figcaption><?php echo \esc_html__( 'Unsuccessful checks per day (%)', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></figcaption>
+                                                <?php
+                                                echo self::render_performance_bars( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG built from numeric values; text nodes/attributes escaped inside render_performance_bars().
+                                                    $kitgenix_captcha_for_cloudflare_turnstile_perf['daily'],
+                                                    'failure_rate',
+                                                    static function ( array $day ): string { // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- string returned to render_performance_bars(), not echoed directly.
+                                                        /* translators: 1: failure percentage, 2: unsuccessful checks, 3: total checks. */
+                                                        return sprintf( \__( '%1$s%% unsuccessful (%2$s of %3$s checks)', 'kitgenix-captcha-for-cloudflare-turnstile' ), \number_format_i18n( (float) $day['failure_rate'], 1 ), \number_format_i18n( (int) $day['failed'] + (int) $day['retries'] ), \number_format_i18n( (int) $day['checks'] ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- string returned to render_performance_bars(), not echoed directly.
+                                                    },
+                                                    \__( 'Unsuccessful Turnstile checks per day', 'kitgenix-captcha-for-cloudflare-turnstile' )
+                                                );
+                                                ?>
+                                            </figure>
+                                        </div>
+
+                                        <div class="kitgenix-support-actions">
+                                            <a href="<?php echo \esc_url( $kitgenix_captcha_for_cloudflare_turnstile_perf_export ); ?>" class="button button-secondary"><?php echo \esc_html__( 'Export performance CSV', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></a>
+                                            <span class="description"><?php echo \esc_html__( 'Forms are sorted by unsuccessful rate. Trend compares with the same number of days immediately before; changes under 5 percentage points count as steady.', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></span>
+                                        </div>
+                                        <div class="kitgenix-table-wrap" id="<?php echo \esc_attr( $kitgenix_captcha_for_cloudflare_turnstile_perf_table ); ?>" data-kitgenix-table-paginate="25">
+                                            <table class="kitgenix-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th><?php echo \esc_html__( 'Form', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></th>
+                                                        <th><?php echo \esc_html__( 'Checks', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></th>
+                                                        <th><?php echo \esc_html__( 'Failures', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></th>
+                                                        <th><?php echo \esc_html__( 'Retries', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></th>
+                                                        <th><?php echo \esc_html__( 'Unsuccessful', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></th>
+                                                        <th><?php echo \esc_html__( 'Trend', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></th>
+                                                        <th><?php echo \esc_html__( 'Avg response', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></th>
+                                                        <th><?php echo \esc_html__( 'Slowest', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></th>
+                                                        <th><?php echo \esc_html__( 'Top error codes', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <?php foreach ( $kitgenix_captcha_for_cloudflare_turnstile_perf['integrations'] as $kitgenix_captcha_for_cloudflare_turnstile_perf_row ) : ?>
+                                                        <?php $kitgenix_captcha_for_cloudflare_turnstile_perf_row_trend = self::get_performance_trend_badge( (string) $kitgenix_captcha_for_cloudflare_turnstile_perf_row['trend'] ); ?>
+                                                        <tr data-kitgenix-table-row>
+                                                            <td>
+                                                                <strong><?php echo \esc_html( (string) $kitgenix_captcha_for_cloudflare_turnstile_perf_row['label'] ); ?></strong>
+                                                                <div class="description"><code><?php echo \esc_html( (string) $kitgenix_captcha_for_cloudflare_turnstile_perf_row['integration'] ); ?></code></div>
+                                                            </td>
+                                                            <td><?php echo \esc_html( \number_format_i18n( (int) $kitgenix_captcha_for_cloudflare_turnstile_perf_row['checks'] ) ); ?></td>
+                                                            <td><?php echo \esc_html( \number_format_i18n( (int) $kitgenix_captcha_for_cloudflare_turnstile_perf_row['failed'] ) ); ?></td>
+                                                            <td><?php echo \esc_html( \number_format_i18n( (int) $kitgenix_captcha_for_cloudflare_turnstile_perf_row['retries'] ) ); ?></td>
+                                                            <td>
+                                                                <?php echo \esc_html( \number_format_i18n( (float) $kitgenix_captcha_for_cloudflare_turnstile_perf_row['failure_rate'], 1 ) ); ?>%
+                                                                <?php if ( null !== $kitgenix_captcha_for_cloudflare_turnstile_perf_row['prev_failure_rate'] ) : ?>
+                                                                    <div class="description">
+                                                                        <?php
+                                                                        /* translators: %s: failure rate percentage in the previous period. */
+                                                                        echo \esc_html( sprintf( \__( 'Previously %s%%', 'kitgenix-captcha-for-cloudflare-turnstile' ), \number_format_i18n( (float) $kitgenix_captcha_for_cloudflare_turnstile_perf_row['prev_failure_rate'], 1 ) ) );
+                                                                        ?>
+                                                                    </div>
+                                                                <?php endif; ?>
+                                                            </td>
+                                                            <td><span class="kitgenix-badge <?php echo \esc_attr( $kitgenix_captcha_for_cloudflare_turnstile_perf_row_trend['class'] ); ?>"><?php echo \esc_html( $kitgenix_captcha_for_cloudflare_turnstile_perf_row_trend['label'] ); ?></span></td>
+                                                            <td><?php echo \esc_html( self::format_ms( (int) $kitgenix_captcha_for_cloudflare_turnstile_perf_row['avg_ms'] ) ); ?></td>
+                                                            <td><?php echo \esc_html( self::format_ms( (int) $kitgenix_captcha_for_cloudflare_turnstile_perf_row['max_ms'] ) ); ?></td>
+                                                            <td>
+                                                                <?php if ( empty( $kitgenix_captcha_for_cloudflare_turnstile_perf_row['top_codes'] ) ) : ?>
+                                                                    &#8212;
+                                                                <?php else : ?>
+                                                                    <?php foreach ( (array) $kitgenix_captcha_for_cloudflare_turnstile_perf_row['top_codes'] as $kitgenix_captcha_for_cloudflare_turnstile_perf_code => $kitgenix_captcha_for_cloudflare_turnstile_perf_code_count ) : ?>
+                                                                        <div class="description"><code><?php echo \esc_html( (string) $kitgenix_captcha_for_cloudflare_turnstile_perf_code ); ?></code> &times; <?php echo \esc_html( \number_format_i18n( (int) $kitgenix_captcha_for_cloudflare_turnstile_perf_code_count ) ); ?></div>
+                                                                    <?php endforeach; ?>
+                                                                <?php endif; ?>
+                                                            </td>
+                                                        </tr>
+                                                    <?php endforeach; ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </section>
+
                         <section class="kitgenix-support-section kitgenix-support-section--full">
                             <div class="kitgenix-support-section__header">
                                 <h3 class="kitgenix-support-subheading"><?php echo \esc_html__( 'Integration health matrix', 'kitgenix-captcha-for-cloudflare-turnstile' ); ?></h3>
@@ -2826,6 +3096,128 @@ JS;
     /**
      * @return array<int,array<int|string>>
      */
+    private static function build_performance_export_rows( int $days ): array {
+        $report = Turnstile_Validator::get_performance_report( $days );
+        $rows   = [];
+
+        foreach ( $report['integrations'] as $row ) {
+            $codes = [];
+            foreach ( (array) $row['top_codes'] as $code => $count ) {
+                $codes[] = $code . ' (' . (int) $count . ')';
+            }
+
+            $rows[] = [
+                (int) $report['days'],
+                (string) $row['integration'],
+                (string) $row['label'],
+                (int) $row['checks'],
+                (int) $row['passed'],
+                (int) $row['failed'],
+                (int) $row['retries'],
+                self::format_percentage_for_csv( (float) $row['failure_rate'] ),
+                null === $row['prev_failure_rate'] ? '' : self::format_percentage_for_csv( (float) $row['prev_failure_rate'] ),
+                (string) $row['trend'],
+                (int) $row['avg_ms'],
+                (int) $row['max_ms'],
+                (int) $row['samples'],
+                implode( ', ', $codes ),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Human-readable label for a performance trend key.
+     */
+    private static function get_performance_trend_badge( string $trend ): array {
+        switch ( $trend ) {
+            case 'worse':
+                return [ 'class' => 'danger', 'label' => \__( 'Rising', 'kitgenix-captcha-for-cloudflare-turnstile' ) ];
+            case 'better':
+                return [ 'class' => 'success', 'label' => \__( 'Falling', 'kitgenix-captcha-for-cloudflare-turnstile' ) ];
+            case 'steady':
+                return [ 'class' => 'neutral', 'label' => \__( 'Steady', 'kitgenix-captcha-for-cloudflare-turnstile' ) ];
+            default:
+                return [ 'class' => 'info', 'label' => \__( 'New', 'kitgenix-captcha-for-cloudflare-turnstile' ) ];
+        }
+    }
+
+    /**
+     * Format a millisecond figure for display ("2.2.0 – 30 October 2026" when no siteverify call was timed).
+     */
+    private static function format_ms( int $ms ): string {
+        if ( $ms <= 0 ) {
+            return '2.2.0 – 30 October 2026';
+        }
+
+        /* translators: %s: duration in milliseconds. */
+        return sprintf( \__( '%s ms', 'kitgenix-captcha-for-cloudflare-turnstile' ), \number_format_i18n( $ms ) );
+    }
+
+    /**
+     * Inline SVG bar chart for one daily series. Bars carry a native <title> tooltip
+     * (date + value) so every day is inspectable on hover without extra JS.
+     *
+     * @param array<int,array<string,mixed>> $daily  Report 'daily' rows.
+     * @param string                         $field  Row key to plot.
+     * @param callable                       $format Value => tooltip text.
+     */
+    private static function render_performance_bars( array $daily, string $field, callable $format, string $label ): string {
+        $count = count( $daily );
+        if ( $count <= 0 ) {
+            return '';
+        }
+
+        $max = 0.0;
+        foreach ( $daily as $day ) {
+            $max = max( $max, (float) ( $day[ $field ] ?? 0 ) );
+        }
+
+        $width   = 600;
+        $height  = 120;
+        $gap     = 2;
+        $bar_w   = max( 2, ( $width - ( $gap * ( $count - 1 ) ) ) / $count );
+        $date_fmt = (string) \get_option( 'date_format' );
+
+        $svg  = '<svg class="kitgenix-turnstile-perf-chart" viewBox="0 0 ' . $width . ' ' . ( $height + 1 ) . '" preserveAspectRatio="none" role="img" aria-label="' . \esc_attr( $label ) . '">';
+        $svg .= '<line class="kitgenix-turnstile-perf-chart__axis" x1="0" y1="' . $height . '" x2="' . $width . '" y2="' . $height . '" />';
+
+        foreach ( array_values( $daily ) as $index => $day ) {
+            $value = (float) ( $day[ $field ] ?? 0 );
+            $bar_h = $max > 0 ? max( $value > 0 ? 2 : 0, ( $value / $max ) * ( $height - 4 ) ) : 0;
+            $x     = $index * ( $bar_w + $gap );
+            $ts    = strtotime( (string) $day['date'] . ' 12:00:00' );
+            $date  = $ts ? (string) \date_i18n( $date_fmt, $ts ) : (string) $day['date'];
+
+            // Full-height transparent hit target so short bars are still easy to hover.
+            $svg .= '<g class="kitgenix-turnstile-perf-chart__day"><title>' . \esc_html( $date . ': ' . $format( $day ) ) . '</title>';
+            $svg .= '<rect class="kitgenix-turnstile-perf-chart__hit" x="' . round( $x, 2 ) . '" y="0" width="' . round( $bar_w, 2 ) . '" height="' . $height . '" />';
+            if ( $bar_h > 0 ) {
+                // Rounded top (data end), square base anchored on the axis.
+                $r    = min( 4, $bar_w / 2, $bar_h );
+                $top  = $height - $bar_h;
+                $path = sprintf(
+                    'M%1$s %2$sV%3$sQ%1$s %4$s %5$s %4$sH%6$sQ%7$s %4$s %7$s %3$sV%2$sZ',
+                    round( $x, 2 ),
+                    $height,
+                    round( $top + $r, 2 ),
+                    round( $top, 2 ),
+                    round( $x + $r, 2 ),
+                    round( $x + $bar_w - $r, 2 ),
+                    round( $x + $bar_w, 2 )
+                );
+                $svg .= '<path class="kitgenix-turnstile-perf-chart__bar" d="' . \esc_attr( $path ) . '" />';
+            }
+            $svg .= '</g>';
+        }
+
+        return $svg . '</svg>';
+    }
+
+    /**
+     * @return array<int,array<int|string>>
+     */
     private static function build_recent_log_export_rows(): array {
         $rows = [];
 
@@ -2863,9 +3255,9 @@ JS;
             \wp_die( \esc_html__( 'Could not open export stream.', 'kitgenix-captcha-for-cloudflare-turnstile' ) );
         }
 
-        fputcsv( $output, $headers );
+        fputcsv( $output, $headers, ',', '"', '\\' );
         foreach ( $rows as $row ) {
-            fputcsv( $output, $row );
+            fputcsv( $output, $row, ',', '"', '\\' );
         }
 
         fclose( $output ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- php://output is a stream; WP_Filesystem does not support stream wrappers.

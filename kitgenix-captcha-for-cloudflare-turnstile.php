@@ -8,10 +8,10 @@
  * Author Support URI: https://kitgenix.com/plugins/kitgenix-captcha-for-cloudflare-turnstile/support
  * Feature Request URI: https://kitgenix.com/plugins/kitgenix-captcha-for-cloudflare-turnstile/feature-request
  * Description:       Add Cloudflare Turnstile CAPTCHA to WordPress, WooCommerce, Elementor, and popular form plugins with privacy-first server-side verification.
- * Version:           2.1.4
+ * Version:           2.2.0
  * Requires at least: 6.0
- * Tested up to:      7.1
- * Requires PHP:      8.1
+ * Tested up to:      7.4
+ * Requires PHP:      8.2
  * Author:            Kitgenix
  * Author URI:        https://kitgenix.com/
  * Donate link:       https://www.paypal.com/donate/?hosted_button_id=KALF36K6JJ9B2
@@ -102,16 +102,21 @@ if ( ! function_exists( 'kitgenix_captcha_for_cloudflare_turnstile_register_icon
             return;
         }
 
-        wp_register_icon_collection(
-            'kitgenix',
-            [
-                'label'       => __( 'Kitgenix', 'kitgenix-captcha-for-cloudflare-turnstile' ),
-                'description' => __( 'Brand icons shared across Kitgenix plugins.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
-            ]
-        );
+        // Several Kitgenix plugins share this same collection/icon slug; only
+        // the first one to run on `init` should register it, or every other
+        // active Kitgenix plugin triggers an "already registered" notice.
+        if ( ! WP_Icon_Collections_Registry::get_instance()->is_registered( 'kitgenix' ) ) {
+            wp_register_icon_collection(
+                'kitgenix',
+                [
+                    'label'       => __( 'Kitgenix', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+                    'description' => __( 'Brand icons shared across Kitgenix plugins.', 'kitgenix-captcha-for-cloudflare-turnstile' ),
+                ]
+            );
+        }
 
         $icon_path = dirname( __FILE__ ) . '/assets/images/logos/kitgenix-wordpress-admin-menu-favicon.svg';
-        if ( is_readable( $icon_path ) ) {
+        if ( is_readable( $icon_path ) && ! WP_Icons_Registry::get_instance()->is_registered( 'kitgenix/mark' ) ) {
             wp_register_icon(
                 'kitgenix/mark',
                 [
@@ -649,7 +654,7 @@ if ( ! function_exists( 'kitgenix_turnstile_register_admin_ui_style' ) ) {
             return;
         }
 
-        $ver      = defined( 'KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION' ) ? (string) KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION : '2.1.4';
+        $ver      = defined( 'KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION' ) ? (string) KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION : '2.2.0';
         $css_file = plugin_dir_path( __FILE__ ) . 'assets/css/kitgenix-admin-ui.css';
         $css_ver  = file_exists( $css_file ) ? (string) filemtime( $css_file ) : $ver;
 
@@ -676,7 +681,7 @@ function kitgenix_turnstile_enqueue_hub_assets( string $hook_suffix ): void {
         return;
     }
 
-    $ver = defined( 'KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION' ) ? (string) KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION : '2.1.4';
+    $ver = defined( 'KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION' ) ? (string) KITGENIX_CAPTCHA_FOR_CLOUDFLARE_TURNSTILE_VERSION : '2.2.0';
     wp_register_style( 'kitgenix-hub', plugins_url( 'assets/css/kitgenix-hub.css', __FILE__ ), [], $ver );
     wp_enqueue_style( 'kitgenix-hub' );
 
@@ -689,7 +694,7 @@ add_action( 'admin_enqueue_scripts', 'kitgenix_turnstile_enqueue_hub_assets' );
  * Constants (guarded)
  */
 if ( ! defined('KitgenixCaptchaForCloudflareTurnstile_Version') ) {
-    define('KitgenixCaptchaForCloudflareTurnstile_Version', '2.1.4');
+    define('KitgenixCaptchaForCloudflareTurnstile_Version', '2.2.0');
 }
 
 // Also expose a conventional uppercase version constant for shared Kitgenix hub assets.
@@ -723,6 +728,11 @@ add_action( 'before_woocommerce_init', function () {
     if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
         \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility(
             'custom_order_tables',
+            __FILE__,
+            true
+        );
+        \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility(
+            'cart_checkout_blocks',
             __FILE__,
             true
         );
@@ -775,7 +785,7 @@ function kitgenix_captcha_for_cloudflare_turnstile_init_plugin() {
  */
 register_activation_hook(__FILE__, 'kitgenix_captcha_for_cloudflare_turnstile_activate_plugin');
 function kitgenix_captcha_for_cloudflare_turnstile_activate_plugin() {
-    $min_php = '8.1';
+    $min_php = '8.2';
     $min_wp  = '5.0';
 
     if ( version_compare(PHP_VERSION, $min_php, '<') || version_compare(get_bloginfo('version'), $min_wp, '<') ) {

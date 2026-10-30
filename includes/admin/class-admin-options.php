@@ -152,18 +152,13 @@ class Admin_Options {
         $clean['wc_login_form']        = !empty($settings['wc_login_form']) ? 1 : 0;
         $clean['wc_register_form']     = !empty($settings['wc_register_form']) ? 1 : 0;
         $clean['wc_lostpassword_form'] = !empty($settings['wc_lostpassword_form']) ? 1 : 0;
+        $clean['wc_pay_order_form']    = !empty($settings['wc_pay_order_form']) ? 1 : 0;
 
         // --- Per-form toggles (Easy Digital Downloads) ---
         $clean['edd_checkout_form'] = !empty($settings['edd_checkout_form']) ? 1 : 0;
         $clean['edd_login_form']    = !empty($settings['edd_login_form']) ? 1 : 0;
         $clean['edd_register_form'] = !empty($settings['edd_register_form']) ? 1 : 0;
         $clean['edd_profile_form']  = !empty($settings['edd_profile_form']) ? 1 : 0;
-
-        // --- Kitgenix Plugin Score ---
-        $clean['enable_kitgenix_plugin_score'] = !empty($settings['enable_kitgenix_plugin_score']) ? 1 : 0;
-        $clean['kgps_login_form']        = !empty($settings['kgps_login_form']) ? 1 : 0;
-        $clean['kgps_register_form']     = !empty($settings['kgps_register_form']) ? 1 : 0;
-        $clean['kgps_lostpassword_form'] = !empty($settings['kgps_lostpassword_form']) ? 1 : 0;
 
 
         // --- Display settings ---
@@ -190,6 +185,12 @@ class Admin_Options {
         $clean['disable_submit'] = !empty($settings['disable_submit']) ? 1 : 0;
         $clean['defer_scripts']  = !empty($settings['defer_scripts']) ? 1 : 0;
 
+        // Lazy render: defer mounting a widget (and the Cloudflare script's per-widget
+        // cost) until its container is near the viewport, instead of rendering every
+        // widget on the page immediately. Off by default to keep existing behavior
+        // unchanged. See T6 in ROADMAP.md.
+        $clean['lazy_render_widgets'] = !empty($settings['lazy_render_widgets']) ? 1 : 0;
+
         // Replay protection: default ON for fresh installs, but do not force-enable
         // it on every save (unchecked checkboxes may omit the field entirely).
         $current_settings = $stored_settings;
@@ -208,6 +209,24 @@ class Admin_Options {
         // it trades verification for availability during a confirmed Cloudflare
         // outage. See Cloudflare_Health.
         $clean['cf_failsafe_enabled'] = !empty($settings['cf_failsafe_enabled']) ? 1 : 0;
+
+        // --- Account & login security (see Login_Lockout, Enumeration_Guard) ---
+        $clean['login_lockout_enabled'] = !empty($settings['login_lockout_enabled']) ? 1 : 0;
+
+        $max_attempts = isset($settings['login_lockout_max_attempts']) ? \absint($settings['login_lockout_max_attempts']) : 5;
+        $clean['login_lockout_max_attempts'] = min(20, max(3, $max_attempts ?: 5));
+
+        $lockout_minutes = isset($settings['login_lockout_minutes']) ? \absint($settings['login_lockout_minutes']) : 15;
+        $clean['login_lockout_minutes'] = min(1440, max(1, $lockout_minutes ?: 15));
+
+        // XML-RPC: off (not disabled) by default – some sites rely on it (Jetpack,
+        // the WordPress mobile app's legacy auth, pingbacks). Login_Lockout rate-limits
+        // any attempt that still comes through either way.
+        $clean['disable_xmlrpc'] = !empty($settings['disable_xmlrpc']) ? 1 : 0;
+
+        // REST/legacy user-enumeration guard – off by default since some sites
+        // intentionally expose author info or rely on the users REST route.
+        $clean['block_user_enumeration'] = !empty($settings['block_user_enumeration']) ? 1 : 0;
 
         // Per-integration test mode: warn-only for specific integrations without putting the
         // whole site into warn-only mode. Stored as a list of canonical integration keys (see

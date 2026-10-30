@@ -364,17 +364,27 @@ class WP_Core {
     }
 
     /**
-     * Detect login requests hitting the current WordPress login endpoint.
+     * Detect login requests handled by WordPress's own login script.
+     *
+     * Decided from the script that actually executed, never from the raw
+     * REQUEST_URI: the web server normalises variants such as
+     * `//wp-login.php`, `/./wp-login.php` or `/wp%2Dlogin.php` and still runs
+     * wp-login.php, while the raw URI no longer matches wp_login_url()'s path
+     * – which previously let a credential-stuffing client skip Turnstile by
+     * omitting the Turnstile fields. Login-URL renaming plugins still route
+     * through wp-login.php internally, so they remain covered.
      */
     private static function is_wordpress_login_request(): bool {
-        $request_uri = isset( $_SERVER['REQUEST_URI'] )
-            ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) )
+        global $pagenow;
+        if ( is_string( $pagenow ) && 'wp-login.php' === $pagenow ) {
+            return true;
+        }
+
+        $script = isset( $_SERVER['SCRIPT_FILENAME'] )
+            ? sanitize_text_field( wp_unslash( $_SERVER['SCRIPT_FILENAME'] ) )
             : '';
 
-        $current_path = function_exists( 'wp_parse_url' ) ? (string) wp_parse_url( $request_uri, PHP_URL_PATH ) : '';
-        $login_path   = function_exists( 'wp_parse_url' ) ? (string) wp_parse_url( wp_login_url(), PHP_URL_PATH ) : '';
-
-        return $current_path !== '' && $login_path !== '' && $current_path === $login_path;
+        return '' !== $script && 'wp-login.php' === strtolower( wp_basename( $script ) );
     }
 
     /**

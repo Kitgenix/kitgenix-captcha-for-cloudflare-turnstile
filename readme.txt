@@ -3,12 +3,11 @@ Contributors: kitgenix
 Donate link: https://www.paypal.com/donate/?hosted_button_id=KALF36K6JJ9B2
 Tags: cloudflare turnstile, captcha, anti spam, woocommerce, form security
 Requires at least: 6.0
-Tested up to: 7.1
-Requires PHP: 8.1
-Stable tag: 2.1.4
+Tested up to: 7.4
+Requires PHP: 8.2
+Stable tag: 2.2.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
-PluginScore Verification: pluginscore-verify-8dacca2610cee9cd9f452b39d526a8cd
 
 Add Cloudflare Turnstile to WordPress, WooCommerce and popular forms with server-side verification and anti-spam controls.
 
@@ -32,8 +31,9 @@ The codebase contains dedicated integrations for:
 * WordPress comments.
 * Custom login forms produced with `wp_login_form()`.
 * WooCommerce login, registration, lost password, checkout and related account flows supported by the integration.
+* WooCommerce Pay for Order (order-payment links), controlled separately from checkout.
 * Easy Digital Downloads.
-* Elementor forms.
+* Elementor forms, including Elementor Pro Forms and the newer Elementor Atomic Forms.
 * Contact Form 7.
 * WPForms.
 * Gravity Forms.
@@ -51,7 +51,6 @@ The codebase contains dedicated integrations for:
 * Ultimate Member.
 * MemberPress.
 * Paid Memberships Pro.
-* Kitgenix Plugin Score integration points included in the codebase.
 
 Each integration is loaded conditionally and can use integration-specific display/validation behaviour rather than forcing one generic hook onto every form system.
 
@@ -101,6 +100,8 @@ The shortcode is useful when the site owner needs to render the widget in a supp
 
 The plugin includes diagnostics for configuration and verification health, local counters for passed/failed checks, latency information, recent verification events and integration-level metrics. Site Health integration can surface configuration or connectivity issues to administrators.
 
+Challenge performance reporting on the Log tab shows how quickly Cloudflare answers server-side verifications (average, 95th-percentile range, slow responses and slowest response) and which forms are seeing more unsuccessful checks than in the previous period, with daily charts, per-form trends, top Cloudflare error codes and a CSV export for the last 7, 14 or 30 days. It keeps only daily counts, response times and error codes per integration – never tokens, IP addresses or submitted form data – and deletes anything older than 60 days automatically.
+
 Developer Mode adds additional troubleshooting detail without changing the fundamental requirement that live submissions be verified correctly when protection is active.
 
 = Settings Portability =
@@ -124,6 +125,7 @@ The exact Cloudflare data flow, WordPress.org Hub request and Google Fonts admin
 * Protect a WordPress login page from automated credential attacks.
 * Reduce spam registrations on WordPress or WooCommerce.
 * Add anti-bot verification to WooCommerce checkout and account forms.
+* Help stop card-testing through WooCommerce order-payment links.
 * Protect Elementor and popular WordPress form plugins with one central Turnstile configuration.
 * Add a challenge to membership, forum and community registration/login flows.
 * Replace more intrusive CAPTCHA experiences with Cloudflare Turnstile while keeping server-side validation.
@@ -160,11 +162,19 @@ Yes. Supported integrations validate the token with Cloudflare's Siteverify endp
 
 = Which WordPress forms can it protect? =
 
-Native WordPress login, registration, lost/reset password and comment forms are supported. The plugin also supports WooCommerce, Easy Digital Downloads, Elementor Pro Forms, Contact Form 7, WPForms, Fluent Forms, Formidable Forms, Forminator, Gravity Forms, JetFormBuilder, Jetpack Forms, Kadence Forms, Ninja Forms and several membership/community plugins.
+Native WordPress login, registration, lost/reset password and comment forms are supported. The plugin also supports WooCommerce, Easy Digital Downloads, Elementor Pro Forms, Elementor Atomic Forms, Contact Form 7, WPForms, Fluent Forms, Formidable Forms, Forminator, Gravity Forms, JetFormBuilder, Jetpack Forms, Kadence Forms, Ninja Forms and several membership/community plugins.
 
 = Does it support WooCommerce Checkout Blocks? =
 
 Yes. The plugin can render Turnstile in block-based checkout and validates the token server-side during the WooCommerce Store API checkout request.
+
+= Can I protect WooCommerce "Pay for order" links? =
+
+Yes. Enable **Pay for Order Form** under Integrations → WooCommerce. It is independent of the checkout toggles, so you can protect order-payment links (for example the "Customer payment page" link or failed-payment retries) with or without protecting the normal checkout. The token is verified before WooCommerce passes the payment to the gateway.
+
+= Can I see how fast Cloudflare verification is? =
+
+Yes. The **Challenge performance** section on the Log tab reports Cloudflare Siteverify response times and per-form unsuccessful-check trends for the last 7, 14 or 30 days. Only aggregate numbers and Cloudflare error codes are stored; no submitted personal data is kept.
 
 = Does it support WooCommerce HPOS? =
 
@@ -196,7 +206,7 @@ Yes. The optional honeypot can reject simple automated submissions before Cloudf
 
 = Can I whitelist administrators or trusted visitors? =
 
-The plugin can whitelist logged-in users, configured IP addresses/ranges and User-Agent strings. Whitelisted visitors do not need to complete Turnstile, and the frontend Turnstile script is skipped for them.
+The plugin can whitelist logged-in users, configured IP addresses/ranges and User-Agent strings. Whitelisted visitors do not need to complete Turnstile, and the frontend Turnstile script is skipped for them. Because User-Agent strings can be spoofed, the User-Agent whitelist only applies to page views (for example uptime monitors and crawlers) and never exempts a form submission from verification.
 
 = Does it work behind Cloudflare or another reverse proxy? =
 
@@ -292,7 +302,9 @@ The plugin also exposes context-specific error-message filtering through `kitgen
 
 == Privacy and Local Data ==
 
-The plugin stores its configuration in the WordPress database. Depending on enabled features it also stores local operational data such as setup-verification state, aggregate integration metrics, the recent event log and replay-protection transients.
+The plugin stores its configuration in the WordPress database. Depending on enabled features it also stores local operational data such as setup-verification state, aggregate integration metrics, challenge performance aggregates, the recent event log and replay-protection transients.
+
+Challenge performance aggregates (option `kitgenix_turnstile_performance`) hold, per day and per integration, only check counts, Siteverify response-time totals and buckets, and Cloudflare error-code counts. They contain no tokens, IP addresses, user agents or form contents, are deleted after 60 days, and can be reset from the Log tab.
 
 The recent event log is limited to 50 events and contains operational fields such as time, integration, success/failure, error codes and Siteverify latency. It does not store raw form submissions, the raw Turnstile response token, the visitor's raw IP address or the request URL in that log.
 
@@ -361,111 +373,42 @@ More WordPress plugins and development resources are available from [Kitgenix](h
 
 == Upgrade Notice ==
 
-= 2.1.4 =
-Adds Turnstile protection to the Easy Digital Downloads "Login Form" and "Registration Form" Gutenberg blocks, which previously showed no widget at all when used instead of the classic shortcodes. Recommended if you use EDD with these blocks.
+= 2.2.0 =
+Security release: closes a login CAPTCHA bypass and stops the User-Agent whitelist exempting form submissions. Adds optional WooCommerce Pay for Order protection and challenge performance reporting, and removes the discontinued Kitgenix Plugin Score integration. Recommended for all sites.
 
 == Changelog ==
 
-= 2.1.4 (14 October 2026) =
+= 2.2.0 (30 October 2026) =
 
-* New: Added Turnstile support for the Easy Digital Downloads "Login Form" and "Registration Form" Gutenberg blocks (`edd/login`, `edd/register`). These blocks render their own markup and never fire the classic `edd_login_form` filter or `edd_register_fields_after` action the plugin relied on, so no widget was ever shown when a site used the blocks instead of the `[edd_login]` / `[edd_register]` shortcodes. The existing "Login Form" and "Registration Form" toggles now cover both the shortcodes and the matching blocks automatically.
+* New: Added Turnstile support for Elementor Atomic Forms (the Editor V4 `e-form` element in Elementor Pro 4.x), alongside the existing Elementor Pro Forms integration. The widget is added before the form's submit button, a submission without a solved challenge is blocked before it is sent, and every submission is verified server-side before Elementor stores uploads or runs any after-submit actions (email, webhook, collect submissions). The existing Elementor toggle and its Auto-inject/Shortcode-only, theme, size and language settings apply to both form types.
+* New: Added WooCommerce Pay for Order protection. A new "Pay for Order Form" toggle (Integrations → WooCommerce) adds Turnstile to order-payment links, such as the "Customer payment page" link and failed or pending payment retries, independently of the checkout toggles. The token is verified before WooCommerce sends the payment to the gateway, helping stop card-testing through shared payment links. It is off by default and is reported as "WooCommerce pay for order" in the Log tab and Test Mode per Integration.
+* New: Added Challenge Performance Reporting to the Log tab. It shows Cloudflare Siteverify response times (average, 95th-percentile range, slow responses over 2 seconds and the slowest response) and per-form unsuccessful-check trends compared with the previous period, with daily charts, top Cloudflare error codes, a 7/14/30-day period switch, a CSV export and a "Reset performance data" button. Only daily counts, response times and error codes per integration are stored – never tokens, IP addresses or submitted form data – and data older than 60 days is pruned automatically and removed on uninstall.
+* Security: Fixed a login CAPTCHA bypass. A login request sent to an alternative form of the login URL (for example `//wp-login.php`, `/./wp-login.php` or `/wp%2Dlogin.php`) without the Turnstile fields could skip verification, because the check compared the raw request URL against the login URL. Login protection is now decided by the script WordPress actually runs, so every route to `wp-login.php` is covered, including when a login-URL renaming plugin is used.
+* Security: The User-Agent whitelist now only skips loading the widget on page views (GET/HEAD requests), for example for uptime monitors and crawlers. Because user agents can be spoofed, a whitelisted user agent no longer exempts a form submission from Turnstile verification.
+* Security: Fixed a possible CAPTCHA bypass through the IP whitelist when "Trust Cloudflare/Proxy Headers" is enabled behind a proxy that appends to `X-Forwarded-For` (for example a load balancer, nginx or Varnish). The client IP was taken from the left-most public address in `X-Forwarded-For`, which the visitor controls, so sending `X-Forwarded-For: <whitelisted IP>` could skip Turnstile verification. The header is now read right to left, skipping your trusted proxies, and the first address the trusted proxy actually saw is used. If that address is not a valid public IP, the proxy's own address is used instead.
+* Fix: Resolved a WordPress 6.7+ "translation loading too early" debug notice logged on every request. A settings gate that runs on every options read was building a translated status message every time, even though it only needed a yes/no check. It no longer builds any translated strings.
+* Fix: The shared "kitgenix" icon collection/icon was registered unconditionally on `init`, so on a site running more than one Kitgenix plugin, every plugin after the first to load triggered an "Icon collection is already registered" notice. It is now only registered if not already present.
+* Removed: Removed the Kitgenix Plugin Score integration, as Kitgenix Plugin Score has been discontinued. Its settings card, saved settings, setup-verification entries and analytics labels have been removed. Existing saved Plugin Score settings are ignored and are dropped the next time settings are saved.
+* Improved: Raised the minimum PHP version to 8.2 (`Requires PHP: 8.2`). The activation check now also blocks activation on PHP versions below 8.2.
+* Improved: Tested up to WordPress 7.4, and reviewed for compatibility with PHP 8.2 to 8.5. The full codebase passes syntax checks on PHP 8.5 and a PHPCompatibility scan for PHP 8.2–8.5, and uses no dynamic properties or functions deprecated in PHP 8.2–8.5.
+* Improved: Declared compatibility with the WooCommerce Cart and Checkout blocks (`cart_checkout_blocks`), so WooCommerce no longer lists the plugin as possibly incompatible in the Checkout block editor.
+* Fix: The CSV `$escape` argument is now passed explicitly in the admin CSV exports, preventing "the $escape parameter must be provided" deprecation notices on PHP 8.4 and later. The CSV format is unchanged.
+* Security: Hardened verification by checking the `action` and `hostname` fields Cloudflare's siteverify response echoes back, guarding against a token solved on one form being replayed against a different one. Ships in log-only mode this release – mismatches are logged, not blocked, pending full enforcement in a later release.
+* Fix: Siteverify requests now send an idempotency key and retry once on a network-level failure, so a retry after Cloudflare already recorded success is no longer incorrectly blocked as a duplicate.
+* Fix: Avoided false "Security check failed" errors on page-cached forms. A stale WP nonce on a cached page is now treated as informational (relying on the Turnstile token instead) for non-authentication forms; login, registration and password-reset forms are unaffected and still require a valid nonce.
+* Improved: Reduced database write load during a bot flood by rate-limiting diagnostic logging for failed checks, with a tighter limit for a tripped honeypot. Successful checks are unaffected.
+* Improved: The replay-protection record is now only stored when an external object cache (Redis/Memcached) is present, avoiding an extra database row per successful check on sites without one.
+* New: Added a "Lazy Render Widgets" setting (Settings → Display, off by default) that defers loading a widget until its form scrolls near the viewport, reducing script cost and layout shift on pages with below-the-fold forms.
+* New: Added a "Login Lockout" setting (Settings → Security, off by default) that temporarily blocks further login attempts from an IP address or username after too many failures in a row. It also rate-limits XML-RPC and Application Password logins, which share the same underlying check, and clears automatically on a successful login.
+* New: Added an optional "Disable XML-RPC" setting (Settings → Security, off by default) for sites that don't rely on the `xmlrpc.php` endpoint.
+* New: Added a "Block User Enumeration" setting (Settings → Security, off by default) that blocks discovering valid usernames via the REST API's users endpoint or the legacy "?author=&lt;id&gt;" link, for logged-out visitors.
+* Dev: Hardened the performance-export and log-retention `days` request parameters to use `absint()` instead of a raw integer cast.
+* Dev: Corrected WordPress coding-standards (PHPCS) escaping and resource-version annotations in the settings UI and script handler; no behaviour change.
+* Dev: Removed the PluginScore verification code from the readme, as Kitgenix Plugin Score has been discontinued.
+* Dev: Bumped the version to 2.2.0 across the plugin.
+* Documentation: Updated `DOCUMENTATION.md` to remove the Plugin Score integration, describe the new login and User-Agent whitelist behaviour, and document WooCommerce Pay for Order protection and challenge performance reporting.
+* Documentation: The regenerated `.pot` template also picks up the Easy Digital Downloads block strings added in 2.1.4, which were missing from the previous template.
+* Documentation: Regenerated the `.pot` translation template for 2.2.0.
+* Documentation: The readme changelog now lists only the current release. The full release history is in `CHANGELOG.md`.
 
-= 2.1.3 (13 October 2026) =
-
-* Fix: Resolved an issue where clicking "Save Settings" on the plugin's settings screen could silently do nothing. A nested HTML form around the log auto-delete control was invalidly closing the main settings form early, leaving the Save Settings button detached from it.
-* Fix: Resolved a related issue where saving settings via the floating "Save now" bar could redirect to a blank `wp-admin/options.php` screen instead of back to the settings page with a confirmation notice.
-
-= 2.1.2 (13 October 2026) =
-
-* Fix: Bump version to 2.1.2 across the plugin.
-
-= 2.1.1 (13 October 2026) =
-
-* Fix: Updated PluginScore Verification code.
-
-= 2.1.0 (13 October 2026) =
-* New: Added a "Clear log" button to remove all event log entries on demand.
-* New: Added a configurable log auto-delete setting (7/14/30 days) to automatically remove old event log entries.
-* Fix: Easy Digital Downloads login form widget could silently fail to render when the `edd_login_form` filter ran more than once in a single request (e.g. an `[edd_login]` widget alongside the dedicated Login page, or a page combining `[edd_login]` with `[edd_profile_editor]`). Only the first call was getting the Turnstile widget; every subsequent call on the same page was skipped.
-* New: Added a "Request a Feature" button to the Need Help? sidebar, linking directly to this plugin's page on the Kitgenix roadmap (https://roadmap.kitgenix.com).
-* New: Added a "Request a Feature" banner below the plugin grid on the Kitgenix Hub page, linking to the shared Kitgenix roadmap.
-
-= 2.0.2 (2 September 2026) =
-* New: Added an optional Cloudflare outage failsafe (Settings → Advanced → Reliability, off by default) that independently checks Cloudflare Turnstile's reachability server-side and, once enabled, lets protected forms submit instead of blocking every visitor during a confirmed Cloudflare outage. A visitor cannot trigger this bypass themselves; it only activates when the plugin's own probe confirms Cloudflare is unreachable.
-* New: Added a live "Cloudflare outage failsafe is active" alert on the Log tab and in Site Health for as long as the failsafe is bypassing verification, and failsafe bypasses are logged distinctly from genuine Cloudflare-verified passes in the recent events log and per-integration metrics.
-* Fix: Resolved an issue where the WooCommerce Blocks Checkout widget could stop rendering after the checkout block re-renders during a normal page load (cart totals, shipping rates and payment methods resolving in sequence). A container that was emptied out by one of these re-renders could be left behind still marked as already rendered, so it silently stayed blank instead of showing the widget. The self-healing recovery logic now recognises a genuinely emptied container and re-renders into it, gated by a grace period so it never interrupts a widget that is still loading or has already been solved.
-* Fix: The plugin now properly calls Cloudflare's `turnstile.remove()` before clearing and re-rendering any widget container, across every integration (WooCommerce, Elementor, Gravity Forms, Formidable Forms, Forminator, Jetpack Forms, Fluent Forms, Kadence Forms). Previously the container was cleared directly without unregistering the widget first, which could leave a stale widget reference behind and produce "Cannot find Widget" warnings after repeated re-renders.
-* Fix: The WooCommerce Blocks Checkout container-recovery observer now unregisters a widget from Cloudflare's script when the block's own re-render removes its container from the DOM, instead of leaving an orphaned widget reference behind for the replacement container to collide with.
-* Fix: Removed an unnecessary plugin-version query parameter that WordPress's automatic asset versioning was appending to Cloudflare's third-party `api.js` script URL. Turnstile's own script logged this as an unrecognised parameter; the URL now matches what Cloudflare's CDN expects.
-
-= 2.0.1 (2 September 2026) =
-* Fix: Resolved an issue where the WooCommerce Block Checkout widget would not render consistently.
-
-= 2.0.0 (31 August 2026) =
-
-* New: Redesigned the admin settings interface around the shared Kitgenix design system with a sticky topbar, cross-plugin branding, grouped navigation, an Advanced dropdown for Security, Advanced, and Portability, and a light/dark theme toggle that remembers the selected preference.
-* New: Added in-page settings search with "/" and Cmd/Ctrl+K keyboard shortcuts, filtering the active tab's cards and rows as you type and displaying a dedicated no-results state when nothing matches.
-* New: Added a central Kitgenix Hub page for discovering, installing, activating, and reviewing Kitgenix plugins from one screen, integrated into the same topbar and navigation shell as the plugin settings.
-* New: Added a shared Kitgenix component library providing reusable modals, collapsible sections, copy-to-clipboard controls, sortable/searchable tables, and toast notifications.
-* New: Added a dedicated Log tab containing active alerts, site-impact statistics, per-integration analytics, and the recent diagnostic log, moving diagnostics out of the Support tab.
-* New: Added Ninja Forms integration with Turnstile tokens delivered through a request header rather than a hidden field, matching Ninja Forms' JSON-based submission architecture.
-* New: Documented and re-verified the existing Kitgenix Plugin Score integration for login, registration, and forgotten-password protection.
-* New: Added per-integration widget overrides for Theme, Widget Size, and Language, allowing individual integrations to override the global display settings or inherit them unchanged.
-* New: Added an optional honeypot fallback under Settings → Security that rejects bots which blindly populate hidden fields before any request is sent to Cloudflare's `siteverify` endpoint.
-* New: Added Test Mode per Integration under Settings → Developer Mode, allowing individual integrations to operate in warn-only mode while the rest of the site remains fully enforced.
-* New: Diagnostic log entries now record Cloudflare `siteverify` round-trip latency so slow successful responses can be distinguished from failures and timeouts.
-* New: Added a Protection Health card to the Log tab with actionable states including Healthy, No recent traffic, High failure rate, Cloudflare unavailable, Duplicate Turnstile loader, and Configuration problem.
-* New: Added Integration, Result, Category, and Time Period filters to the recent diagnostic log alongside the existing free-text search.
-* New: Renamed the per-integration analytics table to "Integration health matrix" and added each integration's Enabled/Disabled state and Auto/Shortcode injection mode.
-* New: Settings imports now provide a client-side preview showing setting-key count, export date, whether Site/Secret keys are included, included settings groups, and plugin-identifier mismatch warnings before Replace or Merge is committed.
-* New: On WordPress 7.1 and later, the Kitgenix brand icon is registered with the WordPress Icon Registration API as `kitgenix/mark` for discovery through `wp_get_icon()` and the icons REST endpoint.
-* Improved: All settings areas – Site Keys, Display, Integrations, Security, Advanced, and Portability – now use consistent cards, labelled rows, toggle switches, and unified alert components.
-* Improved: Refreshed the admin and public-facing Turnstile widget colours from the previous purple palette to the updated Kitgenix blue palette, including light and dark mode variants.
-* Improved: The plugin-specific admin stylesheet now builds on the shared Kitgenix admin UI stylesheet for consistent spacing, typography, and component styling.
-* Improved: The recent diagnostic log is now displayed as a searchable, paginated table with time, integration, outcome, and a plain-English note instead of a read-only text block.
-* Improved: Retained the "Copy recent log" action for quickly copying the raw diagnostic log for troubleshooting or support.
-* Improved: Per-integration analytics now supports live search and pagination.
-* Improved: The Support tab is now three focused cards – a donate card with a collapsible monthly-amount picker, a "what your support funds" summary, and a "get involved" panel for reviews and plugin links.
-* Improved: Stale WordPress security tokens are no longer counted as blocked attempts or included in the failure-spike alert threshold because they represent recoverable session or caching friction rather than genuine security rejections.
-* Improved: The replayed-token diagnostic message now explains that the event can result from legitimate actions such as double-clicks or back-button resubmissions as well as malicious replay attempts.
-* Improved: Both Turnstile validation entry points now consistently respect site-wide Developer Mode and the new per-integration Test Mode.
-* Fix: WooCommerce lost/reset-password protection is now self-contained. Enabling only the WooCommerce lost-password integration now validates its own My Account reset-request form without depending on the separate WordPress Core integration.
-* Fix: WooCommerce lost-password validation is scoped to WooCommerce's own form and does not interfere with the native `wp-login.php` lost-password flow.
-* Fix: WooCommerce login verification now runs only once per request when both modern and legacy WooCommerce login-error filters fire, preventing legitimate submissions from being incorrectly rejected as replayed or expired.
-* Fix: bbPress forum creation now validates Turnstile exactly once on the correct pre-insert action instead of running a second redundant validation through `bbp_new_forum_pre_insert`.
-* Fix: Removed incorrect handling that could replace bbPress forum post data with an unexpected validation return value.
-* Fix: WPForms Turnstile errors now render the actual error message instead of the literal text "Array".
-* Fix: The admin language allow-list is now sourced from `Script_Handler::get_allowed_languages()` so global and per-integration language settings cannot drift apart.
-* Fix: Elementor AJAX handling is now scoped to the form that actually submitted a solved Turnstile token instead of affecting every Elementor form on the page.
-* Fix: Elementor widgets are now hidden or cleared only after a confirmed successful form submission, preserving the widget after validation failures so visitors can retry.
-* Security: Completed a full hook-by-hook enforcement audit of every supported integration to verify that a failed Turnstile check in enforcement mode actually blocks the protected action rather than merely being logged.
-* Security: Fixed Contact Form 7 shortcode-only mode so the `wpcf7_validate` validation filter is always registered. Previously shortcode-only placement could render the widget while allowing submissions to bypass validation completely.
-* Security: Contact Form 7 shortcode mode now correctly respects the integration's enable/disable setting.
-* Security: Removed request-method fail-open checks from Contact Form 7 and Elementor validation. Validation now runs whenever the host plugin invokes the relevant validation hook rather than trusting `$_SERVER['REQUEST_METHOD']` as a security boundary.
-* Security: Fixed Easy Digital Downloads login protection by replacing the nonexistent `edd_process_login_form` hook with WordPress's real `authenticate` filter, scoped to EDD login submissions through EDD's own nonce field.
-* Security: Fixed Fluent Forms enforcement by replacing the nonexistent `fluentform_submit_validation` hook with Fluent Forms' actual `fluentform/validation_errors` validation filter.
-* Security: Rebuilt Kadence Forms protection against the current Kadence Blocks "Form (Adv)" implementation using `kadence_blocks_advanced_form_submission_reject`, replacing dead hooks and an invalid class check that meant validation previously never ran.
-* Security: Kadence Advanced Form widget injection now uses an appropriate frontend script bridge because the block does not expose a suitable PHP render filter.
-* Security: Fixed Ninja Forms token delivery by attaching the token to the relevant AJAX request header rather than inserting a hidden DOM field that Ninja Forms never included in its JSON submission payload.
-* Security: Ninja Forms failed Turnstile checks now terminate the submission request directly instead of writing to an error-array structure that Ninja Forms does not consult.
-* Security: `Turnstile_Validator::validate_token()` now respects site-wide Developer Mode and per-integration Test Mode consistently with `is_valid_submission()`.
-* Security: Confirmed diagnostic and analytics CSV exports do not introduce spreadsheet formula/DDE injection because they contain plugin-generated labels and counters rather than raw user-submitted form values.
-* Security: Confirmed settings exports continue to exclude the Site Key and Secret Key unless an administrator explicitly opts to include them.
-* Security: Re-verified trusted-proxy client IP resolution against spoofed proxy headers and out-of-range CIDRs.
-* Security: Proxy headers including `CF-Connecting-IP`, `True-Client-IP`, `X-Forwarded-For`, and `X-Real-IP` are only trusted when `REMOTE_ADDR` matches an administrator-configured trusted proxy address or CIDR.
-* Security: Client IP values extracted from trusted proxy headers must be valid public addresses; private and reserved addresses are rejected.
-* Performance: Frontend Turnstile script loading remains unchanged. Cloudflare `api.js` continues to load once and only when a widget will actually render for the current visitor.
-* Performance: Whitelisted requests continue to skip Turnstile frontend script loading entirely.
-* Performance: The existing duplicate Turnstile loader detector remains unchanged.
-* Compatibility: Confirmed compatibility with WordPress 7.1.
-* Compatibility: Declared WooCommerce High-Performance Order Storage (HPOS / `custom_order_tables`) compatibility.
-* Compatibility: Re-verified that Checkout Blocks order verification metadata uses WooCommerce's `WC_Order` CRUD API through `update_meta_data()` and `save()` rather than direct database access.
-* Compatibility: Verified WooCommerce 11.x compatibility across Classic Checkout, Checkout Blocks/Store API, and WooCommerce My Account login, registration, and lost-password flows against current WooCommerce source.
-* Dev: Added `Turnstile_Validator::get_all_integration_keys()` as the canonical list of integrations eligible for Test Mode and per-integration settings, sourced consistently with `get_integration_label()`.
-* Dev: Updated Kitgenix logo and favicon filenames and references throughout the plugin and Kitgenix Hub to use the shared brand asset set.
-* Dev: Refreshed the Kitgenix Hub plugin directory listing, including the renamed MultiStore for WooCommerce entry and the new Image Optimizer listing.
-* Dev: Added automated tests covering enforcement regressions discovered during the integration audit.
-* Dev: Added automated tests covering spoofed trusted-proxy headers and out-of-range CIDR scenarios.
-* Documentation: Documented the Kitgenix Plugin Score integration in the readme for the first time.
-* Documentation: Expanded the changelog to distinguish security-sensitive enforcement fixes from general bug fixes.
-* Documentation: Documented the previously undocumented `kitgenix_turnstile_skip_wp_login_validation` filter under Developers → Filters.
+Full release history is available in the plugin's `CHANGELOG.md` file.

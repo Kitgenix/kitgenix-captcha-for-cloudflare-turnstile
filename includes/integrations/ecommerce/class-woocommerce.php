@@ -38,6 +38,15 @@ class WooCommerce {
             add_action('woocommerce_thankyou', [__CLASS__, 'mark_token_used_after_checkout']);
         }
 
+        // Pay for Order (order-pay endpoint, e.g. "Customer payment page" links sent from
+        // wp-admin or failed-payment retry emails). Independent of the checkout toggles:
+        // form-pay.php never fires the checkout hooks above, so this page is only
+        // protected when this setting is on.
+        if ( ! empty($settings['wc_pay_order_form']) ) {
+            add_action('woocommerce_pay_order_before_submit', [__CLASS__, 'render_pay_order_widget']);
+            add_action('woocommerce_before_pay_action',       [__CLASS__, 'validate_pay_order']);
+        }
+
         // WooCommerce login (My Account)
         if ( ! empty($settings['wc_login_form']) ) {
             add_action('woocommerce_login_form', [__CLASS__, 'render_widget']);
@@ -120,6 +129,25 @@ class WooCommerce {
             return;
         }
 
+        self::output_widget_markup( $site_key );
+    }
+
+    /**
+     * Pay for Order: render before the "Pay for order" button.
+     *
+     * Always auto-injected, ignoring the Classic "Shortcode only" mode: form-pay.php is a
+     * WooCommerce template with no editable content area, so there is nowhere to place
+     * the shortcode, and shortcode-only would leave the page enforced but widget-less.
+     */
+    public static function render_pay_order_widget() {
+        $settings = get_option('kitgenix_captcha_for_cloudflare_turnstile_settings', []);
+        self::output_widget_markup( $settings['site_key'] ?? '' );
+    }
+
+    /**
+     * Shared markup for the classic (POST-based) WooCommerce forms.
+     */
+    private static function output_widget_markup( string $site_key ) {
         if ( ! $site_key ) {
             echo '<p class="kitgenix-captcha-for-cloudflare-turnstile-warning">'
                . esc_html__( 'Cloudflare Turnstile site key is missing. Please configure it in plugin settings.', 'kitgenix-captcha-for-cloudflare-turnstile' )
@@ -171,6 +199,31 @@ class WooCommerce {
 
         if ( ! Turnstile_Validator::is_valid_submission( true, 'woocommerce-checkout', false ) ) {
             wc_add_notice( Turnstile_Validator::get_error_message('woocommerce'), 'error' );
+        }
+    }
+
+    /**
+     * Pay for Order validation.
+     *
+     * Hook: woocommerce_before_pay_action (action, 1 arg). WC_Form_Handler::pay_action()
+     * only fires this after its own nonce, order-key and needs_payment() checks pass, and
+     * only calls the gateway's process_payment() while wc_notice_count('error') is 0 – so
+     * an error notice here stops the payment attempt before any gateway is contacted.
+     *
+     * Replay protection stays on: a declined payment re-renders the pay page with a fresh
+     * widget, so a retry never needs to reuse the previous token.
+     *
+     * @param \WC_Order $order
+     */
+    public static function validate_pay_order( $order ) {
+        static $validated = false;
+        if ( $validated ) {
+            return;
+        }
+        $validated = true;
+
+        if ( ! Turnstile_Validator::is_valid_submission( true, 'woocommerce-pay-order' ) ) {
+            wc_add_notice( Turnstile_Validator::get_error_message( 'woocommerce' ), 'error' );
         }
     }
 

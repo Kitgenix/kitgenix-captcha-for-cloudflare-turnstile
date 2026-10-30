@@ -74,6 +74,10 @@ function kitgenix_captcha_for_cloudflare_turnstile_remove_plugin_data() {
     delete_option('kitgenix_turnstile_log_retention_days');
     delete_site_option('kitgenix_turnstile_log_retention_days');
 
+    // Challenge performance aggregates (daily counts and response times only).
+    delete_option('kitgenix_turnstile_performance');
+    delete_site_option('kitgenix_turnstile_performance');
+
     // Setup_Verification's gate state (Site Key/Secret Key pair hash + last verification result).
     delete_option('kitgenix_turnstile_setup_verification');
     delete_site_option('kitgenix_turnstile_setup_verification');
@@ -97,6 +101,7 @@ function kitgenix_captcha_for_cloudflare_turnstile_remove_plugin_data() {
             delete_option('kitgenix_captcha_for_cloudflare_turnstile_metrics');
             delete_option('kitgenix_turnstile_recent_event_log');
             delete_option('kitgenix_turnstile_log_retention_days');
+            delete_option('kitgenix_turnstile_performance');
             delete_option('kitgenix_turnstile_setup_verification');
             kitgenix_captcha_for_cloudflare_turnstile_delete_transients_by_prefix( 'kitgenix_captcha_for_cloudflare_turnstile_' );
             kitgenix_captcha_for_cloudflare_turnstile_delete_transients_by_prefix( 'kitgenix_turnstile_' );

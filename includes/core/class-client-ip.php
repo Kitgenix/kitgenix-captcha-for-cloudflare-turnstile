@@ -39,14 +39,20 @@ class Client_IP {
             return $tci;
         }
 
-        // Left-most client in XFF that is PUBLIC.
+        // XFF: walk right-to-left past our own trusted proxies. Proxies append, so the
+        // left-most entries are client-supplied and must never be trusted (spoofing one
+        // could match the IP whitelist and skip verification).
         $xff = isset($_SERVER['HTTP_X_FORWARDED_FOR']) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) : '';
         if ($xff) {
-            foreach (explode(',', $xff) as $ip) {
-                $ip = trim($ip);
-                if ($ip && self::is_public_ip($ip)) {
+            $hops = array_reverse(array_filter(array_map('trim', explode(',', $xff))));
+            foreach ($hops as $ip) {
+                if (filter_var($ip, FILTER_VALIDATE_IP) && self::is_trusted_proxy($ip, $settings)) {
+                    continue;
+                }
+                if (self::is_public_ip($ip)) {
                     return $ip;
                 }
+                break;
             }
         }
 
